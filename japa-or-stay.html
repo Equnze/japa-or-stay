@@ -147,6 +147,11 @@ table.ledger tr.total td { border-bottom: 0; font-weight: 700; padding-top: 8px;
 .lookbtn { border: 1.5px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: 999px; padding: 6px 12px; font: 600 13px var(--font-body); cursor: pointer; }
 .lookbtn[aria-pressed="true"] { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 14%, var(--surface)); }
 .preview { display: flex; gap: 14px; align-items: center; }
+.help h3 { font-family: var(--font-display); font-weight: 600; font-size: 16px; margin: 6px 0 0; }
+.help ol, .help ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.help .track ul { padding-left: 0; }
+.help .track .note { margin: 6px 0 0; }
+.help > .btn:last-child { align-self: flex-start; }
 @media (max-width: 420px) {
   .stats { grid-template-columns: 1fr; }
   .tracks { grid-template-columns: 1fr; }
@@ -163,6 +168,7 @@ table.ledger tr.total td { border-bottom: 0; font-weight: 700; padding-top: 8px;
       <div class="sub" id="tagline">Weekly-loop prototype · Year 1</div>
     </div>
     <div class="row">
+    <button class="lookbtn" id="helpbtn" data-act="help">How to play</button>
     <button class="lookbtn" id="newgame" data-act="newgame" hidden>New game</button>
     <div class="lang" role="group" aria-label="Language">
       <button id="lang-en" data-act="lang" data-v="en" aria-pressed="true">English</button>
@@ -1067,7 +1073,51 @@ function save() { try { localStorage.setItem('jos-save', JSON.stringify(S)); } c
 function load() { try { const r = localStorage.getItem('jos-save'); if (r) S = JSON.parse(r); } catch (e) { S = null; } }
 
 /* ---------- render ---------- */
-let confirmReset = false;
+let confirmReset = false, showHelp = false;
+function helpView() {
+  const back = `<button class="btn" data-act="help-close">${S ? 'Back to my game' : 'Back to setup'}</button>`;
+  return `<section class="panel help">
+    <div class="row between"><h2>How to play</h2>${back}</div>
+    <p style="margin:0">You are a fresh graduate with ₦150,000. Over two in-game years you decide: <b style="color:var(--japa)">japa</b> (leave Nigeria) or <b style="color:var(--stay)">stay</b> and build at home. Neither is the right answer.</p>
+
+    <h3>Each week has 3 steps</h3>
+    <ol>
+      <li><b>Plan.</b> You have 21 time blocks (the gold squares). Tap action cards to pick them. Each card shows its blocks, its cost and what it does. Tap again to unpick. Then press <b>${t('endWeek')}</b>.</li>
+      <li><b>Life happens.</b> One or two events pop up: Mama needs money, an owambe, NEPA, fuel scarcity, a scam. Pick a response; the small text under each choice says what it does.</li>
+      <li><b>Settle up.</b> Pay and sales come in; rent, food and transport go out. Prices rise each week and the naira moves against the dollar. Press <b>${t('cont')}</b>.</li>
+    </ol>
+
+    <h3>Keep your life balanced</h3>
+    <ul>
+      <li><b>Energy</b> drops when you work. Rest brings it back. Below 15, your health suffers.</li>
+      <li><b>Mood, family bond and community</b> slowly fall every week. Chill, call home, go to church or mosque, attend owambes.</li>
+      <li>The <b>meter</b> shows which way you are leaning. The cards you are dealt follow it.</li>
+      <li>Run out of money and a <b>loan app</b> covers you, with interest, taking 30% of your cash until it is paid.</li>
+    </ul>
+
+    <h3>Year 1 (weeks 1–52): choose a path</h3>
+    <div class="tracks">
+      <div class="track j"><h3>To japa</h3><ul>
+        <li>Get your passport</li><li>Study, then score 6.5 on the English test</li><li>Apply abroad until you get a job offer</li><li>Move ₦ to your dollar account until you have $2,000</li>
+      </ul><p class="note">Then the visa interview comes. If approved, choose at the airport.</p></div>
+      <div class="track s"><h3>To stay</h3><ul>
+        <li>Get a job (job hunt)</li><li>Buy stock until your business is level 6</li><li>Save enough for the shop lease</li>
+      </ul><p class="note">Then sign the lease, or press "Keep building at home" at the end of Year 1.</p></div>
+    </div>
+    <p class="note" style="margin:0">Tip: pick one path early. Doing a bit of both usually gets you neither.</p>
+
+    <h3>Year 2 (weeks 53–104)</h3>
+    <ul>
+      <li><b style="color:var(--japa)">Abroad chapter:</b> work care home shifts, finish the senior carer course, pass the Life in Northland test and save $4,000 to settle. Or buy land at home and save $5,000 to return and build. Avoid cash-in-hand gigs: 3 visa warnings and you are sent home.</li>
+      <li><b style="color:var(--stay)">Build chapter:</b> run and restock the shop, hire staff, register with CAC and open branches for an empire. Or attend town union meetings and run for councillor. Or build your hometown house in 8 stages.</li>
+    </ul>
+
+    <h3>Endings</h3>
+    <p style="margin:0">Each run ends with a life card and a Pidgin verdict, like <i>Settled Abroad</i>, <i>Back to Base</i>, <i>Odogwu</i> or <i>Changemaker</i>. Press <b>${t('newGame')}</b> to try the other path.</p>
+    <p class="note" style="margin:0">Watch out: "double your money" schemes and "visa guaranteed" agents are scams. Spotting them earns the Street Smart badge. <b>New game</b> at the top starts over at any time.</p>
+    ${back}
+  </section>`;
+}
 let setup = { name: 'Ada', region: 'enugu', trait: 'hustler', skin: SKINS[2], look: 'braids' };
 const app = document.getElementById('app');
 
@@ -1236,7 +1286,9 @@ function render() {
   document.getElementById('tagline').textContent = S && S.abroad ? 'Year 2 · The Abroad chapter' : S && S.build ? 'Year 2 · The Build chapter' : 'Weekly-loop prototype · Year 1';
   document.getElementById('lang-en').setAttribute('aria-pressed', LANG === 'en');
   document.getElementById('lang-pg').setAttribute('aria-pressed', LANG === 'pg');
-  document.getElementById('newgame').hidden = !S;
+  document.getElementById('newgame').hidden = !S || showHelp;
+  document.getElementById('helpbtn').hidden = showHelp;
+  if (showHelp) { app.innerHTML = helpView(); return; }
   if (!S) { app.innerHTML = setupView(); return; }
   if (confirmReset) {
     app.innerHTML = `<section class="panel"><h2>Start a new game?</h2>
@@ -1266,6 +1318,8 @@ document.addEventListener('click', e => {
   if (a === 'choose') choose(Number(b.dataset.i));
   if (a === 'next') nextEvent();
   if (a === 'nextweek') nextWeek();
+  if (a === 'help') { if (!S) setup.name = (document.getElementById('nm') || {}).value || setup.name; showHelp = true; render(); window.scrollTo({ top: 0 }); return; }
+  if (a === 'help-close') { showHelp = false; render(); window.scrollTo({ top: 0 }); return; }
   if (a === 'newgame') { confirmReset = true; render(); window.scrollTo({ top: 0 }); return; }
   if (a === 'reset-no') { confirmReset = false; }
   if (a === 'restart') { confirmReset = false; S = null; try { localStorage.removeItem('jos-save'); } catch (er) {} }
