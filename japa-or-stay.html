@@ -1,0 +1,1266 @@
+<title>Japa or Stay</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one phone-width column. Header with an Ankara strip, a status board, then the phase card (plan / life / settle). */
+:root {
+  --bg: #EEF2EC;
+  --surface: #FFFFFF;
+  --surface-2: #F5F8F3;
+  --ink: #13201A;
+  --muted: #5A6A61;
+  --line: #D6DED6;
+  --stay: #0E7A4C;        /* naija green = Stay */
+  --japa: #3346A8;        /* passport indigo = Japa */
+  --gold: #D99A0E;        /* marigold = money */
+  --bad: #B83A2E;
+  --good: #1D8A55;
+  --chip: #E6EDE5;
+  /* illustration palette */
+  --sky: #CFE6EE; --sky-cold: #D5DCE6; --sun: #F3B53A; --sil: #2F4A3F; --water: #6FA6BF; --sand: #E2C58F;
+  --mud: #C27D4B; --mud2: #A9653A; --hill: #3E8C5A; --hill2: #66AE6E; --roof: #B84A2C; --snow: #F7F8FA; --house: #8A6E5E;
+  --paper: #F7F3E8; --ink-soft: #3A4A42; --portrait-bg: #DCE8DF; --icon-bg: #2C3E35;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "Consolas", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1411; --surface: #16201B; --surface-2: #1B2721; --ink: #E6EEE8; --muted: #94A59B;
+    --line: #2A3830; --stay: #3FC184; --japa: #8F9DFF; --gold: #F0B637; --bad: #F07A6C; --good: #4FD08F; --chip: #22302A;
+    --sky: #1E3440; --sky-cold: #2A3038; --sun: #E8A93A; --sil: #0E1A15; --water: #2C4F60; --sand: #7C6440;
+    --mud: #8C5532; --mud2: #74442A; --hill: #23573A; --hill2: #2F6E45; --roof: #8A3A22; --snow: #C9CED6; --house: #5A473D;
+    --paper: #E9E4D6; --ink-soft: #33413A; --portrait-bg: #24332B; --icon-bg: #2C3E35;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1411; --surface: #16201B; --surface-2: #1B2721; --ink: #E6EEE8; --muted: #94A59B;
+  --line: #2A3830; --stay: #3FC184; --japa: #8F9DFF; --gold: #F0B637; --bad: #F07A6C; --good: #4FD08F; --chip: #22302A;
+    --sky: #1E3440; --sky-cold: #2A3038; --sun: #E8A93A; --sil: #0E1A15; --water: #2C4F60; --sand: #7C6440;
+    --mud: #8C5532; --mud2: #74442A; --hill: #23573A; --hill2: #2F6E45; --roof: #8A3A22; --snow: #C9CED6; --house: #5A473D;
+    --paper: #E9E4D6; --ink-soft: #33413A; --portrait-bg: #24332B; --icon-bg: #2C3E35;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 540px; margin: 0 auto; padding-block: 0 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 14px; }
+.ankara { height: 10px; margin: 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); background:
+  repeating-linear-gradient(90deg, var(--stay) 0 18px, var(--gold) 18px 24px, var(--japa) 24px 42px, var(--gold) 42px 48px); }
+header.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding-top: 14px; flex-wrap: wrap; }
+h1 { font-family: var(--font-display); font-weight: 800; font-size: 30px; line-height: 1; margin: 0; letter-spacing: -0.01em; }
+h1 .or { color: var(--gold); }
+h2 { font-family: var(--font-display); font-weight: 600; font-size: 20px; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 13px; }
+.lang { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.lang button { border: 0; background: transparent; color: var(--muted); padding: 6px 12px; font: 600 12px var(--font-body); letter-spacing: .04em; cursor: pointer; }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.between { justify-content: space-between; }
+.money { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+.money div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.num.big { font-size: 19px; }
+.up { color: var(--bad); } .down { color: var(--good); }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px 16px; }
+.stat { display: grid; grid-template-columns: 82px 1fr 30px; align-items: center; gap: 8px; font-size: 13px; }
+.bar { height: 7px; border-radius: 4px; background: var(--chip); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--stay); border-radius: 4px; transition: width .4s; }
+.bar i.low { background: var(--bad); }
+.stat .v { font-family: var(--font-num); font-size: 12px; text-align: right; color: var(--muted); }
+.resolve { display: flex; flex-direction: column; gap: 6px; }
+.meter { position: relative; height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--stay), var(--chip) 50%, var(--japa)); }
+.meter b { position: absolute; top: -4px; width: 4px; height: 20px; border-radius: 2px; background: var(--ink); transform: translateX(-2px); transition: left .4s; }
+.ends { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; }
+.ends .s { color: var(--stay); } .ends .j { color: var(--japa); }
+.tracks { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.track h3 { margin: 0 0 4px; font-size: 13px; font-weight: 700; }
+.track.j h3 { color: var(--japa); } .track.s h3 { color: var(--stay); }
+.track ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; }
+.track li { display: flex; gap: 6px; align-items: baseline; }
+.track li::before { content: ""; flex: none; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--muted); transform: translateY(1px); }
+.track li.ok::before { background: var(--good); border-color: var(--good); }
+.phase-tabs { display: flex; gap: 4px; font-size: 11.5px; font-weight: 600; color: var(--muted); flex-wrap: wrap; }
+.phase-tabs span { padding: 3px 8px; border-radius: 999px; background: var(--chip); }
+.phase-tabs span.on { background: var(--ink); color: var(--bg); }
+.blocks { display: flex; gap: 3px; flex-wrap: wrap; }
+.blocks i { width: 12px; height: 12px; border-radius: 3px; background: var(--gold); }
+.blocks i.used { background: var(--chip); }
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+.card { text-align: left; border: 1.5px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; font: inherit; min-width: 0; }
+.card:hover:not(:disabled) { border-color: var(--ink); }
+.card:focus-visible, button:focus-visible, input:focus-visible { outline: 2.5px solid var(--gold); outline-offset: 2px; }
+.card[aria-pressed="true"] { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 14%, var(--surface)); }
+.card:disabled { opacity: .45; cursor: not-allowed; }
+.card .t { font-weight: 700; font-size: 14px; line-height: 1.2; }
+.card .meta { display: flex; justify-content: space-between; font-family: var(--font-num); font-size: 11.5px; color: var(--muted); gap: 6px; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag { font-size: 11px; padding: 1px 6px; border-radius: 999px; background: var(--chip); color: var(--ink); white-space: nowrap; }
+.tag.j { color: var(--japa); font-weight: 700; } .tag.s { color: var(--stay); font-weight: 700; }
+.btn { border: 0; border-radius: 10px; padding: 12px 16px; font: 700 15px var(--font-body); background: var(--ink); color: var(--bg); cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.event { display: flex; flex-direction: column; gap: 10px; }
+.who { display: flex; gap: 10px; align-items: center; }
+.avatar { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-family: var(--font-display); color: #fff; background: var(--stay); }
+.avatar.j { background: var(--japa); } .avatar.g { background: var(--gold); } .avatar.b { background: var(--bad); }
+.quote { font-style: italic; color: var(--muted); }
+.choices { display: flex; flex-direction: column; gap: 8px; }
+.choice { text-align: left; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--ink); padding: 10px 12px; cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 3px; }
+.choice:hover { border-color: var(--ink); }
+.choice small { color: var(--muted); font-size: 12px; }
+.result { background: var(--surface-2); border-left: 3px solid var(--gold); padding: 10px 12px; border-radius: 6px; }
+table.ledger { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.ledger td { padding: 5px 0; border-bottom: 1px dashed var(--line); }
+table.ledger td:last-child { text-align: right; font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+table.ledger tr.total td { border-bottom: 0; font-weight: 700; padding-top: 8px; }
+.pos { color: var(--good); } .neg { color: var(--bad); }
+.log { font-size: 12.5px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; }
+.log b { color: var(--ink); font-weight: 600; }
+.setup label { font-weight: 600; font-size: 13px; }
+.setup input[type=text] { width: 100%; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 10px; font: inherit; background: var(--surface-2); color: var(--ink); }
+.opts { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+.opt { border: 1.5px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: 10px; padding: 9px 10px; text-align: left; cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.opt[aria-pressed="true"] { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 14%, var(--surface)); }
+.opt small { color: var(--muted); font-size: 11.5px; }
+.lifecard { border: 2px solid var(--ink); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 10px; background: var(--surface); }
+.lifecard .ending { font-family: var(--font-display); font-weight: 800; font-size: 28px; line-height: 1.05; }
+.lifecard .pg { font-size: 17px; font-weight: 600; }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; max-width: 90vw; }
+.note { font-size: 12px; color: var(--muted); }
+.scene { display: block; width: 100%; height: 96px; border-radius: 10px; }
+.opt .scene { height: 44px; border-radius: 6px; margin-bottom: 4px; }
+.lifecard .scene { height: 120px; }
+.face { display: block; flex: none; width: 52px; height: 52px; }
+.face.lg { width: 76px; height: 76px; }
+.ci { width: 20px; height: 20px; flex: none; color: var(--muted); }
+.card .head { display: flex; gap: 8px; align-items: flex-start; }
+.card[aria-pressed="true"] .ci { color: var(--gold); }
+.me { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.looks { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.swatch { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line); cursor: pointer; }
+.swatch[aria-pressed="true"] { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); }
+.lookbtn { border: 1.5px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: 999px; padding: 6px 12px; font: 600 13px var(--font-body); cursor: pointer; }
+.lookbtn[aria-pressed="true"] { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 14%, var(--surface)); }
+.preview { display: flex; gap: 14px; align-items: center; }
+@media (max-width: 420px) {
+  .stats { grid-template-columns: 1fr; }
+  .tracks { grid-template-columns: 1fr; }
+  h1 { font-size: 26px; }
+}
+@media (prefers-reduced-motion: reduce) { .bar i, .meter b { transition: none; } }
+</style>
+
+<div class="wrap">
+  <div class="ankara" aria-hidden="true"></div>
+  <header class="top">
+    <div>
+      <h1>Japa <span class="or">or</span> Stay</h1>
+      <div class="sub" id="tagline">Weekly-loop prototype · Year 1</div>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button id="lang-en" data-act="lang" data-v="en" aria-pressed="true">English</button>
+      <button id="lang-pg" data-act="lang" data-v="pg" aria-pressed="false">Pidgin</button>
+    </div>
+  </header>
+  <main id="app" class="wrap" style="padding:0"></main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ---------- helpers ---------- */
+const rnd = (a, b) => a + Math.random() * (b - a);
+const chance = p => Math.random() < p;
+const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
+const naira = n => (n < 0 ? '−' : '') + '₦' + Math.abs(Math.round(n)).toLocaleString('en-NG');
+const usd = n => (n < 0 ? '−' : '') + '$' + Math.abs(Math.round(n)).toLocaleString('en-US');
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* ---------- language ---------- */
+const T = {
+  en: { money: 'Cash', savings: 'Dollar account', fx: '₦ per $', energy: 'Energy', mood: 'Mood', health: 'Health', family: 'Family bond', community: 'Community', clout: 'Clout',
+    plan: 'Plan', life: 'Life happens', settle: 'Settle up', progress: 'Progress',
+    planTitle: 'Plan your week', blocksLeft: 'time blocks left', endWeek: 'End the week', cont: 'Continue', notEnough: 'Not enough money',
+    pay: 'Salary', resolve: 'Which way are you leaning?', stay: 'Stay', japa: 'Japa', jtrack: 'Japa checklist', strack: 'Build at home',
+    week: 'Week', newGame: 'Start a new life', start: 'Start my life', log: 'What happened', settleTitle: 'Week settled', noCards: 'Pick cards that fit your time and money.',
+    cashAb: 'Cash', homeAcct: 'Home account', goHome: 'Go home', settleAb: 'Settle abroad', atrack: 'Settle in Northland', rtrack: 'Roots at home' },
+  pg: { money: 'Kudi for hand', savings: 'Dollar account', fx: '₦ for $1', energy: 'Strength', mood: 'Happiness', health: 'Body', family: 'Family matter', community: 'Your people', clout: 'Clout',
+    plan: 'Plan', life: 'Wahala', settle: 'Count money', progress: 'Progress',
+    planTitle: 'How you go run this week?', blocksLeft: 'time remain', endWeek: 'Close this week', cont: 'Make we continue', notEnough: 'You no get enough kudi',
+    pay: 'Your money don land', resolve: 'Which side your mind dey?', stay: 'Stay', japa: 'Japa', jtrack: 'Japa papers', strack: 'Build for here',
+    week: 'Week', newGame: 'Start new life', start: 'Make we start', log: 'Wetin happen', settleTitle: 'This week don close', noCards: 'Pick wetin your time and kudi fit carry.',
+    cashAb: 'Dollar for hand', homeAcct: 'Naija account', goHome: 'Go back home', settleAb: 'Settle for abroad', atrack: 'Papers for abroad', rtrack: 'Root for house' }
+};
+let LANG = 'en';
+try { LANG = localStorage.getItem('jos-lang') || 'en'; } catch (e) {}
+const t = k => (T[LANG] && T[LANG][k]) || T.en[k] || k;
+
+/* ---------- world ---------- */
+const REGIONS = {
+  lagos: { name: 'Lagos', R: 1.3, pay: 1.25, open: 'Ọmọ mi,', friend: 'Bisi', note: 'Highest pay, highest rent' },
+  kano:  { name: 'Kano', R: 0.85, pay: 0.9, open: 'Sannu,', friend: 'Musa', note: 'Cheaper life, strong trade' },
+  enugu: { name: 'Enugu', R: 0.9, pay: 0.95, open: 'Nwa m,', friend: 'Amaka', note: 'Nollywood audition bonus' },
+  ph:    { name: 'Port Harcourt', R: 1.1, pay: 1.1, open: 'My pikin,', friend: 'Tari', note: 'Oil money, flood risk' }
+};
+const TRAITS = {
+  hustler: { name: 'Hustler', d: 'Hustles and business pay 25% more' },
+  book: { name: 'Book Sense', d: 'English study counts 50% more' },
+  smooth: { name: 'Smooth Talker', d: 'Better at negotiating' },
+  family: { name: 'Family First', d: 'Family bond rises faster' },
+  owambe: { name: 'Owambe Spirit', d: 'Parties give double community' }
+};
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const POF_USD = 2000, TEST_USD = 250, VISA_USD = 600, LAST_WEEK = 52, BLOCKS = 21;
+
+let S = null;
+const REG = () => REGIONS[S.region];
+const month = () => MONTHS[Math.min(11, Math.floor(((S.week - 1) % 52) / 4.34))];
+const detty = () => ((S.week - 1) % 52) + 1 >= 48;
+const price = b => Math.round(b * S.idx * REG().R / 100) * 100;
+const fun = b => Math.round(price(b) * (detty() ? 1.4 : 1) / 100) * 100;
+const weeklyPay = () => Math.round(90000 * REG().pay * (1 + 0.08 * Math.floor(S.skills.work)) / 1000) * 1000;
+const hustleBoost = () => S.trait === 'hustler' ? 1.25 : 1;
+const japaReady = () => S.passport && S.ielts >= 6.5 && S.offer && S.usd >= POF_USD;
+// Year 2 (abroad) helpers: abroad, cash is in dollars; the naira account stays at home
+const lastWeek = () => (S.abroad || S.build) ? 104 : LAST_WEEK;
+const wallet = () => S.abroad ? S.usd : S.money;
+const spend = n => { if (S.abroad) S.usd -= n; else S.money -= n; };
+const cur = n => S.abroad ? usd(n) : naira(n);
+const winter = () => ['Jan', 'Feb', 'Nov', 'Dec'].includes(month());
+const weeksAbroad = () => S.abroad ? Math.min(S.week, 104) - S.abroad.start : 0;
+const stillAbroad = () => !!S.abroad && !['return', 'deported'].includes(S.ending);
+// Year 2 (stay) helpers: the Build chapter grows the shop, the community and a house back home
+const SHARED_BUILD = ['rest', 'call', 'faith', 'chill', 'skit', 'studio', 'repay'];
+const salesBase = () => { const B = S.build; return Math.round(price(10000) * S.biz * (1 + 0.15 * B.staff) * (1 + 0.5 * (B.branches - 1)) * (0.6 + B.rep / 125) * hustleBoost() / 100) * 100; };
+function startBuild(lease) {
+  S.build = { start: S.week, lease: !!lease, staff: 0, branches: 1, rep: 50, registered: false, loan: 0, loanWeeks: 0, apprentice: false, leader: 0, campaign: 0, house: 0,
+    worked: false, disrupted: 0, priceWar: 0, supplier: 0, supplierDue: 0, empireWait: 0, houseWait: 0 };
+  S.biz = Math.max(S.biz, 1); S.resolve = Math.min(S.resolve, -20); S.ending = null;
+  log(`<b>Build chapter:</b> ${lease ? 'Your shop on the main road opens.' : 'You decide to stay and build.'} Year 2 begins.`);
+}
+const abroadPay = () => S.abroad.promoted ? 620 : 480;
+const SETTLE_USD = 4000, RETURN_USD = 5000;
+function startAbroad() {
+  const move = Math.max(0, S.money - 50000), d = Math.round(move * 0.98 / S.fx);
+  S.money -= move; S.usd += d;
+  S.abroad = { start: S.week, strikes: 0, course: 0, promoted: false, lifeStudy: 0, lifeTest: false, remitted: 0, land: 0, cc: 0, cut: 0, prWait: 0, returnWait: 0 };
+  S.idxA = 1; S.resolve = 20; S.job = true; S.fuel = 0; S.ajo = null; S.ponzi = null;
+  log(`<b>Arrival:</b> You landed in Northland. ${naira(move)} became ${usd(d)}; ${naira(S.money)} stays in your home account.`);
+}
+
+function newState(name, region, trait, skin, look) {
+  return {
+    name, region, trait, skin, look, week: 1, money: 150000, usd: 0, fx: 1500, idx: 1, fuel: 0,
+    energy: 80, mood: 60, health: 85, family: 60, community: 40, clout: 0, resolve: 0,
+    skills: { work: 1, english: 1 }, job: false, passport: false, ielts: 0, offer: false, biz: 0,
+    ajo: null, ponzi: null, debt: 0, solar: false, streetSmart: false, visaWait: 0, visaDone: false, leaseOffered: 0,
+    picked: [], hand: [], phase: 'plan', queue: [], result: null, ledger: null, log: [], ending: null, pendingPay: 0
+  };
+}
+function log(msg) { S.log.unshift({ w: S.week, m: msg }); S.log = S.log.slice(0, 40); }
+
+/* ---------- action cards ---------- */
+const CARDS = {
+  work: { name: 'Work the full week', blocks: 10, cost: () => 0, can: () => S.job,
+    tags: () => [`+${naira(weeklyPay())} payday`, '−25 energy'],
+    run: () => { S.pendingPay += weeklyPay(); S.energy -= 25; S.skills.work += 0.3; S.resolve -= 1; return 'You worked the week. Pay comes at settle-up.'; } },
+  jobhunt: { name: 'Job hunt', blocks: 5, cost: () => price(3000), can: () => !S.job,
+    tags: () => ['~30% chance of a job', '−10 energy'],
+    run: () => { S.energy -= 10; if (chance(0.3 + 0.04 * S.skills.work)) { S.job = true; return `You got a job at a ${REG().name} firm. Starting pay ${naira(weeklyPay())} a week.`; } S.mood -= 4; return 'No call back this week. "We will get back to you."'; } },
+  pos: { name: 'Run a POS stand', blocks: 6, cost: () => 0, can: () => true,
+    tags: () => ['+₦15k–40k', '−15 energy', 'Stay'],
+    run: () => { const g = Math.round(rnd(15000, 40000) * S.idx * hustleBoost() / 100) * 100; S.money += g; S.energy -= 15; S.resolve -= 2; return `POS hustle made ${naira(g)}.`; } },
+  study: { name: 'Study for the English test', blocks: 4, cost: () => price(5000), can: () => S.ielts < 6.5,
+    tags: () => ['English skill +', '−8 energy', 'Japa'],
+    run: () => { S.skills.english += 0.8 * (S.trait === 'book' ? 1.5 : 1); S.energy -= 8; S.resolve += 3; return `Study session done. English skill ${S.skills.english.toFixed(1)}.`; } },
+  test: { name: 'Sit the English test', blocks: 2, cost: () => S.usd >= TEST_USD ? 0 : Math.round(TEST_USD * S.fx), can: () => S.skills.english >= 3 && S.ielts < 6.5,
+    tags: () => [S.usd >= TEST_USD ? `${usd(TEST_USD)} from dollar account` : `fee ${usd(TEST_USD)}`, 'need 6.5', 'Japa'],
+    run: () => { if (S.usd >= TEST_USD) S.usd -= TEST_USD; const sc = Math.min(9, Math.round((4 + S.skills.english * 0.45 + rnd(-0.5, 0.5)) * 2) / 2); S.ielts = Math.max(S.ielts, sc); S.resolve += 5; return sc >= 6.5 ? `You scored ${sc}. Test passed!` : `You scored ${sc}. You need 6.5. Study more and try again.`; } },
+  passport: { name: 'Passport office', blocks: 3, cost: () => price(80000), can: () => !S.passport,
+    tags: () => ['~50% done this week', 'Japa'],
+    run: () => { S.resolve += 4; S.energy -= 8; if (chance(0.5)) { S.passport = true; return 'Your international passport is ready.'; } return '"Booklet no dey. Come back next week." Fee already paid.'; } },
+  apply: { name: 'Apply for jobs abroad', blocks: 3, cost: () => 0, can: () => S.ielts >= 6.5 && !S.offer,
+    tags: () => ['~25% chance of offer', 'Japa'],
+    run: () => { S.resolve += 5; if (chance(0.2 + 0.04 * S.skills.work)) { S.offer = true; return 'A care home in Northland sent you a sponsored job offer!'; } return 'Applications sent. Silence for now.'; } },
+  convert: { name: 'Move ₦ to dollar account', blocks: 1, cost: () => 0, can: () => S.money > 80000,
+    tags: () => [`~${usd((S.money - 50000) * 0.5 / S.fx)}`, '2% fee', 'Japa'],
+    run: () => { const n = Math.round((S.money - 50000) * 0.5); S.money -= n; const d = n * 0.98 / S.fx; S.usd += d; S.resolve += 2; return `Converted ${naira(n)} to ${usd(d)}.`; } },
+  rest: { name: 'Rest at home', blocks: 4, cost: () => 0, can: () => true,
+    tags: () => ['+30 energy', '+5 health'],
+    run: () => { S.energy += 30; S.health += 5; S.mood += 3; return 'You rested. NEPA even brought light for some hours.'; } },
+  chill: { name: 'Chill with friends', blocks: 3, cost: () => fun(6000), can: () => true,
+    tags: () => ['+12 mood', '−5 energy'],
+    run: () => { S.mood += 12; S.energy -= 5; return `Suya and gist with ${REG().friend}. Mood up.`; } },
+  faith: { name: 'Church or mosque', blocks: 2, cost: () => price(2000), can: () => true,
+    tags: () => ['+6 mood', '+8 community', 'Stay'],
+    run: () => { S.mood += 6; S.community += 8; S.resolve -= 3; return 'Service done. Someone mentioned a business lead.'; } },
+  call: { name: 'Call family', blocks: 1, cost: () => price(1000), can: () => true,
+    tags: () => ['+6 family'],
+    run: () => { S.family += 6 * (S.trait === 'family' ? 1.5 : 1); S.resolve -= 1; return 'Mama prayed for you for ten minutes straight.'; } },
+  skit: { name: 'Make a skit', blocks: 3, cost: () => price(3000), can: () => true,
+    tags: () => ['+clout', 'brand deals at 2k'],
+    run: () => { let g = Math.round(rnd(30, 120) + S.clout * 0.12); let m = ''; if (chance(0.08)) { g = g * 3 + 1500; m = ' It went viral!'; } S.clout += g; S.mood += 3;
+      if (S.clout >= 2000 && chance(0.25)) { const d = Math.round(Math.min(400000, S.clout * 25) / 1000) * 1000; S.money += d; m += ` Brand deal: ${naira(d)}.`; }
+      return `Skit posted: +${g} fans.${m}`; } },
+  studio: { name: 'Studio session', blocks: 4, cost: () => price(25000), can: () => true,
+    tags: () => ['song could blow', '+clout'],
+    run: () => { let g = Math.round(rnd(20, 90)); let m = ''; if (chance(0.07 + S.clout / 100000)) { g += 4000; const b = price(150000); S.money += b; m = ` The song blew! Show bookings paid ${naira(b)}.`; } S.clout += g; S.energy -= 6; return `You recorded a song. +${g} fans.${m}`; } },
+  audition: { name: 'Nollywood audition', blocks: 3, cost: () => price(4000), can: () => true,
+    tags: () => [S.region === 'enugu' ? '~35% role' : '~20% role', '+clout'],
+    run: () => { S.energy -= 6; if (chance(S.region === 'enugu' ? 0.35 : 0.2)) { const f = price(70000); S.money += f; S.clout += 600; return `You got a supporting role! Paid ${naira(f)}, +600 fans.`; } return 'They said you are "not the look" this time.'; } },
+  stock: { name: 'Buy stock for your business', blocks: 4, cost: () => price(60000), can: () => true,
+    tags: () => ['business level +1', 'weekly profit', 'Stay'],
+    run: () => { S.biz += 1; S.resolve -= 6; S.energy -= 6; return `Business is now level ${S.biz}. Profit comes at settle-up.`; } },
+  repay: { name: 'Repay the loan app', blocks: 1, cost: () => 0, can: () => S.debt > 0 && S.money > 0,
+    tags: () => [`owe ${naira(S.debt)}`],
+    run: () => { const p = Math.min(S.money, S.debt); S.money -= p; S.debt -= p; S.mood += 5; return S.debt <= 0 ? 'Loan cleared. The calls stopped.' : `Paid ${naira(p)}. Still owe ${naira(S.debt)}.`; } },
+
+  /* ----- Year 2: abroad cards (costs in dollars) ----- */
+  a_shift: { ab: true, name: 'Care home shifts', blocks: 10, cost: () => 0, can: () => true,
+    tags: () => [`+${usd(abroadPay())} payday`, '−25 energy'],
+    run: () => { S.pendingPay += abroadPay(); S.energy -= 25; S.resolve += 1; return 'Long shifts, kind residents, sore feet. Pay comes at settle-up.'; } },
+  a_extra: { ab: true, name: 'Extra night shift', blocks: 5, cost: () => 0, can: () => true,
+    tags: () => ['+$170 payday', '−18 energy', '−3 health'],
+    run: () => { S.pendingPay += 170; S.energy -= 18; S.health -= 3; return 'Night shift done. The tea in the staff room saved you.'; } },
+  a_gig: { ab: true, name: 'Cash-in-hand side gig', blocks: 5, cost: () => 0, can: () => true,
+    tags: () => ['+$100–160 now', 'visa risk'],
+    run: () => { const g = Math.round(rnd(100, 160) * hustleBoost()); S.usd += g; S.energy -= 14;
+      if (chance(0.2)) { S.abroad.strikes += 1; return `Braiding and deliveries made ${usd(g)}, but your sponsor heard about it. Visa warning ${S.abroad.strikes} of 3.`; }
+      return `Braiding and deliveries made ${usd(g)}. Nobody noticed. This time.`; } },
+  a_remit: { ab: true, name: 'Send money home', blocks: 1, cost: () => 150, can: () => S.usd >= 150,
+    tags: () => [`≈${naira(150 * S.fx)} lands`, '+8 family'],
+    run: () => { S.abroad.remitted += 150; S.family += 8 * (S.trait === 'family' ? 1.5 : 1); S.resolve -= 1; return `${naira(150 * S.fx)} landed in Mama's account. "Credit alert!" she shouted.`; } },
+  a_course: { ab: true, name: 'Senior carer course', blocks: 4, cost: () => 40, can: () => !S.abroad.promoted && S.abroad.course < 5,
+    tags: () => [`module ${S.abroad.course}/5`, 'promotion', 'Settle'],
+    run: () => { S.abroad.course += 1; S.energy -= 8; S.resolve += 3; return `Module ${S.abroad.course} of 5 done.`; } },
+  a_lifestudy: { ab: true, name: 'Study for the Life in Northland test', blocks: 3, cost: () => 0, can: () => !S.abroad.lifeTest,
+    tags: () => ['history, laws, customs', 'Settle'],
+    run: () => { S.abroad.lifeStudy += 1; S.resolve += 2; return 'You now know more Northland kings than Nigerian presidents.'; } },
+  a_lifetest: { ab: true, name: 'Sit the Life in Northland test', blocks: 2, cost: () => 70, can: () => !S.abroad.lifeTest && S.abroad.lifeStudy >= 2,
+    tags: () => [`~${Math.round(Math.min(95, 40 + 15 * S.abroad.lifeStudy))}% pass`, 'Settle'],
+    run: () => { if (chance(Math.min(0.95, 0.4 + 0.15 * S.abroad.lifeStudy))) { S.abroad.lifeTest = true; S.resolve += 5; return 'Passed! One step closer to settling.'; } return 'Failed by two questions. Study more and rebook.'; } },
+  a_hub: { ab: true, name: 'Naija church or mosque', blocks: 2, cost: () => 10, can: () => true,
+    tags: () => ['+10 mood', '+8 community'],
+    run: () => { S.mood += 10; S.community += 8; S.resolve += 2; return 'Service, then rice and plantain in the hall. Someone shared a job lead.'; } },
+  a_call: { ab: true, name: 'Video call home', blocks: 1, cost: () => 0, can: () => true,
+    tags: () => ['+6 family', '+4 mood', 'pulls home'],
+    run: () => { S.family += 6 * (S.trait === 'family' ? 1.5 : 1); S.mood += 4; S.resolve -= 2; return 'Mama showed you the new curtains. The network froze twice.'; } },
+  a_cook: { ab: true, name: 'Cook jollof and egusi', blocks: 2, cost: () => 25, can: () => true,
+    tags: () => ['+8 mood', '+5 energy'],
+    run: () => { S.mood += 8; S.energy += 5; return 'The African shop had palm oil. Your flatmates asked for a plate.'; } },
+  a_explore: { ab: true, name: 'Explore the city', blocks: 3, cost: () => 30, can: () => true,
+    tags: () => ['+10 mood', 'feels like home'],
+    run: () => { S.mood += 10; S.resolve += 3; return 'Museum, park, a street market. The city is starting to feel familiar.'; } },
+  a_vlog: { ab: true, name: 'Diaspora vlog', blocks: 3, cost: () => 5, can: () => true,
+    tags: () => ['+clout', 'brand deals in $'],
+    run: () => { let g = Math.round(rnd(60, 200) + S.clout * 0.15); let m = ''; if (chance(0.1)) { g = g * 3 + 2000; m = ' "A day in my life abroad" went viral!'; } S.clout += g; S.mood += 3;
+      if (S.clout >= 2000 && chance(0.3)) { const d = Math.round(Math.min(1200, S.clout * 0.25)); S.usd += d; m += ` Brand deal: ${usd(d)}.`; }
+      return `Vlog posted: +${g} fans.${m}`; } },
+  a_land: { ab: true, name: 'Buy a plot back home', blocks: 1, cost: () => Math.round(price(2500000) / S.fx), can: () => S.abroad.land < 3,
+    tags: () => [`${naira(price(2500000))}`, 'roots at home'],
+    run: () => { S.abroad.land += 1; S.resolve -= 8; S.family += 5; return `Your uncle sent pictures of the plot. Survey done. Plots owned: ${S.abroad.land}.`; } },
+  a_rest: { ab: true, name: 'Rest in your room', blocks: 4, cost: () => 0, can: () => true,
+    tags: () => ['+30 energy', '+5 health'],
+    run: () => { S.energy += 30; S.health += 5; S.mood += 2; return 'Heating on, phone off, Nollywood on.'; } },
+  a_paycard: { ab: true, name: 'Pay off the credit card', blocks: 1, cost: () => 0, can: () => S.abroad.cc > 0 && S.usd > 0,
+    tags: () => [`owe ${usd(S.abroad.cc)}`],
+    run: () => { const p = Math.min(S.usd, S.abroad.cc); S.usd -= p; S.abroad.cc -= p; S.mood += 4; return S.abroad.cc <= 0 ? 'Card cleared.' : `Paid ${usd(p)}. Still owe ${usd(S.abroad.cc)}.`; } },
+
+  /* ----- Year 2: Build chapter cards (stay; costs in naira) ----- */
+  b_shop: { bd: true, name: 'Run the shop yourself', blocks: 10, cost: () => 0, can: () => true,
+    tags: () => [`~${naira(salesBase())} sales`, '−22 energy'],
+    run: () => { S.build.worked = true; S.energy -= 22; S.build.rep += 2; S.skills.work += 0.2; return 'Customers, haggling, receipts. Sales are counted at settle-up.'; } },
+  b_restock: { bd: true, name: 'Restock in bulk', blocks: 4, cost: () => price(50000 * S.biz), can: () => S.biz < 15,
+    tags: () => [`level ${S.biz} → ${S.biz + 1}`, 'more sales'],
+    run: () => { S.biz += 1; S.energy -= 8; return `Bulk goods from the market. Business level ${S.biz}.`; } },
+  b_hire: { bd: true, name: 'Hire a sales assistant', blocks: 2, cost: () => price(30000), can: () => S.build.staff < 5,
+    tags: () => [`staff ${S.build.staff} → ${S.build.staff + 1}`, `wage ${naira(price(15000))}/wk`],
+    run: () => { S.build.staff += 1; return `You hired help. Staff: ${S.build.staff}. The shop can now open when you are not there.`; } },
+  b_apprentice: { bd: true, name: 'Take an Igba Boi apprentice', blocks: 3, cost: () => 0, can: () => !S.build.apprentice,
+    tags: () => ['free hands', '+8 community', 'Stay'],
+    run: () => { S.build.apprentice = true; S.build.staff += 1; S.community += 8; return 'A young man from your town joins you. In a few years you will set him up in his own business.'; } },
+  b_cac: { bd: true, name: 'Register the business (CAC)', blocks: 3, cost: () => price(50000), can: () => !S.build.registered,
+    tags: () => ['unlocks bank loans', 'and big contracts'],
+    run: () => { S.build.registered = true; S.build.rep += 5; return 'Certificate of incorporation printed and framed. You are now "Limited".'; } },
+  b_loan: { bd: true, name: 'Apply for a bank loan', blocks: 3, cost: () => 0, can: () => S.build.registered && S.build.loanWeeks === 0,
+    tags: () => [naira(price(1500000)), '~60% approval', '40 repayments'],
+    run: () => { if (chance(0.4 + S.build.rep / 250)) { const amt = price(1500000); S.money += amt; S.build.loan = Math.round(amt * 1.3 / 40); S.build.loanWeeks = 40; return `Approved! ${naira(amt)} landed. Repayments: ${naira(S.build.loan)} a week for 40 weeks.`; } return '"Bring two more guarantors and 12 months of statements."'; } },
+  b_branch: { bd: true, name: 'Open a new branch', blocks: 6, cost: () => price(3000000), can: () => S.biz >= 8 && S.build.registered && S.build.staff >= 2 && S.build.branches < 3,
+    tags: () => [`branches ${S.build.branches} → ${S.build.branches + 1}`, 'sales up'],
+    run: () => { S.build.branches += 1; S.energy -= 12; S.build.rep += 5; return `Branch ${S.build.branches} is open. Your signboard is now in another neighbourhood.`; } },
+  b_promote: { bd: true, name: 'Promote the shop online', blocks: 2, cost: () => price(10000), can: () => true,
+    tags: () => ['+reputation', '+clout'],
+    run: () => { S.build.rep += 6; S.clout += Math.round(rnd(40, 140)); return 'Flyers on WhatsApp status and a skit with a micro-influencer.'; } },
+  b_solar: { bd: true, name: 'Install solar at the shop', blocks: 2, cost: () => price(400000), can: () => !S.solar,
+    tags: () => ['no more NEPA losses'],
+    run: () => { S.solar = true; S.build.rep += 3; return 'Panels on the roof. Your freezer and POS stay on all day.'; } },
+  b_union: { bd: true, name: 'Town union meeting', blocks: 2, cost: () => price(5000), can: () => true,
+    tags: () => ['+10 community', 'leadership +1', 'Stay'],
+    run: () => { S.community += 10; S.build.leader += 1; S.resolve -= 2; return `You spoke about the bad road. People listened. Leadership ${S.build.leader}.`; } },
+  b_campaign: { bd: true, name: 'Campaign for councillor', blocks: 5, cost: () => price(150000), can: () => S.community >= 70 && S.build.leader >= 6 && S.build.campaign < 8,
+    tags: () => [`campaign ${S.build.campaign}/8`, 'Stay'],
+    run: () => { S.build.campaign += 1; S.energy -= 12; S.clout += 150; return `Rallies, posters, market visits. Campaign progress ${S.build.campaign} of 8.`; } },
+  b_house: { bd: true, name: 'Build a house in your hometown', blocks: 3, cost: () => price(900000), can: () => S.build.house < 8 && S.week >= (S.build.houseNext || 0),
+    tags: () => [`stage ${S.build.house}/8`, '+family', 'Stay'],
+    run: () => { S.build.house += 1; S.build.houseNext = S.week + 3; S.family += 6; S.resolve -= 3;
+      return ['Land cleared and foundation laid.', 'Blocks up to window level.', 'Lintels and pillars cast.', 'Roofing done.', 'Windows and doors fitted.', 'Plastering and wiring done.', 'Tiles and plumbing done.', 'Painting done. The house is ready!'][S.build.house - 1] + (S.build.house < 8 ? ' The builders need 3 weeks before the next stage.' : ''); } }
+};
+
+function dealHand() {
+  if (S.abroad) {
+    const always = ['a_rest', 'a_shift'];
+    if (S.abroad.cc > 0) always.push('a_paycard');
+    if (CARDS.a_remit.can()) always.push('a_remit');
+    // the next settling step is always dealt while you lean towards staying abroad
+    if (S.resolve > -10) { const next = ['a_course', 'a_lifetest', 'a_lifestudy'].find(k => CARDS[k].can()); if (next) always.push(next); }
+    else if (CARDS.a_land.can()) always.push('a_land');
+    return fillHand(always, k => CARDS[k].ab);
+  }
+  if (S.build) {
+    const always = ['rest', 'b_shop'];
+    if (S.debt > 0) always.push('repay');
+    // one growth goal is always dealt
+    const goals = ['b_restock', 'b_cac', 'b_hire', 'b_branch', 'b_campaign', 'b_house'].filter(k => CARDS[k].can());
+    if (goals.length) always.push(pick(goals));
+    return fillHand(always, k => CARDS[k].bd || SHARED_BUILD.includes(k));
+  }
+  const always = ['rest'];
+  if (S.job) always.push('work');
+  if (S.debt > 0) always.push('repay');
+  if (CARDS.convert.can()) always.push('convert');
+  // the next step on the path you lean toward is always dealt
+  if (S.resolve > 10) { const nextJapa = ['passport', 'test', 'study', 'apply'].find(k => CARDS[k].can()); if (nextJapa) always.push(nextJapa); }
+  if (S.resolve < -10) always.push('stock');
+  return fillHand(always, k => !CARDS[k].ab && !CARDS[k].bd);
+}
+function fillHand(always, ok) {
+  const pool = Object.keys(CARDS).filter(k => ok(k) && !always.includes(k) && CARDS[k].can());
+  const hand = [...always];
+  while (hand.length < 9 && pool.length) hand.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  S.hand = hand; S.picked = [];
+}
+const blocksUsed = () => S.picked.reduce((a, k) => a + CARDS[k].blocks, 0);
+const moneyCommitted = () => S.picked.reduce((a, k) => a + CARDS[k].cost(), 0);
+
+/* ---------- events ---------- */
+const EV = {
+  blacktax: {
+    make: () => ({ amt: Math.round(price(28000) * (1 + S.clout / 15000) * (S.job ? 1.3 : 1) / 100) * 100, what: pick(['blood pressure medicine', 'hospital bill', 'church building levy', 'roof leaking for the village house']) }),
+    view: p => ({ who: 'Mama', av: 'M', cls: '', title: 'Family request', text: `${REG().open} the ${p.what} money is ${naira(p.amt)}. Abeg, help us.`,
+      choices: [{ l: `Pay it all (${naira(p.amt)})`, h: 'Family bond up, money down' }, { l: `Negotiate: pay half`, h: 'Smooth Talker does better' }, { l: 'Refuse this time', h: 'Family bond falls, guilt hits' }] }),
+    pick: (p, i) => {
+      if (i === 0) { S.money -= p.amt; S.family += 10 * (S.trait === 'family' ? 1.5 : 1); return 'Mama is happy. "God will bless you, my child."'; }
+      if (i === 1) { S.money -= Math.round(p.amt / 2); if (S.trait === 'smooth' || chance(0.5)) { S.family += 3; return 'You explained well. Half is fine for now.'; } S.family -= 4; return 'Half paid, but your aunty is already gossiping.'; }
+      S.family -= 12; S.mood -= 6; return 'You said no. The family WhatsApp group went quiet.';
+    } },
+  owambe: {
+    make: () => ({ aso: fun(15000), spray: fun(20000), whose: pick(['cousin\'s wedding', 'Chief\'s 60th birthday', 'friend\'s naming ceremony']) }),
+    view: p => ({ who: REG().friend, av: REG().friend[0], cls: 'g', title: 'Owambe this Saturday', text: `You're invited to a ${p.whose}. Aso-ebi costs ${naira(p.aso)}.`,
+      choices: [{ l: `Attend and spray ${naira(p.spray)}`, h: 'Big community, clout and network boost' }, { l: 'Attend, no spraying', h: 'Pay aso-ebi only' }, { l: 'Skip it', h: 'Save money, community falls' }] }),
+    pick: (p, i) => {
+      const mult = S.trait === 'owambe' ? 2 : 1;
+      if (i === 0) { S.money -= p.aso + p.spray; S.community += 10 * mult; S.clout += 80; S.mood += 10; S.resolve -= 3;
+        if (chance(0.3)) { if (!S.job) { S.job = true; return 'You sprayed well, and the celebrant\'s uncle offered you a job on the spot!'; } S.biz += 1; return 'You sprayed well, and a guest became a big customer. Business +1.'; }
+        return 'You danced, you sprayed, everybody saw you.'; }
+      if (i === 1) { S.money -= p.aso; S.community += 4 * mult; S.mood += 5; return 'You showed face. Jollof was correct.'; }
+      S.community -= 6; return '"Where were you?" Three people asked.';
+    } },
+  ajo: {
+    cond: () => !S.ajo,
+    make: () => ({ amt: price(10000) }),
+    view: p => ({ who: 'Iya Ajo', av: 'I', cls: '', title: 'Join the Ajo circle?', text: `Eight members, ${naira(p.amt)} each week. When your turn comes you collect ${naira(p.amt * 8)} at once.`,
+      choices: [{ l: 'Join the circle', h: 'Weekly payment, big payout later' }, { l: 'Not now', h: 'Nothing changes' }] }),
+    pick: (p, i) => { if (i === 0) { S.ajo = { amt: p.amt, start: S.week, payout: S.week + 2 + Math.floor(rnd(0, 6)), paid: false }; S.community += 5; return `You're in. Your turn to collect is week ${S.ajo.payout}.`; } return 'You passed. Iya Ajo said "your loss."'; } },
+  fuel: {
+    cond: () => S.fuel === 0,
+    make: () => ({ bm: price(8000) }),
+    view: p => ({ who: 'News', av: '!', cls: 'b', title: 'Fuel scarcity', text: 'Petrol stations are dry. Transport fares have doubled for the next 3 weeks.',
+      choices: [{ l: 'Queue for hours', h: '−15 energy' }, { l: `Buy black-market fuel (${naira(p.bm)})`, h: 'Money down' }] }),
+    pick: (p, i) => { S.fuel = 3; if (i === 0) { S.energy -= 15; return 'Six hours in the queue. You got 10 litres.'; } S.money -= p.bm; return 'The jerrycan boy smiled. Your wallet did not.'; } },
+  nepa: {
+    make: () => ({ gen: price(7000) * (S.fuel ? 2 : 1), solar: price(180000) }),
+    view: p => ({ who: 'NEPA', av: 'N', cls: 'b', title: 'No light all week', text: S.solar ? 'Light is gone again, but your solar is working.' : 'Light has been gone for five days. Food in the freezer is suffering.',
+      choices: S.solar ? [{ l: 'Smile and charge your phone', h: 'Solar pays off' }] : [{ l: `Run the generator (${naira(p.gen)})`, h: 'Money down' }, { l: 'Sweat it out', h: '−8 mood, −8 energy' }, { l: `Install small solar (${naira(p.solar)})`, h: 'Big cost now, no NEPA wahala later' }] }),
+    pick: (p, i) => { if (S.solar) { S.mood += 3; return 'Neighbours are coming to charge their phones.'; }
+      if (i === 0) { S.money -= p.gen; return 'The generator noise is now part of you.'; }
+      if (i === 1) { S.mood -= 8; S.energy -= 8; return 'You slept on the balcony to catch breeze.'; }
+      S.money -= p.solar; S.solar = true; S.resolve -= 4; return 'Solar installed. You are now the light of the compound.'; } },
+  ponzi: {
+    cond: () => S.week > 5 && !S.ponzi && S.money > 100000,
+    make: () => ({ amt: Math.round(Math.min(S.money * 0.6, price(300000)) / 1000) * 1000 }),
+    view: p => ({ who: 'Chief Ikenna "Odogwu" Eze', av: 'O', cls: 'g', title: 'An Odogwu opportunity', text: `"My guy, put ${naira(p.amt)} in my oil and gas scheme. Four weeks, you double am. Na how I take buy my third G-Wagon."`,
+      choices: [{ l: `Invest ${naira(p.amt)}`, h: 'Could double… or vanish' }, { l: 'Ask for documents first', h: 'Street Smart move' }] }),
+    pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.ponzi = { amt: p.amt, due: S.week + 4 }; S.resolve -= 3; return 'Chief hugged you. "You are a serious person."'; }
+      S.streetSmart = true; return 'Chief got vexed and blocked you. Street Smart badge earned.'; } },
+  sponsor: {
+    cond: () => S.clout >= 2500,
+    make: () => ({ amt: price(150000) }),
+    view: p => ({ who: 'Alhaji Sule "Big Money" Bello', av: 'A', cls: 'g', title: 'A baller wants to sponsor you', text: `"I like what you are doing. I will sponsor your next project with ${naira(p.amt)}. Just mention my company."`,
+      choices: [{ l: 'Accept the sponsorship', h: 'Money and clout, ties you to home' }, { l: 'Decline politely', h: 'Keep your independence' }] }),
+    pick: (p, i) => { if (i === 0) { S.money += p.amt; S.clout += 500; S.resolve -= 5; return 'Alhaji sent the money the same day. The baller network is opening up.'; } S.community += 2; return 'Alhaji respected your answer.'; } },
+  agent: {
+    cond: () => S.passport && !S.offer,
+    make: () => ({ amt: price(500000) }),
+    view: p => ({ who: 'Mr Fix-It (agent)', av: 'F', cls: 'j', title: '"Visa guaranteed!"', text: `"Pay ${naira(p.amt)} and I will arrange Northland job, visa and ticket. 100% guaranteed. Many people don go."`,
+      choices: [{ l: `Pay ${naira(p.amt)}`, h: 'Shortcut to an offer?' }, { l: 'Ask for his registration and references', h: 'Check before you pay' }] }),
+    pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.mood -= 15; return 'He collected the money and switched off his phone. It was a scam. Real visas never come "guaranteed".'; }
+      S.streetSmart = true; return 'He had no registration. You reported him. Street Smart badge earned.'; } },
+  tunde: {
+    make: () => ({ good: chance(0.5) }),
+    view: p => ({ who: 'Cousin Tunde (Northland)', av: 'T', cls: 'j', title: 'A message from abroad', text: p.good ? '"Bro, I just paid my rent and still sent money home. Light dey 24/7. Come, e get as e be."' : '"Honestly? I work night shifts in the cold and I miss pepper soup. Some days I wonder why I came."',
+      choices: [{ l: 'Reply and gist', h: 'See how life is over there' }] }),
+    pick: p => { if (p.good) { S.resolve += 8; return 'Your mind is moving towards japa.'; } S.resolve -= 6; S.mood -= 2; return 'That one made you think twice.'; } },
+  school: {
+    make: () => ({ amt: price(45000) }),
+    view: p => ({ who: 'Mama', av: 'M', cls: '', title: 'Back to school', text: `${REG().open} your younger brother's school fees are due: ${naira(p.amt)}.`,
+      choices: [{ l: `Pay the fees (${naira(p.amt)})`, h: 'Family bond up' }, { l: 'Pay half and promise the rest', h: 'Smooth Talker does better' }, { l: 'Say you cannot', h: 'Family bond falls' }] }),
+    pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.family += 10; return 'Your brother sent a voice note: "Thank you, Sister/Bros!"'; }
+      if (i === 1) { S.money -= Math.round(p.amt / 2); S.family += S.trait === 'smooth' ? 4 : -2; return 'Half paid. The bursar said "by next month o."'; }
+      S.family -= 12; S.mood -= 5; return 'Your uncle paid instead. He will remind you for years.'; } },
+  detty: {
+    make: () => ({ amt: fun(80000) }),
+    view: p => ({ who: REG().friend, av: REG().friend[0], cls: 'g', title: 'Detty December!', text: `Your IJGB friend is back from abroad with stories and a full itinerary. One week of parties: ${naira(p.amt)}.`,
+      choices: [{ l: 'Enjoy Detty December', h: '+20 mood, clout up, money down' }, { l: 'Stay low-key and save', h: '−5 mood' }] }),
+    pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.mood += 20; S.clout += 150; S.resolve += 4; return 'Concerts, beach, owambe. Your IJGB friend asked, "When are you coming over?"'; } S.mood -= 5; return 'You watched it all on Instagram stories.'; } },
+  devalue: {
+    view: () => ({ who: 'News', av: '₦', cls: 'b', title: 'The naira has fallen', text: 'The exchange rate jumped about 30% overnight. Dollar savings are worth more in naira, but japa costs just got heavier.',
+      choices: [{ l: 'Okay…', h: '' }] }),
+    make: () => ({}),
+    pick: () => { S.fx *= 1.3; return `₦${Math.round(S.fx).toLocaleString('en-NG')} to $1 now.`; } },
+  sick: {
+    cond: () => S.health < 35,
+    make: () => ({ hosp: price(60000), chem: price(8000) }),
+    view: p => ({ who: 'Your body', av: '+', cls: 'b', title: 'Malaria don catch you', text: 'Headache, fever, bitter mouth. You need treatment.',
+      choices: [{ l: `Go to hospital (${naira(p.hosp)})`, h: '+35 health' }, { l: `Buy drugs at the chemist (${naira(p.chem)})`, h: '+10 health' }] }),
+    pick: (p, i) => { if (i === 0) { S.money -= p.hosp; S.health += 35; return 'Drip, injection, rest. You feel human again.'; } S.money -= p.chem; S.health += 10; return 'Agbo and tablets. Somehow, you survived.'; } },
+  interview: {
+    make: () => ({}),
+    view: () => ({ who: 'Northland Embassy', av: 'E', cls: 'j', title: 'Visa interview', text: `Your passport, test score (${S.ielts}), job offer and ${usd(S.usd)} proof of funds are all in. Fee: ${usd(VISA_USD)}. The officer asks: "Why do you want to come?"`,
+      choices: [{ l: 'Answer honestly about the job and your plans', h: 'Best chance' }, { l: 'Give a rehearsed "agent" answer', h: 'Risky' }] }),
+    pick: (p, i) => { S.usd -= VISA_USD; S.visaDone = true;
+      const c = (i === 0 ? 0.55 : 0.3) + (S.ielts - 6.5) * 0.1 + (S.usd >= POF_USD + 1000 ? 0.1 : 0) + (S.streetSmart ? 0.05 : 0);
+      if (chance(c)) { S.queue.splice(1, 0, { id: 'ponr', p: {} }); return 'APPROVED. Your passport came back with a visa inside.'; }
+      S.visaWait = S.week + 10; S.visaDone = false; S.mood -= 15; return 'Refused. Fee gone. You can reapply in 10 weeks.'; } },
+  ponr: {
+    make: () => ({}),
+    view: () => ({ who: 'Point of No Return', av: '✈', cls: 'j', title: 'The flight is booked', text: 'Mama is crying at the airport. Your friends are taking last pictures. This is it.',
+      choices: [{ l: 'Board the flight', h: 'Japa. Your abroad chapter begins' }, { l: 'Turn back and stay', h: 'Build your life at home' }] }),
+    pick: (p, i) => { if (i === 0) { startAbroad(); return 'Wheels up. The lights of home fade under the clouds. Next stop: Northland.'; } S.resolve -= 60; S.offer = false; return 'You walked out of the airport. Mama hugged you twice.'; } },
+  lease: {
+    make: () => ({ amt: price(1200000) }),
+    view: p => ({ who: 'Landlord', av: 'L', cls: '', title: 'A five-year shop lease', text: `Your business is strong. A big shop on the main road is free. Five years' rent upfront: ${naira(p.amt)}.`,
+      choices: [{ l: 'Sign the lease', h: 'Stay. Your Build chapter begins' }, { l: 'Not yet', h: 'Keep your options open' }] }),
+    pick: (p, i) => { if (i === 0) { S.money -= p.amt; startBuild(true); return 'Signed. Your name is going up on the signboard. Year 2, the Build chapter, begins.'; } S.leaseOffered = S.week + 8; return 'The landlord said the offer will come again.'; } },
+
+  /* ----- Year 2: abroad events (money in dollars) ----- */
+  a_blacktax: {
+    make: () => ({ amt: Math.round((60 + rnd(0, 140)) * (1 + S.clout / 20000)), what: pick(['generator repair', 'Papa\'s hospital bill', 'your cousin\'s school fees', 'church harvest levy', 'roof for the village house']) }),
+    view: p => ({ who: 'Mama', title: 'Now that you are abroad…', text: `${REG().open} the ${p.what} is ${usd(p.amt)}. Everybody says you are doing well over there.`,
+      choices: [{ l: `Send it all (${usd(p.amt)})`, h: 'Family bond up' }, { l: 'Send half and explain your bills', h: 'Smooth Talker does better' }, { l: 'Say you cannot this month', h: 'Family bond falls' }] }),
+    pick: (p, i) => {
+      if (i === 0) { S.usd -= p.amt; S.abroad.remitted += p.amt; S.family += 10; return 'Mama posted your photo on her WhatsApp status: "My child abroad."'; }
+      if (i === 1) { const h = Math.round(p.amt / 2); S.usd -= h; S.abroad.remitted += h; if (S.trait === 'smooth' || chance(0.5)) { S.family += 4; return 'You showed her your rent receipt. She understood.'; } S.family -= 4; return '"Abroad people and their excuses," your aunty said.'; }
+      S.family -= 12; S.mood -= 6; return 'They think you have forgotten home.'; } },
+  a_winter: {
+    cond: () => winter(),
+    make: () => ({ amt: 90 }),
+    view: p => ({ who: 'Northland winter', title: 'The boiler has packed up', text: `It is minus three outside and the heating is dead. An emergency heater costs ${usd(p.amt)}.`,
+      choices: [{ l: `Buy the heater (${usd(p.amt)})`, h: 'Stay warm' }, { l: 'Wear three jumpers and a wrapper', h: '−8 mood, −5 health' }] }),
+    pick: (p, i) => { if (i === 0) { S.usd -= p.amt; return 'Warm again. You finally understand why Tunde complains.'; } S.mood -= 8; S.health -= 5; return 'You slept in your coat. The heat back home feels like a dream.'; } },
+  a_hours: {
+    make: () => ({}),
+    view: () => ({ who: 'Care home manager', title: 'Your hours are being cut', text: 'The manager says the home is "restructuring". Your shifts drop for the next two weeks.',
+      choices: [{ l: 'Ask politely to keep your hours', h: 'Smooth Talker does better' }, { l: 'Accept it and look for extra shifts', h: 'Pay down 30% for 2 weeks' }] }),
+    pick: (p, i) => { if (i === 0 && (S.trait === 'smooth' || chance(0.45))) return 'She checked your record and kept your shifts. Good work pays.'; S.abroad.cut = 2; S.mood -= 5; return 'Pay drops 30% for two weeks. Rent does not.'; } },
+  a_rude: {
+    make: () => ({}),
+    view: () => ({ who: 'At work', title: '"Can I speak to someone else?"', text: 'A resident\'s relative keeps refusing your help and asking for "someone else", even when you are the one on shift.',
+      choices: [{ l: 'Report it to the manager', h: 'Your workplace should back you' }, { l: 'Stay calm and keep doing your job', h: 'Smooth Talker does better' }, { l: 'Let it slide', h: '−8 mood' }] }),
+    pick: (p, i) => { if (i === 0) { S.mood += 2; S.community += 2; return 'The manager spoke to them. The resident herself says you are her favourite.'; }
+      if (i === 1) { S.mood += S.trait === 'smooth' ? 4 : -3; return 'By the end of the week, they were asking for you by name.'; }
+      S.mood -= 8; return 'It stayed with you all week.'; } },
+  a_owambe: {
+    make: () => ({ aso: 60, spray: 100 }),
+    view: p => ({ who: 'Naija community', title: 'Owambe in Northland', text: `A Nigerian wedding in a rented hall. The jollof is correct. Aso-ebi costs ${usd(p.aso)}.`,
+      choices: [{ l: `Attend and spray ${usd(p.spray)}`, h: 'Community, clout and job leads' }, { l: 'Attend, no spraying', h: 'Pay aso-ebi only' }, { l: 'Skip it, you have a shift', h: 'Community falls' }] }),
+    pick: (p, i) => { const mult = S.trait === 'owambe' ? 2 : 1;
+      if (i === 0) { S.usd -= p.aso + p.spray; S.community += 10 * mult; S.clout += 100; S.mood += 12; if (!S.abroad.promoted && chance(0.35)) { S.abroad.course = Math.min(5, S.abroad.course + 2); return 'A senior nurse at the party offered to mentor you. Course progress +2.'; } return 'You sprayed dollars. The DJ shouted your name.'; }
+      if (i === 1) { S.usd -= p.aso; S.community += 4 * mult; S.mood += 6; return 'You showed face. It felt like home for one night.'; }
+      S.community -= 5; return 'You saw the pictures on Instagram after your shift.'; } },
+  a_tunde: {
+    make: () => ({}),
+    view: () => ({ who: 'Cousin Tunde', title: 'Sunday rice at Tunde\'s', text: '"Come and chop. I go show you which bus pass is cheaper and which landlord no dey return deposit."',
+      choices: [{ l: 'Go to Tunde\'s', h: '+mood, saves you money' }] }),
+    pick: () => { S.mood += 8; S.community += 4; S.usd += 40; return 'Tunde\'s tips saved you $40 this month. Family is family.'; } },
+  a_scam: {
+    cond: () => !S.abroad.promoted,
+    make: () => ({ amt: 1500 }),
+    view: p => ({ who: 'Mr Fix-It (Northland branch)', title: '"Better sponsor, quick quick"', text: `"Pay ${usd(p.amt)} and I will switch your visa to a hospital sponsor. Double pay. No exam needed."`,
+      choices: [{ l: `Pay ${usd(p.amt)}`, h: 'Shortcut to better pay?' }, { l: 'Check the official sponsor register', h: 'Check before you pay' }] }),
+    pick: (p, i) => { if (i === 0) { S.usd -= p.amt; S.mood -= 15; S.abroad.strikes += 1; return `Fake sponsor. Money gone, and your real employer got a strange email. Visa warning ${S.abroad.strikes} of 3.`; }
+      S.streetSmart = true; return 'The "hospital" was not on the register. Street Smart badge earned.'; } },
+  a_detty: {
+    make: () => ({ amt: 1100 }),
+    view: p => ({ who: 'Detty December', title: 'Fly home for Christmas?', text: `Everyone is going home for Detty December. A return ticket is ${usd(p.amt)}. This time, you would be the IJGB.`,
+      choices: [{ l: `Fly home (${usd(p.amt)})`, h: '+30 mood, +20 family, pulls you home' }, { l: 'Work Christmas shifts (double pay)', h: '+$400, −10 mood' }] }),
+    pick: (p, i) => { if (i === 0) { S.usd -= p.amt; S.mood += 30; S.family += 20; S.clout += 200; S.resolve -= 12; return 'Airport hugs, owambe every night, and everyone asking "When are you going back?"'; } S.usd += 400; S.mood -= 10; return 'Christmas dinner was a staff-room mince pie. The money was good.'; } },
+  a_homesick: {
+    cond: () => S.mood < 35,
+    make: () => ({}),
+    view: () => ({ who: 'Mama', title: 'Homesick', text: `${REG().open} your voice sounds tired. You know you can always come home.`,
+      choices: [{ l: 'Book a one-way ticket home', h: 'Ends your abroad chapter' }, { l: 'Push through, it will get better', h: '+5 mood' }] }),
+    pick: (p, i) => { if (i === 0) { S.ending = 'return'; return 'You packed two boxes and a winter coat you will never wear again.'; } S.mood += 5; S.resolve += 5; return 'Mama prayed. You slept better that night.'; } },
+  a_promo: {
+    make: () => ({}),
+    view: () => ({ who: 'Care home manager', title: 'Promotion: senior carer', text: 'You finished the course. The manager offers you senior carer: more pay and your own shifts to lead.',
+      choices: [{ l: 'Accept the promotion', h: `Pay rises to ${usd(620)} a week` }] }),
+    pick: () => { S.abroad.promoted = true; S.mood += 10; S.resolve += 6; return 'Your name badge now says "Senior". Mama has screenshotted it.'; } },
+  a_pr: {
+    make: () => ({ fee: 900 }),
+    view: p => ({ who: 'Northland Home Office', title: 'Apply to settle permanently?', text: `You qualify to settle: ${weeksAbroad()} weeks of steady work, the Life in Northland test and savings. The application fee is ${usd(p.fee)}.`,
+      choices: [{ l: 'Apply to settle', h: 'Ends your abroad chapter' }, { l: 'Not yet', h: 'Keep your options open' }] }),
+    pick: (p, i) => { if (i === 0) { S.usd -= p.fee; S.ending = 'settled'; return 'Approved. Northland is officially home. Naija is still the root.'; } S.abroad.prWait = S.week + 8; return 'You can apply again later.'; } },
+  a_return: {
+    make: () => ({}),
+    view: () => ({ who: 'Point of decision', title: 'Go home with your savings?', text: `You have ${usd(S.usd)} saved and land back home. Friends say home needs people like you now.`,
+      choices: [{ l: 'Fly home and build', h: 'Ends your abroad chapter' }, { l: 'Not yet', h: 'Stay a while longer' }] }),
+    pick: (p, i) => { if (i === 0) { S.ending = 'return'; return 'One-way ticket booked. This time you are going home with a plan.'; } S.abroad.returnWait = S.week + 8; return 'Not yet. The plot can wait.'; } },
+  a_deport: {
+    make: () => ({}),
+    view: () => ({ who: 'Northland Home Office', title: 'Visa cancelled', text: 'Three warnings. Your sponsor has reported you and your visa has been cancelled. You have 28 days to leave.',
+      choices: [{ l: 'Pack up and go home', h: 'Ends your abroad chapter' }] }),
+    pick: () => { S.ending = 'deported'; return 'You left with your savings and a hard lesson about visa rules.'; } },
+  a_sick: {
+    cond: () => S.health < 35,
+    make: () => ({}),
+    view: () => ({ who: 'Your body', title: 'Flu season got you', text: 'Fever and chills. The doctor is free, but the earliest appointment is next week.',
+      choices: [{ l: 'Take sick leave and rest', h: '+30 health, lose this week\'s pay' }, { l: 'Pharmacy medicine and keep working', h: `+10 health, ${usd(15)}` }] }),
+    pick: (p, i) => { if (i === 0) { S.health += 30; S.pendingPay = 0; return 'Pepper soup, rest and Nollywood. You are back on your feet.'; } S.usd -= 15; S.health += 10; return 'Cold medicine and willpower.'; } },
+
+  /* ----- Year 2: Build chapter events (stay; money in naira) ----- */
+  b_levy: {
+    make: () => ({ amt: price(20000) }),
+    view: p => ({ who: 'Area boys', title: '"Owner, settle us"', text: `Some boys say they "control" this street and want ${naira(p.amt)} for "security".`,
+      choices: [{ l: `Pay them (${naira(p.amt)})`, h: 'Peace for now' }, { l: 'Report to the market association', h: 'Works best if your community is strong' }, { l: 'Refuse', h: 'Risk of trouble at the shop' }] }),
+    pick: (p, i) => { if (i === 0) { S.money -= p.amt; return 'They collected and left. "We go dey look your back."'; }
+      if (i === 1) { if (S.community >= 50 || chance(0.4)) { S.community += 4; return 'The market chairman called them. They have not come back.'; } S.build.disrupted = 2; return 'The association was slow. Your shop was blocked for two days.'; }
+      S.build.disrupted = 2; S.mood -= 6; return 'They blocked your shop entrance. Sales will suffer for two weeks.'; } },
+  b_supplier: {
+    cond: () => !S.build.supplier,
+    make: () => ({ amt: price(200000) }),
+    view: p => ({ who: 'Your supplier', title: 'Goods on credit?', text: `Your supplier offers ${naira(p.amt)} of goods on credit. Pay back in 4 weeks.`,
+      choices: [{ l: 'Take the goods', h: 'Business level +1, pay later' }, { l: 'No thanks', h: 'Stay debt-free' }] }),
+    pick: (p, i) => { if (i === 0) { S.biz += 1; S.build.supplier = p.amt; S.build.supplierDue = S.week + 4; return 'Shelves full. Remember: pay back in 4 weeks.'; } return 'You only buy what you can pay for.'; } },
+  b_contract: {
+    cond: () => S.build.registered,
+    make: () => ({ amt: price(450000) }),
+    view: p => ({ who: 'A big customer', title: 'Bulk supply contract', text: `A company wants to buy in bulk for ${naira(p.amt)}. Delivering this week will cost you sleep.`,
+      choices: [{ l: 'Take the contract', h: '−25 energy, big payday' }, { l: 'Too much this week', h: 'Nothing changes' }] }),
+    pick: (p, i) => { if (i === 0) { S.money += p.amt; S.energy -= 25; S.build.rep += 8; return 'Delivered on time. They want to work with you again.'; } return 'They found another supplier.'; } },
+  b_theft: {
+    cond: () => S.build.staff > 0,
+    make: () => ({ amt: price(60000) }),
+    view: p => ({ who: 'Your shop', title: 'Stock is missing', text: `Goods worth ${naira(p.amt)} have disappeared, and one of your staff cannot explain it.`,
+      choices: [{ l: 'Let the staff member go', h: 'Staff −1' }, { l: `Final warning, and install CCTV (${naira(price(40000))})`, h: '+reputation' }] }),
+    pick: (p, i) => { S.money -= p.amt; if (i === 0) { S.build.staff = Math.max(0, S.build.staff - 1); if (S.build.staff === 0) S.build.apprentice = false; return 'You let them go. Trust is expensive.'; } S.money -= price(40000); S.build.rep += 2; return 'The camera is up. Nothing has gone missing since.'; } },
+  b_rival: {
+    cond: () => S.build.priceWar === 0,
+    make: () => ({ amt: price(30000) }),
+    view: p => ({ who: 'Next door', title: 'A rival shop has opened', text: 'A bigger shop opened next door and is cutting prices.',
+      choices: [{ l: 'Cut your prices too', h: 'Sales −20% for 4 weeks' }, { l: `Win on service: free delivery for regulars (${naira(p.amt)})`, h: '+reputation' }] }),
+    pick: (p, i) => { if (i === 0) { S.build.priceWar = 4; return 'Price war. Your customers stay, your margins do not.'; } S.money -= p.amt; S.build.rep += 10; return 'Your regulars stayed. "Your customer service is different."'; } },
+  b_japalate: {
+    cond: () => S.mood < 35 || S.resolve > 30,
+    make: () => ({}),
+    view: () => ({ who: 'Cousin Tunde', title: '"It is not too late to japa"', text: '"My boss still needs workers. I can get you a sponsored job. Just say the word."',
+      choices: [{ l: 'Sell the business and japa', h: 'Ends your Build chapter' }, { l: 'No, I am building here', h: 'Stay the course' }] }),
+    pick: (p, i) => { if (i === 0) { S.ending = 'japalate'; return 'You sold the shop to your apprentice and booked a flight.'; } S.resolve -= 10; S.mood += 3; return 'Tunde laughed: "Odogwu of your street!"'; } },
+  b_election: {
+    make: () => ({}),
+    view: () => ({ who: 'Election day', title: 'Councillor election', text: `Your campaign is done. Community: ${S.community}. Clout: ${S.clout.toLocaleString()} fans. The votes are being counted.`,
+      choices: [{ l: 'Wait for the result', h: 'Your chance depends on community and clout' }] }),
+    pick: () => { const c = 0.15 + S.community / 250 + Math.min(0.15, S.clout / 20000); if (chance(c)) { S.ending = 'changemaker'; return 'You won! The road will finally be fixed.'; } S.build.campaign = 0; S.build.leader = 1; S.mood -= 15; return 'You lost by 312 votes. You can campaign again.'; } },
+  b_empire: {
+    make: () => ({}),
+    view: () => ({ who: 'Your business', title: 'An empire is born', text: `Three branches, business level ${S.biz}, and your name on signboards across town. A magazine wants to profile you.`,
+      choices: [{ l: 'Do the interview', h: 'Ends your Build chapter' }, { l: 'Keep a low profile and keep growing', h: 'Continue' }] }),
+    pick: (p, i) => { if (i === 0) { S.ending = 'empire'; return '"From POS stand to empire," the headline says.'; } S.build.empireWait = S.week + 10; return 'Quiet money. You keep building.'; } },
+  b_housewarm: {
+    make: () => ({ amt: fun(150000) }),
+    view: p => ({ who: 'Your hometown', title: 'House opening ceremony', text: `Your house in the village is finished. The whole town wants a thanksgiving party: ${naira(p.amt)}.`,
+      choices: [{ l: 'Throw the party', h: 'Ends your Build chapter' }, { l: 'Small family prayer only', h: 'Continue' }] }),
+    pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.community += 20; S.ending = 'pillar'; return 'Canopies, jollof and a live band. The elders gave you a chieftaincy title.'; } S.build.houseWait = S.week + 52; S.family += 5; return 'A quiet prayer with family. The house is home.'; } }
+};
+const RANDOM_POOL = ['blacktax', 'blacktax', 'owambe', 'owambe', 'ajo', 'fuel', 'nepa', 'nepa', 'ponzi', 'sponsor', 'agent', 'tunde', 'tunde'];
+const BUILD_POOL = ['blacktax', 'blacktax', 'owambe', 'nepa', 'fuel', 'b_levy', 'b_supplier', 'b_contract', 'b_theft', 'b_rival', 'b_japalate', 'sponsor', 'ponzi', 'devalue'];
+const ABROAD_POOL =['a_blacktax', 'a_blacktax', 'a_winter', 'a_winter', 'a_hours', 'a_rude', 'a_owambe', 'a_owambe', 'a_tunde', 'a_scam', 'a_homesick', 'devalue'];
+function queueEvent(id) { S.queue.push({ id, p: EV[id].make() }); }
+
+/* ---------- week flow ---------- */
+function endWeek() {
+  const results = [];
+  for (const k of S.picked) { const c = CARDS[k]; spend(c.cost()); results.push(`<b>${c.name}:</b> ${c.run()}`); }
+  results.forEach(r => log(r));
+  S.queue = [];
+  const ab = !!S.abroad;
+  if (!ab && [2, 19, 37, 54, 71, 89].includes(S.week)) queueEvent('school');
+  if (!ab && (S.week === 49 || S.week === 101)) queueEvent('detty');
+  if (ab && S.week === 101) queueEvent('a_detty');
+  if (chance(0.04)) queueEvent('devalue');
+  if (S.health < 35) queueEvent(ab ? 'a_sick' : 'sick');
+  const pool = (ab ? ABROAD_POOL : S.build ? BUILD_POOL : RANDOM_POOL).filter(id => !EV[id].cond || EV[id].cond());
+  queueEvent(pick(pool));
+  if (chance(0.35)) { const second = pick(pool); if (!S.queue.some(q => q.id === second)) queueEvent(second); }
+  normalize();
+  S.phase = 'life'; S.result = null;
+}
+function choose(i) {
+  const q = S.queue[0];
+  const text = EV[q.id].pick(q.p, i);
+  log(`<b>${EV[q.id].view(q.p).title}:</b> ${text}`);
+  S.result = text; normalize();
+}
+function nextEvent() {
+  S.queue.shift(); S.result = null;
+  if (S.ending) { S.phase = 'end'; return; }
+  if (!S.queue.length) settle();
+}
+function settleAbroad() {
+  const A = S.abroad, L = [];
+  if (S.pendingPay) { const p = Math.round(S.pendingPay * (A.cut > 0 ? 0.7 : 1)); L.push([A.cut > 0 ? 'Wages (hours cut 30%)' : 'Wages', p]); S.usd += p; S.pendingPay = 0; }
+  if (A.cut > 0) A.cut -= 1;
+  const rent = Math.round(160 * S.idxA), food = Math.round(70 * S.idxA), trans = Math.round(30 * S.idxA);
+  L.push(['Rent (shared flat)', -rent], ['Food', -food], ['Bus pass', -trans]);
+  S.usd -= rent + food + trans;
+  if (winter()) { const h = Math.round(30 * S.idxA); L.push(['Heating (winter)', -h]); S.usd -= h; S.mood -= 2; }
+  if (A.cc > 0) { const i = Math.round(A.cc * 0.02); A.cc += i; L.push(['Credit card interest (2%)', -i]); }
+  if (S.usd < 0) { A.cc += Math.round(-S.usd); log(`<b>Credit card:</b> covered ${usd(-S.usd)} you were short.`); S.usd = 0; S.mood -= 6; }
+  if (S.debt > 0) { const i = Math.round(S.debt * 0.03); S.debt += i; const take = Math.min(S.debt, Math.round(S.money * 0.3)); S.money -= take; S.debt -= take; log(`<b>Loan app (home):</b> still owed ${naira(S.debt)}.`); }
+  // drift: distance strains family; the cold and loneliness pull mood down
+  S.energy += 12; S.mood -= 2; S.family -= 3; S.community -= 1;
+  if (S.energy < 15) S.health -= 10;
+  const oldFx = S.fx;
+  S.idxA *= 1.001; S.idx *= 1 + 0.005 + rnd(-0.002, 0.004); S.fx *= 1 + rnd(-0.012, 0.018);
+  S.ledger = { lines: L, fxUp: S.fx > oldFx, inf: 0.1, abroad: true };
+  normalize();
+  S.phase = 'settle';
+}
+function settleBuild() {
+  const B = S.build, L = [];
+  if (B.worked || B.staff >= 1) {
+    let s = salesBase() * (B.worked ? 1 : 0.6); const why = [];
+    if (S.fuel) { s *= 0.8; why.push('fuel scarcity'); }
+    if (!S.solar) { s *= 0.9; why.push('NEPA'); }
+    if (B.disrupted > 0) { s *= 0.5; why.push('shop blocked'); }
+    if (B.priceWar > 0) { s *= 0.8; why.push('price war'); }
+    s = Math.round(s / 100) * 100;
+    L.push([`Shop sales${B.worked ? '' : ' (staff only)'}${why.length ? ' · ' + why.join(', ') : ''}`, s]); S.money += s;
+  } else L.push(['Shop closed this week', 0]);
+  if (B.disrupted > 0) B.disrupted -= 1;
+  if (B.priceWar > 0) B.priceWar -= 1;
+  B.worked = false;
+  const paid = B.staff - (B.apprentice ? 1 : 0);
+  if (paid > 0) { const w = price(15000) * paid; L.push([`Staff wages (${paid})`, -w]); S.money -= w; }
+  if (B.apprentice) { const u = price(5000); L.push(['Apprentice upkeep', -u]); S.money -= u; }
+  const shops = B.lease ? B.branches - 1 : B.branches;
+  if (shops > 0) { const r = price(15000) * shops; L.push([B.lease ? 'Branch rent' : 'Shop rent', -r]); S.money -= r; }
+  const rent = price(12000), food = price(10000), trans = price(5000) * (S.fuel ? 2 : 1);
+  L.push(['Home rent', -rent], ['Food', -food], [S.fuel ? 'Transport (fuel scarcity ×2)' : 'Transport', -trans]);
+  S.money -= rent + food + trans;
+  if (B.loanWeeks > 0) { L.push([`Bank loan repayment (${B.loanWeeks} left)`, -B.loan]); S.money -= B.loan; B.loanWeeks -= 1; }
+  if (B.supplier && S.week >= B.supplierDue) { L.push(['Supplier credit repaid', -B.supplier]); S.money -= B.supplier; B.supplier = 0; }
+  B.rep = clamp(B.rep - 1);
+  homeTail(L);
+}
+function settle() {
+  if (S.abroad) return settleAbroad();
+  if (S.build) return settleBuild();
+  const L = [];
+  if (S.pendingPay) { L.push([t('pay'), S.pendingPay]); S.money += S.pendingPay; S.pendingPay = 0; }
+  if (S.biz > 0) { const p = Math.round(S.biz * 11000 * S.idx * REG().R * hustleBoost() * (S.fuel ? 0.7 : 1) / 100) * 100; L.push([`Business profit (level ${S.biz})`, p]); S.money += p; }
+  const rent = price(12000), food = price(10000), trans = price(5000) * (S.fuel ? 2 : 1);
+  L.push(['Rent', -rent], ['Food', -food], [S.fuel ? 'Transport (fuel scarcity ×2)' : 'Transport', -trans]);
+  S.money -= rent + food + trans;
+  if (S.ajo) {
+    if (S.week < S.ajo.start + 8) { L.push(['Ajo contribution', -S.ajo.amt]); S.money -= S.ajo.amt; }
+    if (S.week === S.ajo.payout) { const lost = chance(0.12); const pay = S.ajo.amt * (lost ? 5 : 8); L.push([lost ? 'Ajo payout (a member vanished)' : 'Ajo payout', pay]); S.money += pay; S.community += lost ? 0 : 5; }
+    if (S.week >= S.ajo.start + 8) { S.ajo = null; log('<b>Ajo:</b> The circle finished its round.'); }
+  }
+  homeTail(L);
+}
+// shared end of a settle-up at home (Year 1 and the Build chapter)
+function homeTail(L) {
+  if (S.ponzi && S.week >= S.ponzi.due) {
+    if (chance(0.25)) { L.push(['Odogwu scheme paid out', S.ponzi.amt * 2]); S.money += S.ponzi.amt * 2; log('<b>Chief Odogwu:</b> He actually paid! This time.'); }
+    else { L.push(['Odogwu scheme', 0]); log('<b>Chief Odogwu:</b> His number is not reachable. The scheme has collapsed.'); S.mood -= 15; }
+    S.ponzi = null;
+  }
+  if (S.debt > 0) {
+    const i = Math.round(S.debt * 0.03); S.debt += i; L.push(['Loan app interest (3%)', -i]);
+    const take = Math.min(S.debt, Math.max(0, Math.round(S.money * 0.3))); if (take > 0) { S.money -= take; S.debt -= take; L.push(['Loan app auto-deduction', -take]); }
+  }
+  if (S.money < 0) { S.debt += Math.round(-S.money * 1.3); log(`<b>Loan app:</b> covered ${naira(-S.money)}. They will call your contacts if you don't pay.`); S.money = 0; S.mood -= 10; }
+  // drift
+  S.energy += 12; S.mood -= 2; S.family -= 2; S.community -= 1;
+  if (S.energy < 15) S.health -= 10;
+  if (S.fuel > 0) S.fuel -= 1;
+  const oldFx = S.fx, oldIdx = S.idx;
+  S.idx *= 1 + 0.005 + rnd(-0.002, 0.004);
+  S.fx *= 1 + rnd(-0.012, 0.018);
+  S.ledger = { lines: L, fxUp: S.fx > oldFx, inf: (S.idx / oldIdx - 1) * 100 };
+  normalize();
+  S.phase = 'settle';
+}
+function nextWeek() {
+  S.week += 1;
+  if (S.week > lastWeek()) { S.ending = S.abroad ? 'year2' : S.build ? 'year2b' : 'year'; S.phase = 'end'; return; }
+  // milestone check
+  S.queue = [];
+  if (S.abroad) {
+    const A = S.abroad;
+    if (A.strikes >= 3) queueEvent('a_deport');
+    else if (A.course >= 5 && !A.promoted) queueEvent('a_promo');
+    else if (weeksAbroad() >= 30 && A.lifeTest && A.strikes < 2 && S.usd >= SETTLE_USD && S.week >= A.prWait) queueEvent('a_pr');
+    else if (A.land >= 1 && S.usd >= RETURN_USD && S.resolve <= 0 && S.week >= A.returnWait) queueEvent('a_return');
+  } else if (S.build) {
+    const B = S.build;
+    if (B.campaign >= 8) queueEvent('b_election');
+    else if (B.branches >= 3 && S.biz >= 12 && B.rep >= 70 && S.week >= B.empireWait) queueEvent('b_empire');
+    else if (B.house >= 8 && S.week >= B.houseWait) queueEvent('b_housewarm');
+  } else if (japaReady() && !S.visaDone && S.week >= S.visaWait) queueEvent('interview');
+  else if (S.biz >= 6 && S.money >= price(1200000) && S.week >= S.leaseOffered) queueEvent('lease');
+  if (S.queue.length) { S.phase = 'life'; S.result = null; return; }
+  dealHand(); S.phase = 'plan';
+}
+function normalize() {
+  for (const k of ['energy', 'mood', 'health', 'family', 'community']) S[k] = Math.round(clamp(S[k]));
+  S.resolve = Math.round(clamp(S.resolve, -100, 100));
+  S.clout = Math.max(0, Math.round(S.clout));
+  if (S.build) S.build.rep = Math.round(clamp(S.build.rep));
+  save();
+}
+
+/* ---------- endings ---------- */
+function endingInfo() {
+  const rich = S.money + S.usd * S.fx;
+  if (S.abroad) {
+    const A = S.abroad;
+    if (S.ending === 'deported') return { name: 'Sent Back', pg: 'Papers scatter. Na from zero again, but you sabi more now.', side: 'none' };
+    if (S.ending === 'return') {
+      if (A.land >= 1 && S.clout >= 3000) return { name: 'Homecoming Headliner', pg: 'You return with fans, funds and land. Naija, we move!', side: 'stay' };
+      if (A.land >= 1) return { name: 'Back to Base', pg: 'You japa, you learn, you come back build. Correct move.', side: 'stay' };
+      return { name: 'Japa Reverse', pg: 'Abroad no be for everybody, and that one no be failure.', side: 'stay' };
+    }
+    if (S.ending === 'settled') {
+      if (S.family < 30) return { name: 'Lonely Success', pg: 'You don get papers, but who you go call?', side: 'japa' };
+      if (S.clout >= 5000) return { name: 'Diaspora Star', pg: 'Abroad don collect you, but your fans still dey for Naija.', side: 'japa' };
+      return { name: 'Settled Abroad', pg: 'Northland na home now, but Naija na root.', side: 'japa' };
+    }
+    if (S.health < 30) return { name: 'Burnout', pg: 'Night shift no be joke. Body no be firewood.', side: 'none' };
+    if (A.remitted >= 3000) return { name: 'Remittance Hero', pg: 'Family go dey hear "credit alert" from overseas.', side: 'japa' };
+    return { name: 'Still Finding My Feet', pg: 'Two years in, you still dey learn the cold and the system.', side: 'japa' };
+  }
+  if (S.build) {
+    if (S.ending === 'japalate') return { name: 'Japa Late', pg: 'Better late than never? Abroad, we go see.', side: 'japa' };
+    if (S.ending === 'changemaker') return { name: 'Changemaker', pg: 'Honourable! Now the road go finally get coal tar.', side: 'stay' };
+    if (S.ending === 'pillar') return { name: 'Community Pillar', pg: 'Your house stand for village, your name stand for town.', side: 'stay' };
+    if (S.ending === 'empire') return rich >= price(20000000)
+      ? { name: 'Billionaire Baller', pg: 'Odogwu! Na you dem go dey spray for owambe now.', side: 'stay' }
+      : { name: 'Odogwu', pg: 'From small shop to empire. Na you be the main character.', side: 'stay' };
+    if (S.health < 30) return { name: 'Burnout', pg: 'Shop no go run if you collapse. Rest small.', side: 'none' };
+    if (rich >= price(10000000)) return { name: 'Odogwu in the Making', pg: 'The money don dey enter. Keep am steady.', side: 'stay' };
+    return { name: 'Steady Life', pg: 'No noise, no wahala. You dey build small small.', side: 'stay' };
+  }
+  if (S.ending === 'japa') {
+    if (S.family < 30) return { name: 'Lonely Success', pg: 'You don reach, but who you go call?', side: 'japa' };
+    if (S.clout >= 3000) return { name: 'Diaspora Star', pg: 'Abroad don collect you, but your fans still dey for Naija.', side: 'japa' };
+    return { name: 'Remittance Hero', pg: 'Family go dey hear "credit alert" from overseas.', side: 'japa' };
+  }
+  if (S.ending === 'stay') {
+    if (rich >= price(8000000)) return { name: 'Billionaire Baller', pg: 'Odogwu! Na you dem go dey spray for owambe now.', side: 'stay' };
+    if (S.clout >= 3000) return { name: 'Homegrown Headliner', pg: 'Naija don make you, and you no regret am.', side: 'stay' };
+    return { name: 'Odogwu in Progress', pg: 'Shop don open. The hustle don get address.', side: 'stay' };
+  }
+  if (S.health < 30) return { name: 'Burnout', pg: 'Body no be firewood. Rest small.', side: 'none' };
+  if (S.resolve > 40) return { name: 'Visa Wahala', pg: 'Year one done, you still dey run up and down for papers.', side: 'japa' };
+  if (S.resolve < -40) return { name: 'Steady Life', pg: 'No noise, no wahala. You dey build small small.', side: 'stay' };
+  return { name: 'Still Deciding', pg: 'Japa or stay? Your mind still dey middle.', side: 'none' };
+}
+
+/* ---------- art: everything below is drawn in code ---------- */
+let UID = 0;
+const SKINS = ['#3B2416', '#55331F', '#6E452B', '#8A5A38', '#A6734A'];
+const LOOKS = { short: 'Short hair', braids: 'Braids', gele: 'Gele', fila: 'Fila cap' };
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  return '#' + [n >> 16, (n >> 8) & 255, n & 255].map(v => Math.max(0, Math.min(255, Math.round(v * (1 + f)))).toString(16).padStart(2, '0')).join('');
+}
+function face(o, cls = '') {
+  const id = 'f' + (++UID), skin = o.skin || SKINS[2], dk = shade(skin, -0.25), hair = '#1A1210';
+  const wrap = o.wrap || '#C8462B', trim = o.trim || '#1E7A4C';
+  const mouth = o.mood === 'sad' ? 'M43 61 Q50 55 57 61' : o.mood === 'flat' ? 'M44 59 L56 59' : 'M43 57 Q50 63 57 57';
+  const heads = {
+    short: `<path d="M31 42 C30 21 70 21 69 42 C66 32 34 32 31 42Z" fill="${hair}"/>`,
+    braids: `<path d="M30 44 C28 19 72 19 70 44 C66 31 34 31 30 44Z" fill="${hair}"/><g stroke="${hair}" stroke-width="3.2" stroke-linecap="round"><path d="M31 42 L28 72"/><path d="M35 39 L33 74"/><path d="M69 42 L72 72"/><path d="M65 39 L67 74"/></g>`,
+    gele: `<path d="M24 37 C21 13 44 5 54 12 C65 3 83 14 78 35 C70 26 32 24 24 37Z" fill="${wrap}"/><path d="M34 21 C44 15 58 15 70 21 M29 29 C44 21 60 21 75 28" stroke="${shade(wrap, -0.32)}" stroke-width="1.6" fill="none"/>`,
+    fila: `<path d="M31 35 C32 18 60 13 73 26 L66 37 C56 31 40 31 31 35Z" fill="${wrap}"/><path d="M33 35 C42 32 56 32 66 37" stroke="${shade(wrap, -0.32)}" stroke-width="2" fill="none"/>`,
+    kufi: `<path d="M32 34 C32 17 68 17 68 34Z" fill="${wrap}"/><path d="M32 34 H68" stroke="${trim}" stroke-width="3"/><path d="M38 26 H62" stroke="${trim}" stroke-width="1.4" stroke-dasharray="2 2"/>`,
+    redcap: `<path d="M33 33 L37 11 C47 6 60 8 65 14 L67 33Z" fill="#B3261E"/><path d="M33 33 H67" stroke="#7A1712" stroke-width="2"/>`,
+    beanie: `<path d="M31 38 C30 15 70 15 69 38Z" fill="${wrap}"/><rect x="30" y="33" width="40" height="7" rx="3" fill="${shade(wrap, -0.3)}"/><circle cx="50" cy="14" r="5" fill="${shade(wrap, 0.45)}"/>`
+  };
+  const extras = {
+    shades: `<rect x="37" y="42" width="11" height="6" rx="2" fill="#111"/><rect x="52" y="42" width="11" height="6" rx="2" fill="#111"/><path d="M48 44 H52" stroke="#111" stroke-width="1.5"/>`,
+    beads: `<g fill="#D9472B">${[37, 42, 47, 53, 58, 63].map((x, i) => `<circle cx="${x}" cy="${73 + (i === 0 || i === 5 ? -2 : i === 2 || i === 3 ? 2 : 0)}" r="2.6"/>`).join('')}</g>`,
+    scarf: `<path d="M37 65 C44 71 56 71 63 65 L65 74 C56 79 44 79 35 74Z" fill="#B83A2E"/>`
+  };
+  const cloth = o.cloth || '#0E7A4C', dot = o.dot || '#E8A317';
+  return `<svg class="face ${cls}" viewBox="0 0 100 100" role="img" aria-label="${esc(o.label || 'Portrait')}">
+    <defs><pattern id="${id}p" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="${cloth}"/><circle cx="5" cy="5" r="2.2" fill="${dot}"/><circle cx="0" cy="0" r="1.2" fill="${dot}"/><circle cx="10" cy="10" r="1.2" fill="${dot}"/></pattern>
+    <clipPath id="${id}c"><circle cx="50" cy="50" r="50"/></clipPath></defs>
+    <g clip-path="url(#${id}c)"><rect width="100" height="100" fill="var(--portrait-bg)"/>
+    <path d="M12 104 C14 80 32 70 50 70 C68 70 86 80 88 104Z" fill="url(#${id}p)"/>
+    <rect x="44" y="58" width="12" height="14" rx="4" fill="${dk}"/>
+    <circle cx="31.5" cy="47" r="4" fill="${dk}"/><circle cx="68.5" cy="47" r="4" fill="${dk}"/>
+    <ellipse cx="50" cy="45" rx="18.5" ry="21" fill="${skin}"/>
+    ${heads[o.head] || heads.short}
+    <path d="M39 39 h7 M54 39 h7" stroke="${hair}" stroke-width="1.8" stroke-linecap="round"/>
+    <circle cx="43" cy="45" r="2.1" fill="#140d09"/><circle cx="57" cy="45" r="2.1" fill="#140d09"/>
+    <path d="M49 47 Q50 52 52 51" stroke="${dk}" stroke-width="1.6" fill="none"/>
+    <path d="${mouth}" stroke="#3a1f16" stroke-width="2" fill="none" stroke-linecap="round"/>
+    ${(o.extra || []).map(e => extras[e]).join('')}</g></svg>`;
+}
+const NPCS = {
+  mama: { skin: SKINS[1], head: 'gele', wrap: '#C8462B', cloth: '#E8A317', dot: '#1F4E8C', label: 'Mama' },
+  iya: { skin: SKINS[2], head: 'gele', wrap: '#6B3FA0', cloth: '#6B3FA0', dot: '#F2C230', label: 'Iya Ajo' },
+  tunde: { skin: SKINS[3], head: 'beanie', wrap: '#3346A8', cloth: '#2B2F3A', dot: '#3B4150', extra: ['scarf'], mood: 'flat', label: 'Cousin Tunde' },
+  odogwu: { skin: SKINS[1], head: 'redcap', cloth: '#14110F', dot: '#D4A017', extra: ['shades', 'beads'], label: 'Chief Odogwu' },
+  alhaji: { skin: SKINS[2], head: 'kufi', wrap: '#F2EEE4', trim: '#1E7A4C', cloth: '#F2EEE4', dot: '#1E7A4C', label: 'Alhaji Sule' },
+  fixit: { skin: SKINS[3], head: 'short', cloth: '#C0392B', dot: '#F4D03F', extra: ['shades'], label: 'Mr Fix-It' },
+  landlord: { skin: SKINS[0], head: 'fila', wrap: '#7A4E2D', cloth: '#7A4E2D', dot: '#E8D2A6', mood: 'flat', label: 'Landlord' },
+  manager: { skin: '#E3B48F', head: 'short', cloth: '#3D6E8C', dot: '#5C8CA8', mood: 'flat', label: 'Care home manager' },
+  areaboy: { skin: SKINS[0], head: 'short', cloth: '#2D2D2D', dot: '#C0392B', extra: ['shades'], mood: 'flat', label: 'Area boy' },
+  trader: { skin: SKINS[2], head: 'gele', wrap: '#1E7A4C', cloth: '#1E7A4C', dot: '#F2C230', label: 'Supplier' }
+};
+const FRIENDS = {
+  lagos: { head: 'braids', skin: SKINS[2], cloth: '#1F7A8C', dot: '#F2C230' },
+  kano: { head: 'kufi', wrap: '#2F5D8C', trim: '#E8A317', skin: SKINS[1], cloth: '#2F5D8C', dot: '#BFD7EA' },
+  enugu: { head: 'braids', skin: SKINS[3], cloth: '#B3261E', dot: '#F6E7C1' },
+  ph: { head: 'short', skin: SKINS[1], cloth: '#0E7A4C', dot: '#F2EEE4' }
+};
+const ICONS = {
+  news: '<rect x="26" y="28" width="48" height="44" rx="3" fill="var(--paper)"/><path d="M32 37h36M32 45h18M32 53h18M32 63h36" stroke="var(--ink-soft)" stroke-width="3"/><text x="62" y="57" font-size="17" font-weight="800" text-anchor="middle" fill="#B83A2E">₦</text>',
+  nepa: '<circle cx="50" cy="43" r="16" fill="var(--paper)"/><rect x="42" y="59" width="16" height="11" rx="2" fill="var(--paper)"/><path d="M43 63h14M43 67h14" stroke="var(--ink-soft)" stroke-width="2"/><path d="M30 25 L70 69" stroke="#E8572A" stroke-width="5" stroke-linecap="round"/>',
+  sick: '<rect x="45" y="20" width="10" height="44" rx="5" fill="var(--paper)"/><circle cx="50" cy="68" r="10" fill="#E8572A"/><rect x="48" y="38" width="4" height="28" fill="#E8572A"/><path d="M58 30h5M58 38h5M58 46h5" stroke="var(--paper)" stroke-width="2"/>',
+  embassy: '<path d="M24 40 L50 24 L76 40Z" fill="var(--paper)"/><rect x="26" y="40" width="48" height="4" fill="var(--paper)"/><g fill="var(--paper)"><rect x="30" y="46" width="5" height="20"/><rect x="41" y="46" width="5" height="20"/><rect x="54" y="46" width="5" height="20"/><rect x="65" y="46" width="5" height="20"/></g><rect x="24" y="66" width="52" height="6" fill="var(--paper)"/><path d="M50 24V10" stroke="var(--paper)" stroke-width="2"/><rect x="50" y="10" width="14" height="8" fill="#8F9DFF"/>',
+  plane: '<path d="M16 56 L80 38 C86 36 88 42 83 45 L62 54 L48 74 L41 74 L47 57 L29 62 L23 69 L18 69 L22 60Z" fill="var(--paper)"/>',
+  cold: '<g stroke="var(--paper)" stroke-width="4" stroke-linecap="round" fill="none"><path d="M50 22V78M26 36L74 64M26 64L74 36"/><path d="M42 27l8 6 8-6M42 73l8-6 8 6"/></g>',
+  ballot: '<rect x="40" y="20" width="20" height="26" fill="var(--paper)" transform="rotate(-8 50 33)"/><path d="M44 32l5 5 8-9" stroke="#1D8A55" stroke-width="3" fill="none"/><rect x="26" y="44" width="48" height="32" rx="3" fill="var(--paper)"/><rect x="38" y="44" width="24" height="4" fill="var(--ink-soft)"/>',
+  shop: '<path d="M24 40 L30 26 H70 L76 40Z" fill="#E8A317"/><rect x="26" y="40" width="48" height="34" fill="var(--paper)"/><rect x="34" y="50" width="14" height="24" fill="var(--ink-soft)"/><rect x="54" y="50" width="14" height="12" fill="#8F9DFF"/>'
+};
+const iconArt = (k, label) => `<svg class="face" viewBox="0 0 100 100" role="img" aria-label="${esc(label)}"><circle cx="50" cy="50" r="50" fill="var(--icon-bg)"/>${ICONS[k]}</svg>`;
+const EV_ART = { blacktax: 'mama', school: 'mama', owambe: 'friend', detty: 'friend', ajo: 'iya', fuel: 'news', devalue: 'news', nepa: 'nepa', ponzi: 'odogwu', sponsor: 'alhaji', agent: 'fixit', tunde: 'tunde', sick: 'sick', interview: 'embassy', ponr: 'plane', lease: 'landlord',
+  a_blacktax: 'mama', a_winter: 'cold', a_hours: 'manager', a_rude: 'manager', a_owambe: 'friend', a_tunde: 'tunde', a_scam: 'fixit', a_detty: 'plane',
+  a_homesick: 'mama', a_promo: 'manager', a_pr: 'embassy', a_return: 'plane', a_deport: 'embassy', a_sick: 'sick',
+  b_levy: 'areaboy', b_supplier: 'trader', b_contract: 'alhaji', b_theft: 'shop', b_rival: 'shop', b_japalate: 'tunde', b_election: 'ballot', b_empire: 'odogwu', b_housewarm: 'mama' };
+function eventArt(id, who) {
+  const k = EV_ART[id];
+  if (ICONS[k]) return iconArt(k, who);
+  if (k === 'friend') return face({ ...FRIENDS[S.region], label: who });
+  return face({ ...NPCS[k], label: who });
+}
+function playerFace(cls = '', st = S) {
+  const m = st.mood === undefined ? 70 : st.mood;
+  return face({ skin: st.skin || SKINS[2], head: st.look || 'short', wrap: '#0E7A4C', cloth: '#0E7A4C', dot: '#E8A317', mood: m >= 55 ? 'happy' : m >= 30 ? 'flat' : 'sad', label: `${st.name || 'You'}, ${m >= 55 ? 'happy' : m >= 30 ? 'okay' : 'stressed'}` }, cls);
+}
+const CI = {
+  work: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2M3 12h18"/>',
+  jobhunt: '<circle cx="10" cy="10" r="6"/><path d="M15 15l5 5"/>',
+  pos: '<rect x="6" y="3" width="12" height="18" rx="2"/><rect x="8.5" y="6" width="7" height="4"/><path d="M9 14h.01M12 14h.01M15 14h.01M9 17h.01M12 17h.01M15 17h.01"/>',
+  study: '<path d="M4 5h6a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6z"/>',
+  test: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>',
+  passport: '<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M9 16h6"/>',
+  apply: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
+  convert: '<path d="M4 8h14l-3-3M20 16H6l3 3"/>',
+  rest: '<path d="M3 18V8M3 14h18v4M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="2"/>',
+  chill: '<path d="M4 20L20 4M8 13l3 3M11 10l3 3M14 7l3 3"/>',
+  faith: '<circle cx="12" cy="6" r="2.5"/><circle cx="6" cy="9" r="2"/><circle cx="18" cy="9" r="2"/><path d="M7 20c0-5 2-8 5-8s5 3 5 8M2 19c0-3 2-5 4-5M22 19c0-3-2-5-4-5"/>',
+  call: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
+  skit: '<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 9v6l5-3z"/>',
+  studio: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+  audition: '<rect x="3" y="10" width="18" height="11" rx="1"/><path d="M3 10l2-5 16 2-1 3M8 5.5l-2 4.2M13 6.2l-2 3.6"/>',
+  stock: '<path d="M3 9l2-5h14l2 5M3 9h18v11H3zM9 20v-6h6v6"/>',
+  repay: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/>'
+};
+Object.assign(CI, {
+  a_cook: '<path d="M4 10h16v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4zM2 10h20M9 6c0-1 1-1 1-2M14 6c0-1 1-1 1-2"/>',
+  a_land: '<path d="M3 20h18M5 20v-7l7-5 7 5v7M10 20v-4h4v4"/>',
+  a_gig: '<circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17l4-7h5l3 7M10 10l-1-3H7"/>',
+  b_solar: '<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/>',
+  b_campaign: '<path d="M3 10v4l11 5V5zM14 8a4 4 0 0 1 0 8M6 14l1 6h3l-1-5"/>'
+});
+const CI_ALIAS = { b_shop: 'stock', b_restock: 'stock', b_hire: 'faith', b_apprentice: 'faith', b_union: 'faith', b_cac: 'test', b_loan: 'convert', b_branch: 'a_land', b_house: 'a_land', b_promote: 'skit',a_shift: 'work', a_extra: 'work', a_rest: 'rest', a_remit: 'convert', a_course: 'study', a_lifestudy: 'study', a_lifetest: 'test', a_hub: 'faith', a_call: 'call', a_vlog: 'skit', a_paycard: 'repay', a_explore: 'apply' };
+const cardIcon = k => `<svg class="ci" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${CI[k] || CI[CI_ALIAS[k]] || ''}</svg>`;
+const SCENE_LABEL = { lagos: 'Lagos skyline with a yellow danfo bus on the bridge', kano: 'Kano city walls, mud houses and a dome', enugu: 'Green hills of Enugu with small red-roofed houses', ph: 'Port Harcourt waterfront with a boat and an oil platform flaring', north: 'A cold, snowy street in Northland' };
+const SCENES = {
+  lagos: () => {
+    const b = [[0, 26, 46], [28, 18, 60], [48, 30, 38], [80, 22, 68], [104, 34, 50], [140, 16, 74], [158, 28, 42], [188, 24, 58], [214, 36, 48], [252, 20, 64], [274, 30, 36], [306, 24, 54], [332, 40, 44], [374, 26, 58]];
+    return `<circle cx="346" cy="24" r="12" fill="var(--sun)"/>` +
+      b.map(([x, w, h]) => `<rect x="${x}" y="${72 - h}" width="${w}" height="${h}" fill="var(--sil)"/>` + (h > 50 ? `<rect x="${x + 4}" y="${78 - h}" width="3" height="3" fill="var(--sun)" opacity=".75"/><rect x="${x + w - 8}" y="${86 - h}" width="3" height="3" fill="var(--sun)" opacity=".75"/>` : '')).join('') +
+      `<rect y="76" width="400" height="24" fill="var(--water)"/><rect y="72" width="400" height="4" fill="var(--sil)"/>` +
+      [20, 70, 120, 170, 220, 270, 320, 370].map(x => `<rect x="${x}" y="76" width="4" height="24" fill="var(--sil)"/>`).join('') +
+      `<path d="M30 88h20M110 92h26M240 86h18M330 92h24" stroke="var(--sky)" stroke-width="1.5" opacity=".6"/>` +
+      `<g transform="translate(150 57)"><rect width="34" height="13" rx="3" fill="#F2C230"/><path d="M0 8h34" stroke="#111" stroke-width="1.5"/><rect x="3" y="2" width="6" height="4" fill="#9CC9DA"/><rect x="11" y="2" width="6" height="4" fill="#9CC9DA"/><rect x="19" y="2" width="6" height="4" fill="#9CC9DA"/><rect x="27" y="2" width="5" height="4" fill="#9CC9DA"/><circle cx="8" cy="13" r="2.6" fill="#111"/><circle cx="27" cy="13" r="2.6" fill="#111"/></g>`;
+  },
+  kano: () => {
+    let wall = 'M0 100 V76'; for (let x = 0; x < 400; x += 16) wall += ` L${x + 8} 69 L${x + 16} 76`; wall += ' V100Z';
+    const houses = [[16, 40, 24], [66, 50, 32], [126, 36, 20], [172, 44, 28], [336, 52, 26]];
+    return `<circle cx="60" cy="26" r="13" fill="var(--sun)"/>` +
+      `<path d="M250 64 Q280 22 310 64Z" fill="var(--mud2)"/>` +
+      `<rect x="236" y="30" width="8" height="40" fill="var(--mud2)"/><path d="M234 30 L240 19 L246 30Z" fill="var(--mud2)"/>` +
+      `<rect x="316" y="30" width="8" height="40" fill="var(--mud2)"/><path d="M314 30 L320 19 L326 30Z" fill="var(--mud2)"/>` +
+      houses.map(([x, w, h]) => `<rect x="${x}" y="${72 - h}" width="${w}" height="${h}" fill="var(--mud2)"/><path d="M${x} ${72 - h} l4 -8 l4 8Z M${x + w - 8} ${72 - h} l4 -8 l4 8Z" fill="var(--mud2)"/><rect x="${x + w / 2 - 4}" y="${60}" width="8" height="12" rx="4" fill="var(--sil)" opacity=".55"/>`).join('') +
+      `<path d="M204 90 Q208 70 203 50" stroke="var(--sil)" stroke-width="3" fill="none"/><path d="M203 50 q-14 -2 -20 8 M203 50 q14 -2 20 8 M203 50 q-8 -10 -18 -8 M203 50 q8 -10 18 -8" stroke="var(--hill)" stroke-width="3" fill="none" stroke-linecap="round"/>` +
+      `<path d="${wall}" fill="var(--mud)"/><rect y="90" width="400" height="10" fill="var(--sand)"/>`;
+  },
+  enugu: () => {
+    const houses = [[56, 48], [146, 52], [318, 38]];
+    return `<circle cx="330" cy="22" r="12" fill="var(--sun)"/>` +
+      `<path d="M0 74 C60 40 120 46 180 62 C240 78 300 36 400 50 V100 H0Z" fill="var(--hill)"/>` +
+      houses.map(([x, y]) => `<rect x="${x}" y="${y}" width="16" height="16" fill="var(--paper)"/><path d="M${x - 3} ${y} L${x + 8} ${y - 9} L${x + 19} ${y}Z" fill="var(--roof)"/><rect x="${x + 6}" y="${y + 8}" width="4" height="8" fill="var(--sil)"/>`).join('') +
+      `<path d="M0 86 C80 70 160 74 240 86 C300 94 350 78 400 82 V100 H0Z" fill="var(--hill2)"/>` +
+      `<path d="M190 100 C196 92 178 86 204 80 C228 74 222 70 246 68" stroke="var(--sand)" stroke-width="3" fill="none"/>` +
+      `<g fill="var(--hill)"><circle cx="40" cy="84" r="6"/><circle cx="50" cy="82" r="7"/><circle cx="296" cy="86" r="6"/><circle cx="360" cy="83" r="7"/></g>`;
+  },
+  ph: () => {
+    let mangrove = 'M0 72'; for (let x = 0; x < 220; x += 22) mangrove += ` Q${x + 11} ${58 + (x % 3) * 3} ${x + 22} 72`; mangrove += ' Z';
+    return `<circle cx="80" cy="38" r="12" fill="var(--sun)"/>` +
+      `<path d="${mangrove}" fill="var(--hill)"/><rect y="70" width="400" height="30" fill="var(--water)"/>` +
+      `<path d="M290 100 L297 68 M332 100 L325 68" stroke="var(--sil)" stroke-width="3"/><rect x="284" y="61" width="52" height="8" fill="var(--sil)"/>` +
+      `<rect x="318" y="34" width="6" height="27" fill="var(--sil)"/><path d="M322 38 L344 28" stroke="var(--sil)" stroke-width="2.5"/>` +
+      `<path d="M346 30 C338 22 346 14 348 6 C353 15 358 21 351 30Z" fill="#E8572A"/><path d="M347 29 C344 24 348 20 349 15 C352 21 353 25 350 29Z" fill="var(--sun)"/>` +
+      `<path d="M118 78 h46 l-7 8 h-32z" fill="var(--roof)"/><circle cx="150" cy="70" r="3" fill="var(--sil)"/><path d="M150 73 v5" stroke="var(--sil)" stroke-width="2.5"/>` +
+      `<path d="M20 86h22M200 82h30M240 92h24M360 88h20" stroke="var(--sky)" stroke-width="1.5" opacity=".6"/>`;
+  },
+  north: () => {
+    let s = '';
+    for (let i = 0; i < 8; i++) {
+      const x = i * 50;
+      s += `<rect x="${x + 3}" y="50" width="44" height="36" fill="var(--house)" opacity="${i % 2 ? 0.85 : 1}"/><path d="M${x + 1} 50 L${x + 25} 32 L${x + 49} 50Z" fill="var(--sil)"/>` +
+        `<rect x="${x + 34}" y="32" width="6" height="12" fill="var(--sil)"/><rect x="${x + 9}" y="58" width="9" height="9" fill="var(--sun)" opacity=".85"/><rect x="${x + 30}" y="58" width="9" height="9" fill="var(--sun)" opacity=".85"/><rect x="${x + 20}" y="70" width="9" height="16" fill="var(--sil)"/>`;
+    }
+    const flakes = [[20, 14], [64, 26], [110, 10], [150, 22], [196, 12], [240, 28], [286, 16], [330, 8], [372, 24], [90, 40], [262, 40]];
+    return s + `<rect y="84" width="400" height="16" fill="var(--snow)"/>` + flakes.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2" fill="var(--snow)"/>`).join('');
+  }
+};
+const scene = kind => `<svg class="scene" viewBox="0 0 400 100" preserveAspectRatio="xMidYMax slice" role="img" aria-label="${esc(SCENE_LABEL[kind])}"><rect width="400" height="100" fill="${kind === 'north' ? 'var(--sky-cold)' : 'var(--sky)'}"/>${SCENES[kind]()}</svg>`;
+
+/* ---------- save ---------- */
+function save() { try { localStorage.setItem('jos-save', JSON.stringify(S)); } catch (e) {} }
+function load() { try { const r = localStorage.getItem('jos-save'); if (r) S = JSON.parse(r); } catch (e) { S = null; } }
+
+/* ---------- render ---------- */
+let setup = { name: 'Ada', region: 'enugu', trait: 'hustler', skin: SKINS[2], look: 'braids' };
+const app = document.getElementById('app');
+
+function statBar(key, v) {
+  return `<div class="stat"><span>${t(key)}</span><span class="bar" role="meter" aria-label="${t(key)}" aria-valuenow="${v}" aria-valuemin="0" aria-valuemax="100"><i class="${v < 25 ? 'low' : ''}" style="width:${v}%"></i></span><span class="v">${v}</span></div>`;
+}
+function board() {
+  const pofNaira = POF_USD * S.fx;
+  return `
+  <section class="panel" aria-label="Status">
+    ${scene(S.abroad ? 'north' : S.region)}
+    <div class="row between">
+      <div class="me">${playerFace()}<div><span class="label">${t('week')} ${S.week} of ${lastWeek()} · ${month()}${S.abroad ? ` · ${weeksAbroad()} weeks abroad` : ''}</span><h2>${esc(S.name)} in ${S.abroad ? 'Northland' : REG().name}</h2></div></div>
+      <span class="tag">${TRAITS[S.trait].name}${S.job ? ' · employed' : ''}${S.streetSmart ? ' · Street Smart' : ''}</span>
+    </div>
+    <div class="money">
+      ${S.abroad ? `<div><span class="label">${t('cashAb')}</span><span class="num big">${usd(S.usd)}</span></div>
+      <div><span class="label">${t('homeAcct')}</span><span class="num big">${naira(S.money)}</span></div>`
+      : `<div><span class="label">${t('money')}</span><span class="num big">${naira(S.money)}</span></div>
+      <div><span class="label">${t('savings')}</span><span class="num big">${usd(S.usd)}</span></div>`}
+      <div><span class="label">${t('fx')}</span><span class="num big ${S.ledger && S.ledger.fxUp ? 'up' : 'down'}">${Math.round(S.fx).toLocaleString('en-NG')} ${S.ledger ? (S.ledger.fxUp ? '↑' : '↓') : ''}</span></div>
+    </div>
+    ${S.debt > 0 ? `<div class="note neg">Loan app debt: ${naira(S.debt)} (3% interest a week; they take 30% of your cash at settle-up)</div>` : ''}
+    ${S.abroad && S.abroad.cc > 0 ? `<div class="note neg">Credit card debt: ${usd(S.abroad.cc)} (2% interest a week)</div>` : ''}
+    ${S.abroad && S.abroad.strikes > 0 ? `<div class="note neg">Visa warnings: ${S.abroad.strikes} of 3. A third warning cancels your visa.</div>` : ''}
+    ${S.build ? `<div class="note">Shop reputation ${S.build.rep}/100 · ${S.build.staff} staff · ${S.build.lease ? 'main shop lease paid' : 'renting the shop'}${S.build.loanWeeks ? ` · bank loan: ${S.build.loanWeeks} weeks left` : ''}${S.build.supplier ? ` · owe supplier ${naira(S.build.supplier)}` : ''}</div>` : ''}
+    <div class="stats">${['energy', 'mood', 'health', 'family', 'community'].map(k => statBar(k, S[k])).join('')}
+      <div class="stat"><span>${t('clout')}</span><span class="num" style="font-size:13px">${S.clout.toLocaleString()} fans</span><span></span></div>
+    </div>
+    <div class="resolve">
+      <span class="label">${t('resolve')}</span>
+      <div class="meter" role="meter" aria-label="Resolve" aria-valuenow="${S.resolve}" aria-valuemin="-100" aria-valuemax="100"><b style="left:${(S.resolve + 100) / 2}%"></b></div>
+      <div class="ends"><span class="s">← ${S.abroad ? t('goHome') : t('stay')}</span><span class="j">${S.abroad ? t('settleAb') : t('japa')} →</span></div>
+    </div>
+    ${S.abroad ? `<div class="tracks">
+      <div class="track j"><h3>${t('atrack')}</h3><ul>
+        <li class="${S.abroad.promoted ? 'ok' : ''}">Senior carer (course ${S.abroad.course}/5)</li>
+        <li class="${S.abroad.lifeTest ? 'ok' : ''}">Life in Northland test</li>
+        <li class="${weeksAbroad() >= 30 ? 'ok' : ''}">30 weeks abroad (${weeksAbroad()})</li>
+        <li class="${S.usd >= SETTLE_USD ? 'ok' : ''}">Savings ${usd(SETTLE_USD)}</li>
+        <li class="${S.abroad.strikes < 2 ? 'ok' : ''}">Fewer than 2 visa warnings</li>
+      </ul></div>
+      <div class="track s"><h3>${t('rtrack')}</h3><ul>
+        <li class="${S.family >= 60 ? 'ok' : ''}">Family bond 60+</li>
+        <li class="${S.abroad.land >= 1 ? 'ok' : ''}">A plot of land back home (${S.abroad.land})</li>
+        <li class="${S.abroad.remitted >= 3000 ? 'ok' : ''}">Sent home ${usd(S.abroad.remitted)} of $3,000</li>
+        <li class="${S.usd >= RETURN_USD ? 'ok' : ''}">${usd(RETURN_USD)} to return and build</li>
+      </ul></div>
+    </div>` : S.build ? buildTracks() : `<div class="tracks">
+      <div class="track j"><h3>${t('jtrack')}</h3><ul>
+        <li class="${S.passport ? 'ok' : ''}">International passport</li>
+        <li class="${S.ielts >= 6.5 ? 'ok' : ''}">English test 6.5${S.ielts ? ` (best ${S.ielts})` : ''}</li>
+        <li class="${S.offer ? 'ok' : ''}">Sponsored job offer</li>
+        <li class="${S.usd >= POF_USD ? 'ok' : ''}">Proof of funds ${usd(POF_USD)} (≈${naira(pofNaira)})</li>
+      </ul></div>
+      <div class="track s"><h3>${t('strack')}</h3><ul>
+        <li class="${S.job ? 'ok' : ''}">Steady job</li>
+        <li class="${S.biz >= 6 ? 'ok' : ''}">Business level 6 (now ${S.biz})</li>
+        <li class="${S.money >= price(1200000) ? 'ok' : ''}">${naira(price(1200000))} for a shop lease</li>
+        <li class="${S.community >= 60 ? 'ok' : ''}">Community 60+</li>
+      </ul></div>
+    </div>`}
+  </section>`;
+}
+function buildTracks() {
+  const B = S.build;
+  return `<div class="tracks">
+      <div class="track s"><h3>Grow the business</h3><ul>
+        <li class="${S.biz >= 12 ? 'ok' : ''}">Business level 12 (now ${S.biz})</li>
+        <li class="${B.registered && B.staff >= 2 ? 'ok' : ''}">CAC registered + 2 staff (now ${B.staff})</li>
+        <li class="${B.branches >= 3 ? 'ok' : ''}">3 branches (now ${B.branches})</li>
+        <li class="${B.rep >= 70 ? 'ok' : ''}">Reputation 70+ (now ${B.rep})</li>
+      </ul></div>
+      <div class="track s"><h3>Community and home</h3><ul>
+        <li class="${S.community >= 70 ? 'ok' : ''}">Community 70+</li>
+        <li class="${B.leader >= 6 ? 'ok' : ''}">Town leadership 6 (now ${B.leader})</li>
+        <li class="${B.campaign >= 8 ? 'ok' : ''}">Councillor campaign ${B.campaign}/8</li>
+        <li class="${B.house >= 8 ? 'ok' : ''}">Hometown house ${B.house}/8</li>
+      </ul></div>
+    </div>`;
+}
+function tabs(on) {
+  const ph = [['plan', t('plan')], ['life', t('life')], ['settle', t('settle')]];
+  return `<div class="phase-tabs" aria-label="Weekly loop">${ph.map(([k, l]) => `<span class="${k === on ? 'on' : ''}">${l}</span>`).join('')}</div>`;
+}
+function planView() {
+  const used = blocksUsed(), left = BLOCKS - used, cash = wallet() - moneyCommitted();
+  const cards = S.hand.map(k => {
+    const c = CARDS[k], on = S.picked.includes(k), cost = c.cost();
+    const dis = !on && (c.blocks > left || cost > cash);
+    const tags = c.tags().map(x => `<span class="tag ${['Japa', 'Settle'].includes(x) ? 'j' : ['Stay', 'pulls home', 'roots at home'].includes(x) ? 's' : ''}">${x}</span>`).join('');
+    return `<button class="card" data-act="card" data-k="${k}" aria-pressed="${on}" ${dis ? 'disabled' : ''}>
+      <span class="head">${cardIcon(k)}<span class="t">${c.name}</span></span>
+      <span class="meta"><span>${c.blocks} blocks</span><span>${cost ? cur(cost) : 'free'}</span></span>
+      <span class="tags">${tags}</span></button>`;
+  }).join('');
+  return `<section class="panel">${tabs('plan')}
+    <div class="row between"><h2>${t('planTitle')}</h2><span class="num" style="font-size:13px">${left} ${t('blocksLeft')}</span></div>
+    <div class="blocks" aria-hidden="true">${Array.from({ length: BLOCKS }, (_, i) => `<i class="${i < used ? 'used' : ''}"></i>`).join('')}</div>
+    <div class="cards">${cards}</div>
+    <div class="row between"><span class="note">${S.picked.length ? `Spending ${cur(moneyCommitted())} this week` : t('noCards')}</span>
+      <button class="btn" data-act="end" ${S.picked.length ? '' : 'disabled'}>${t('endWeek')}</button></div>
+  </section>`;
+}
+function lifeView() {
+  const q = S.queue[0]; const v = EV[q.id].view(q.p);
+  const body = S.result
+    ? `<div class="result">${esc(S.result)}</div><button class="btn" data-act="next">${t('cont')}</button>`
+    : `<div class="choices">${v.choices.map((c, i) => `<button class="choice" data-act="choose" data-i="${i}"><span>${esc(c.l)}</span>${c.h ? `<small>${esc(c.h)}</small>` : ''}</button>`).join('')}</div>`;
+  return `<section class="panel event">${tabs('life')}
+    <div class="who">${eventArt(q.id, v.who)}<div><div class="label">${esc(v.who)}</div><h2>${esc(v.title)}</h2></div></div>
+    <p class="quote" style="margin:0">${esc(v.text)}</p>${body}
+    ${S.queue.length > 1 ? `<span class="note">${S.queue.length - 1} more this week</span>` : ''}</section>`;
+}
+function settleView() {
+  const L = S.ledger; const net = L.lines.reduce((a, [, v]) => a + v, 0);
+  return `<section class="panel">${tabs('settle')}
+    <h2>${t('settleTitle')}</h2>
+    <table class="ledger">${L.lines.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="${v >= 0 ? 'pos' : 'neg'}">${v >= 0 ? '+' : ''}${cur(v)}</td></tr>`).join('')}
+      <tr class="total"><td>Net this settle-up</td><td class="${net >= 0 ? 'pos' : 'neg'}">${net >= 0 ? '+' : ''}${cur(net)}</td></tr></table>
+    <div class="note">${L.abroad
+      ? `Northland prices crept up about 0.1%. The dollar is now ₦${Math.round(S.fx).toLocaleString('en-NG')}, so every $100 you send home is worth ${naira(100 * S.fx)}.`
+      : `Prices rose ${L.inf.toFixed(2)}% this week. The dollar went ${L.fxUp ? 'up' : 'down'} to ₦${Math.round(S.fx).toLocaleString('en-NG')}. ${S.build ? 'Your shop prices rise with inflation, but so do your costs.' : 'Your salary does not rise with inflation.'}`}</div>
+    <button class="btn" data-act="nextweek">${t('cont')}</button></section>`;
+}
+function endView() {
+  const e = endingInfo();
+  return `<section class="lifecard" style="border-color:var(--${e.side === 'japa' ? 'japa' : e.side === 'stay' ? 'stay' : 'ink'})">
+    ${scene(stillAbroad() ? 'north' : S.region)}
+    <div class="me">${playerFace('lg')}<span class="label">${esc(S.name)} · ${stillAbroad() ? 'now in Northland' : S.abroad ? `back in ${REG().name}` : REG().name} · week ${Math.min(S.week, lastWeek())}</span></div>
+    <div class="ending">${e.name}</div>
+    <div class="pg">"${e.pg}"</div>
+    <table class="ledger">
+      <tr><td>Cash</td><td>${naira(S.money)}</td></tr><tr><td>Dollar savings</td><td>${usd(S.usd)}</td></tr>
+      <tr><td>Family bond</td><td>${S.family}</td></tr><tr><td>Community</td><td>${S.community}</td></tr>
+      <tr><td>Clout</td><td>${S.clout.toLocaleString()} fans</td></tr><tr><td>Resolve</td><td>${S.resolve > 0 ? 'Japa ' + S.resolve : S.resolve < 0 ? 'Stay ' + -S.resolve : 'Middle'}</td></tr>
+    </table>
+    ${S.abroad ? `<table class="ledger"><tr><td>Weeks abroad</td><td>${weeksAbroad()}</td></tr><tr><td>Sent home</td><td>${usd(S.abroad.remitted)}</td></tr><tr><td>Plots of land at home</td><td>${S.abroad.land}</td></tr><tr><td>Senior carer</td><td>${S.abroad.promoted ? 'Yes' : 'No'}</td></tr></table>` : ''}
+    ${S.build ? `<table class="ledger"><tr><td>Business level</td><td>${S.biz}</td></tr><tr><td>Branches</td><td>${S.build.branches}</td></tr><tr><td>Staff</td><td>${S.build.staff}</td></tr><tr><td>Hometown house</td><td>${S.build.house}/8</td></tr></table>` : ''}
+    <p class="note" style="margin:0">${S.abroad ? 'That is the end of the Abroad chapter in this prototype.' : S.build ? 'That is the end of the Build chapter in this prototype.' : 'Year 1 is over. Keep building at home in Year 2, or start a new run and board the flight to play the Abroad chapter.'}</p>
+    ${!S.abroad && !S.build && S.ending === 'year' ? `<button class="btn" data-act="build">Keep building at home: play Year 2</button>` : ''}
+    <button class="btn" data-act="restart">${t('newGame')}</button></section>`;
+}
+function setupView() {
+  return `<section class="panel setup">
+    <h2>A fresh graduate. Three years. One question.</h2>
+    <p style="margin:0" class="sub">Your degree is ready, NEPA has taken light, and your cousin in Northland says "come." Each round is one week: plan your time, face what life throws at you, then count your money.</p>
+    <label for="nm">Your name</label><input id="nm" type="text" maxlength="20" value="${esc(setup.name)}">
+    <span class="label">Your look</span>
+    <div class="preview">${playerFace('lg', { name: setup.name, skin: setup.skin, look: setup.look, mood: 70 })}
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+        <div class="looks" role="group" aria-label="Skin tone">${SKINS.map((c, i) => `<button class="swatch" data-act="skin" data-v="${i}" aria-label="Skin tone ${i + 1}" aria-pressed="${setup.skin === c}" style="background:${c}"></button>`).join('')}</div>
+        <div class="looks" role="group" aria-label="Hair or headwear">${Object.entries(LOOKS).map(([k, l]) => `<button class="lookbtn" data-act="look" data-v="${k}" aria-pressed="${setup.look === k}">${l}</button>`).join('')}</div>
+      </div></div>
+    <span class="label">Home city</span>
+    <div class="opts">${Object.entries(REGIONS).map(([k, r]) => `<button class="opt" data-act="region" data-v="${k}" aria-pressed="${setup.region === k}">${scene(k)}<b>${r.name}</b><small>${r.note}</small></button>`).join('')}</div>
+    <span class="label">Trait</span>
+    <div class="opts">${Object.entries(TRAITS).map(([k, r]) => `<button class="opt" data-act="trait" data-v="${k}" aria-pressed="${setup.trait === k}"><b>${r.name}</b><small>${r.d}</small></button>`).join('')}</div>
+    <button class="btn" data-act="start">${t('start')}</button></section>`;
+}
+function logView() {
+  if (!S.log.length) return '';
+  return `<section class="panel"><span class="label">${t('log')}</span><div class="log">${S.log.slice(0, 14).map(l => `<div>W${l.w} · ${l.m}</div>`).join('')}</div></section>`;
+}
+function render() {
+  document.getElementById('tagline').textContent = S && S.abroad ? 'Year 2 · The Abroad chapter' : S && S.build ? 'Year 2 · The Build chapter' : 'Weekly-loop prototype · Year 1';
+  document.getElementById('lang-en').setAttribute('aria-pressed', LANG === 'en');
+  document.getElementById('lang-pg').setAttribute('aria-pressed', LANG === 'pg');
+  if (!S) { app.innerHTML = setupView(); return; }
+  const phase = { plan: planView, life: lifeView, settle: settleView, end: endView }[S.phase]();
+  app.innerHTML = (S.phase === 'end' ? phase + board() : board() + phase) + logView();
+}
+function toast(m) { const el = document.getElementById('toast'); el.textContent = m; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800); }
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const a = b.dataset.act;
+  if (a === 'lang') { LANG = b.dataset.v; try { localStorage.setItem('jos-lang', LANG); } catch (er) {} render(); return; }
+  if (a === 'region') { setup.name = document.getElementById('nm').value || setup.name; setup.region = b.dataset.v; render(); return; }
+  if (a === 'trait') { setup.name = document.getElementById('nm').value || setup.name; setup.trait = b.dataset.v; render(); return; }
+  if (a === 'skin') { setup.name = document.getElementById('nm').value || setup.name; setup.skin = SKINS[Number(b.dataset.v)]; render(); return; }
+  if (a === 'look') { setup.name = document.getElementById('nm').value || setup.name; setup.look = b.dataset.v; render(); return; }
+  if (a === 'start') { const n = (document.getElementById('nm').value || 'Ada').trim().slice(0, 20); S = newState(n, setup.region, setup.trait, setup.skin, setup.look); dealHand(); log(`<b>Start:</b> ${esc(n)} begins life in ${REG().name} with ${naira(S.money)}.`); save(); }
+  if (a === 'card') { const k = b.dataset.k; if (S.picked.includes(k)) S.picked = S.picked.filter(x => x !== k); else {
+      const c = CARDS[k]; if (c.blocks > BLOCKS - blocksUsed()) { toast('Not enough time this week'); return; }
+      if (c.cost() > wallet() - moneyCommitted()) { toast(t('notEnough')); return; } S.picked.push(k); } save(); }
+  if (a === 'build') { startBuild(false); dealHand(); S.phase = 'plan'; save(); }
+  if (a === 'end') endWeek();
+  if (a === 'choose') choose(Number(b.dataset.i));
+  if (a === 'next') nextEvent();
+  if (a === 'nextweek') nextWeek();
+  if (a === 'restart') { S = null; try { localStorage.removeItem('jos-save'); } catch (er) {} }
+  render();
+  if (['end', 'next', 'nextweek', 'start', 'restart'].includes(a)) window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+window.claude?.hot?.snapshot?.(() => ({ S, setup }));
+const boot = d => { if (d && d.S) { S = d.S; if (d.setup) setup = d.setup; } else load(); render(); };
+window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
+</script>
