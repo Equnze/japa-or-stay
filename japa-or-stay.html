@@ -162,9 +162,12 @@ table.ledger tr.total td { border-bottom: 0; font-weight: 700; padding-top: 8px;
       <h1>Japa <span class="or">or</span> Stay</h1>
       <div class="sub" id="tagline">Weekly-loop prototype · Year 1</div>
     </div>
+    <div class="row">
+    <button class="lookbtn" id="newgame" data-act="newgame" hidden>New game</button>
     <div class="lang" role="group" aria-label="Language">
       <button id="lang-en" data-act="lang" data-v="en" aria-pressed="true">English</button>
       <button id="lang-pg" data-act="lang" data-v="pg" aria-pressed="false">Pidgin</button>
+    </div>
     </div>
   </header>
   <main id="app" class="wrap" style="padding:0"></main>
@@ -1064,6 +1067,7 @@ function save() { try { localStorage.setItem('jos-save', JSON.stringify(S)); } c
 function load() { try { const r = localStorage.getItem('jos-save'); if (r) S = JSON.parse(r); } catch (e) { S = null; } }
 
 /* ---------- render ---------- */
+let confirmReset = false;
 let setup = { name: 'Ada', region: 'enugu', trait: 'hustler', skin: SKINS[2], look: 'braids' };
 const app = document.getElementById('app');
 
@@ -1232,7 +1236,14 @@ function render() {
   document.getElementById('tagline').textContent = S && S.abroad ? 'Year 2 · The Abroad chapter' : S && S.build ? 'Year 2 · The Build chapter' : 'Weekly-loop prototype · Year 1';
   document.getElementById('lang-en').setAttribute('aria-pressed', LANG === 'en');
   document.getElementById('lang-pg').setAttribute('aria-pressed', LANG === 'pg');
+  document.getElementById('newgame').hidden = !S;
   if (!S) { app.innerHTML = setupView(); return; }
+  if (confirmReset) {
+    app.innerHTML = `<section class="panel"><h2>Start a new game?</h2>
+      <p style="margin:0">${esc(S.name)}'s current life (week ${S.week}) will be deleted. This cannot be undone.</p>
+      <div class="row"><button class="btn" data-act="restart">Yes, start over</button><button class="btn ghost" data-act="reset-no">Keep playing</button></div></section>`;
+    return;
+  }
   const phase = { plan: planView, life: lifeView, settle: settleView, end: endView }[S.phase]();
   app.innerHTML = (S.phase === 'end' ? phase + board() : board() + phase) + logView();
 }
@@ -1255,7 +1266,9 @@ document.addEventListener('click', e => {
   if (a === 'choose') choose(Number(b.dataset.i));
   if (a === 'next') nextEvent();
   if (a === 'nextweek') nextWeek();
-  if (a === 'restart') { S = null; try { localStorage.removeItem('jos-save'); } catch (er) {} }
+  if (a === 'newgame') { confirmReset = true; render(); window.scrollTo({ top: 0 }); return; }
+  if (a === 'reset-no') { confirmReset = false; }
+  if (a === 'restart') { confirmReset = false; S = null; try { localStorage.removeItem('jos-save'); } catch (er) {} }
   render();
   if (['end', 'next', 'nextweek', 'start', 'restart'].includes(a)) window.scrollTo({ top: 0, behavior: 'smooth' });
 });
