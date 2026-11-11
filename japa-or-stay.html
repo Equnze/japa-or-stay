@@ -180,6 +180,7 @@ small.first { display: block; font-size: 11.5px; color: var(--muted); }
       <div class="sub" id="tagline">Weekly-loop prototype · Year 1</div>
     </div>
     <div class="row">
+    <button class="lookbtn" id="soundbtn" data-act="sound" title="Switch between music and sound effects, sound effects only, and no sound">♪ Sound off</button>
     <button class="lookbtn" id="hallbtn" data-act="hall">Lives lived</button>
     <button class="lookbtn" id="helpbtn" data-act="help">How to play</button>
     <button class="lookbtn" id="newgame" data-act="newgame" hidden>New game</button>
@@ -1359,6 +1360,7 @@ function helpView() {
   return `<section class="panel help">
     <div class="row between"><h2>How to play</h2>${back}</div>
     <p style="margin:0">You are a fresh graduate with ₦150,000. Over two in-game years you decide: <b style="color:var(--japa)">japa</b> (leave Nigeria) or <b style="color:var(--stay)">stay</b> and build at home. Neither is the right answer.</p>
+    <p class="note" style="margin:0">Press <b>♪ Sound</b> at the top to switch between music and sound effects, sound effects only, or no sound.</p>
 
     <h3>Each week has 3 steps</h3>
     <ol>
@@ -1572,6 +1574,7 @@ function render() {
   document.getElementById('tagline').textContent = S && S.abroad ? 'Year 2 · The Abroad chapter' : S && S.build ? 'Year 2 · The Build chapter' : 'Weekly-loop prototype · Year 1';
   document.getElementById('lang-en').setAttribute('aria-pressed', LANG === 'en');
   document.getElementById('lang-pg').setAttribute('aria-pressed', LANG === 'pg');
+  const sb = document.getElementById('soundbtn'); sb.textContent = Sound.label(); sb.setAttribute('aria-pressed', Sound.mode !== 'off');
   document.getElementById('newgame').hidden = !S || showHelp || showHall;
   document.getElementById('helpbtn').hidden = showHelp || showHall;
   document.getElementById('hallbtn').hidden = showHelp || showHall;
@@ -1584,26 +1587,115 @@ function render() {
       <div class="row"><button class="btn" data-act="restart">Yes, start over</button><button class="btn ghost" data-act="reset-no">Keep playing</button></div></section>`;
     return;
   }
+  if (S.phase === 'life' && !S.queue.length) settle(); // safety net for an out-of-step save
   const phase = { plan: planView, life: lifeView, settle: settleView, end: endView }[S.phase]();
   app.innerHTML = (S.phase === 'end' ? phase + board() : board() + phase) + logView();
 }
+/* ---------- sound: everything is generated in code with the Web Audio API (no audio files) ---------- */
+const Sound = (() => {
+  let ctx = null, master, musicBus, sfxBus, noise, timer = null, step = 0, nextTime = 0;
+  let mode = 'off';
+  try { mode = localStorage.getItem('jos-sound') || 'off'; } catch (e) {}
+  const SPS = 60 / 104 / 4; // 104 BPM, sixteenth notes
+  // C – Am – F – G, highlife style
+  const BARS = [
+    { root: 130.81, fifth: 196.00, arp: [261.63, 329.63, 392.00, 523.25] },
+    { root: 110.00, fifth: 164.81, arp: [220.00, 261.63, 329.63, 440.00] },
+    { root: 87.31, fifth: 130.81, arp: [220.00, 261.63, 349.23, 440.00] },
+    { root: 98.00, fifth: 146.83, arp: [196.00, 246.94, 293.66, 392.00] }
+  ];
+  function ensure() {
+    if (!ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      try { ctx = new AC(); } catch (e) { return false; }
+      master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
+      musicBus = ctx.createGain(); musicBus.gain.value = 0; musicBus.connect(master);
+      sfxBus = ctx.createGain(); sfxBus.gain.value = 0.5; sfxBus.connect(master);
+      noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    return true;
+  }
+  function env(g, t, peak, dur) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); }
+  function tone(type, f0, f1, t, dur, vol, dest, cutoff) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); if (f1 && f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur * 0.6);
+    env(g, t, vol, dur);
+    if (cutoff) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = cutoff; o.connect(f); f.connect(g); } else o.connect(g);
+    g.connect(dest); o.start(t); o.stop(t + dur + 0.02);
+  }
+  function hiss(t, dur, vol, type, freq, dest) {
+    const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = noise; f.type = type; f.frequency.value = freq; env(g, t, vol, dur);
+    s.connect(f); f.connect(g); g.connect(dest); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.02);
+  }
+  function playStep(s, t) {
+    const bar = BARS[(s >> 4) % 4], i = s & 15;
+    if ([0, 6, 10].includes(i)) tone('sine', 140, 45, t, 0.28, 0.8, musicBus);                         // kick
+    hiss(t, 0.045, [2, 6, 10, 14].includes(i) ? 0.16 : 0.06, 'highpass', 7000, musicBus);               // shaker
+    if (i === 4 || i === 12) hiss(t, 0.06, 0.14, 'bandpass', 1900, musicBus);                           // rim
+    const bassSteps = { 0: 'root', 3: 'root', 7: 'fifth', 10: 'root', 14: 'fifth' };
+    if (bassSteps[i]) { const f = bar[bassSteps[i]]; tone('sine', f * 1.5, f, t, 0.26, 0.42, musicBus); } // log drum bass
+    const pluckSteps = [0, 3, 6, 8, 10, 12, 14], pat = [3, 1, 2, 0, 2, 1, 3];
+    const k = pluckSteps.indexOf(i);
+    if (k >= 0) tone('triangle', bar.arp[pat[k]] * 2, null, t, 0.22, 0.09, musicBus, 2600);             // guitar
+  }
+  function tick() { while (nextTime < ctx.currentTime + 0.12) { playStep(step, nextTime); nextTime += SPS; step = (step + 1) % 64; } }
+  function startMusic() {
+    if (!ensure() || timer) return;
+    step = 0; nextTime = ctx.currentTime + 0.06;
+    musicBus.gain.cancelScheduledValues(ctx.currentTime); musicBus.gain.setTargetAtTime(0.32, ctx.currentTime, 0.4);
+    timer = setInterval(tick, 25);
+  }
+  function stopMusic() {
+    if (timer) { clearInterval(timer); timer = null; }
+    if (ctx) musicBus.gain.setTargetAtTime(0, ctx.currentTime, 0.1);
+  }
+  const FX = {
+    tap: t => tone('sine', 660, 880, t, 0.08, 0.3, sfxBus),
+    untap: t => tone('sine', 560, 400, t, 0.08, 0.25, sfxBus),
+    error: t => { tone('square', 180, 160, t, 0.09, 0.12, sfxBus, 900); tone('square', 180, 150, t + 0.12, 0.12, 0.12, sfxBus, 900); },
+    drum: t => { tone('sine', 230, 120, t, 0.2, 0.7, sfxBus); tone('sine', 330, 170, t + 0.13, 0.22, 0.6, sfxBus); hiss(t, 0.05, 0.2, 'bandpass', 2000, sfxBus); },
+    choose: t => { tone('triangle', 523.25, null, t, 0.12, 0.3, sfxBus); tone('triangle', 783.99, null, t + 0.08, 0.18, 0.28, sfxBus); },
+    coins: t => [1318.5, 1568, 2093].forEach((f, i) => tone('sine', f, null, t + i * 0.06, 0.18, 0.22, sfxBus)),
+    thud: t => { tone('sine', 120, 55, t, 0.35, 0.7, sfxBus); hiss(t, 0.1, 0.08, 'lowpass', 400, sfxBus); },
+    fanfare: t => [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone('triangle', f, null, t + i * 0.12, i === 3 ? 0.7 : 0.16, 0.3, sfxBus)),
+    unlock: t => { FX.fanfare(t); [2093, 2637, 3136].forEach((f, i) => tone('sine', f, null, t + 0.5 + i * 0.07, 0.3, 0.12, sfxBus)); }
+  };
+  return {
+    get mode() { return mode; },
+    label() { return mode === 'all' ? '♪ Music + sound' : mode === 'sfx' ? '♪ Sound only' : '♪ Sound off'; },
+    cycle() { mode = mode === 'off' ? 'all' : mode === 'all' ? 'sfx' : 'off'; try { localStorage.setItem('jos-sound', mode); } catch (e) {} this.apply(); },
+    apply() { if (mode === 'all') startMusic(); else stopMusic(); },
+    wake() { if (mode !== 'off' && (!ctx || ctx.state !== 'running' || (mode === 'all' && !timer))) { ensure(); this.apply(); } },
+    play(name) { if (mode === 'off' || !ensure() || !FX[name]) return; FX[name](ctx.currentTime + 0.01); },
+    pause(hidden) { if (!ctx) return; if (hidden) ctx.suspend().catch(() => {}); else if (mode !== 'off') ctx.resume().catch(() => {}); }
+  };
+})();
+document.addEventListener('visibilitychange', () => Sound.pause(document.hidden));
+
 function toast(m) { const el = document.getElementById('toast'); el.textContent = m; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800); }
 
 document.addEventListener('click', e => {
+  Sound.wake(); // browsers only allow audio to start after a click
   const b = e.target.closest('[data-act]'); if (!b) return;
-  const a = b.dataset.act;
+  const a = b.dataset.act, before = S && S.phase;
+  if (a === 'sound') { Sound.cycle(); render(); Sound.play('tap'); return; }
   if (a === 'lang') { LANG = b.dataset.v; try { localStorage.setItem('jos-lang', LANG); } catch (er) {} render(); return; }
   if (a === 'region') { setup.name = document.getElementById('nm').value || setup.name; setup.region = b.dataset.v; render(); return; }
   if (a === 'trait') { setup.name = document.getElementById('nm').value || setup.name; setup.trait = b.dataset.v; render(); return; }
   if (a === 'skin') { setup.name = document.getElementById('nm').value || setup.name; setup.skin = SKINS[Number(b.dataset.v)]; render(); return; }
   if (a === 'look') { setup.name = document.getElementById('nm').value || setup.name; setup.look = b.dataset.v; render(); return; }
   if (a === 'start') { const n = (document.getElementById('nm').value || 'Ada').trim().slice(0, 20); S = newState(n, setup.region, setup.trait, setup.skin, setup.look); dealHand(); log(`<b>Start:</b> ${esc(n)} begins life in ${REG().name} with ${naira(S.money)}.`); save(); }
-  if (a === 'card') { const k = b.dataset.k; if (S.picked.includes(k)) S.picked = S.picked.filter(x => x !== k); else {
-      const c = CARDS[k]; if (c.blocks > BLOCKS - blocksUsed()) { toast('Not enough time this week'); return; }
-      if (c.cost() > wallet() - moneyCommitted()) { toast(t('notEnough')); return; } S.picked.push(k); } save(); }
-  if (a === 'build') { startBuild(false); dealHand(); S.phase = 'plan'; save(); }
-  if (a === 'end') endWeek();
-  if (a === 'choose') choose(Number(b.dataset.i));
+  if (a === 'card') { const k = b.dataset.k; if (S.picked.includes(k)) { S.picked = S.picked.filter(x => x !== k); Sound.play('untap'); } else {
+      const c = CARDS[k]; if (c.blocks > BLOCKS - blocksUsed()) { Sound.play('error'); toast('Not enough time this week'); return; }
+      if (c.cost() > wallet() - moneyCommitted()) { Sound.play('error'); toast(t('notEnough')); return; } S.picked.push(k); Sound.play('tap'); } save(); }
+  if (a === 'build') { startBuild(false); dealHand(); S.phase = 'plan'; save(); Sound.play('choose'); }
+  if (a === 'start') Sound.play('choose');
+  if (a === 'end') { endWeek(); Sound.play('drum'); }
+  if (a === 'choose') { choose(Number(b.dataset.i)); Sound.play('choose'); }
   if (a === 'next') nextEvent();
   if (a === 'nextweek') nextWeek();
   if (a === 'help') { if (!S) setup.name = (document.getElementById('nm') || {}).value || setup.name; showHelp = true; showHall = false; render(); window.scrollTo({ top: 0 }); return; }
@@ -1613,6 +1705,10 @@ document.addEventListener('click', e => {
   if (a === 'newgame') { confirmReset = true; render(); window.scrollTo({ top: 0 }); return; }
   if (a === 'reset-no') { confirmReset = false; }
   if (a === 'restart') { confirmReset = false; S = null; try { localStorage.removeItem('jos-save'); } catch (er) {} }
+  if (S && before !== S.phase) {
+    if (S.phase === 'settle' && S.ledger) Sound.play(S.ledger.lines.reduce((x, [, v]) => x + v, 0) >= 0 ? 'coins' : 'thud');
+    if (S.phase === 'end') Sound.play(S.newUnlock ? 'unlock' : 'fanfare');
+  }
   render();
   if (['end', 'next', 'nextweek', 'start', 'restart'].includes(a)) window.scrollTo({ top: 0, behavior: 'smooth' });
 });
