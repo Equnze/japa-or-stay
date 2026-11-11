@@ -723,6 +723,200 @@ const BUILD_POOL = ['blacktax', 'blacktax', 'owambe', 'nepa', 'fuel', 'b_levy', 
 const ABROAD_POOL =['a_blacktax', 'a_blacktax', 'a_winter', 'a_winter', 'a_hours', 'a_rude', 'a_owambe', 'a_owambe', 'a_tunde', 'a_scam', 'a_homesick', 'devalue'];
 function queueEvent(id) { S.queue.push({ id, p: EV[id].make() }); }
 
+/* ---------- Pidgin event stories (shown when the language is set to Pidgin) ---------- */
+const PGW = {
+  'blood pressure medicine': 'BP medicine', 'hospital bill': 'hospital bill', 'church building levy': 'church building levy', 'roof leaking for the village house': 'roof wey dey leak for village house',
+  'cousin\'s wedding': 'your cousin wedding', 'Chief\'s 60th birthday': 'Chief 60th birthday', 'friend\'s naming ceremony': 'your friend naming ceremony',
+  'generator repair': 'generator repair', 'Papa\'s hospital bill': 'Papa hospital bill', 'your cousin\'s school fees': 'your cousin school fees', 'church harvest levy': 'church harvest levy', 'roof for the village house': 'roof for village house'
+};
+const pw = s => PGW[s] || s;
+const PGV = {
+  blacktax: p => ({ title: 'Family wahala', text: `${REG().open} the ${pw(p.what)} money na ${naira(p.amt)}. Abeg, help us.`,
+    choices: [{ l: `Pay am all (${naira(p.amt)})`, h: 'Family go happy, your pocket go cry' }, { l: 'Price am: pay half', h: 'Smooth Talker go do am better' }, { l: 'Say no this time', h: 'Family go vex, guilt go catch you' }] }),
+  owambe: p => ({ title: 'Owambe dey this Saturday', text: `Dem invite you to ${pw(p.whose)}. Aso-ebi na ${naira(p.aso)}.`,
+    choices: [{ l: `Go and spray ${naira(p.spray)}`, h: 'Your people, clout and connection go rise' }, { l: 'Go, but no spray', h: 'Na only aso-ebi you go pay' }, { l: 'No go at all', h: 'You save money, but your people go dey ask' }] }),
+  ajo: p => ({ title: 'You wan join Ajo?', text: `Eight people, ${naira(p.amt)} every week. When your turn reach, you go collect ${naira(p.amt * 8)} one time.`,
+    choices: [{ l: 'Join the circle', h: 'Pay every week, collect big later' }, { l: 'Not now', h: 'Nothing go change' }] }),
+  fuel: p => ({ title: 'Fuel scarcity', text: 'Petrol no dey station. Transport fare don double for the next 3 weeks.',
+    choices: [{ l: 'Join queue for hours', h: '−15 strength' }, { l: `Buy black market fuel (${naira(p.bm)})`, h: 'Money go comot' }] }),
+  nepa: p => ({ title: 'No light all week', text: S.solar ? 'Light don go again, but your solar dey work.' : 'Light don comot for five days. Food for freezer don dey spoil.',
+    choices: S.solar ? [{ l: 'Smile and charge your phone', h: 'Solar don pay' }] : [{ l: `Put generator (${naira(p.gen)})`, h: 'Money go comot' }, { l: 'Manage am like that', h: '−8 happiness, −8 strength' }, { l: `Install small solar (${naira(p.solar)})`, h: 'Big money now, no NEPA wahala later' }] }),
+  ponzi: p => ({ title: 'Odogwu opportunity', text: `"My guy, put ${naira(p.amt)} for my oil and gas business. Four weeks, you go double am. Na so I take buy my third G-Wagon."`,
+    choices: [{ l: `Invest ${naira(p.amt)}`, h: 'E fit double… or e go vanish' }, { l: 'Ask for documents first', h: 'Street Smart move' }] }),
+  sponsor: p => ({ title: 'Baller wan sponsor you', text: `"I like wetin you dey do. I go sponsor your next project with ${naira(p.amt)}. Just mention my company."`,
+    choices: [{ l: 'Collect the sponsorship', h: 'Money and clout, e go tie you to Naija' }, { l: 'Decline am with respect', h: 'Keep your freedom' }] }),
+  agent: p => ({ title: '"Visa guaranteed!"', text: `"Pay ${naira(p.amt)} and I go arrange Northland work, visa and ticket. 100% guaranteed. Plenty people don go."`,
+    choices: [{ l: `Pay ${naira(p.amt)}`, h: 'Shortcut to job offer?' }, { l: 'Ask for him registration and references', h: 'Check before you pay' }] }),
+  tunde: p => ({ title: 'Message from abroad', text: p.good ? '"Bro, I just pay my rent and still send money home. Light dey 24/7. Come, e get as e be."' : '"Honestly? I dey work night shift for cold and I miss pepper soup. Some days I dey wonder why I come."',
+    choices: [{ l: 'Reply am and gist', h: 'See how life be for there' }] }),
+  school: p => ({ title: 'School don resume', text: `${REG().open} your younger brother school fees don reach: ${naira(p.amt)}.`,
+    choices: [{ l: `Pay the fees (${naira(p.amt)})`, h: 'Family go happy' }, { l: 'Pay half, promise the rest', h: 'Smooth Talker go do am better' }, { l: 'Talk say you no fit', h: 'Family go vex' }] }),
+  detty: p => ({ title: 'Detty December!', text: `Your IJGB friend don land from abroad with gist and full itinerary. One week of party: ${naira(p.amt)}.`,
+    choices: [{ l: 'Enjoy Detty December', h: '+20 happiness, clout up, money down' }, { l: 'Stay low and save', h: '−5 happiness' }] }),
+  devalue: () => ({ title: 'Naira don fall', text: 'Exchange rate jump like 30% overnight. Dollar savings don worth more for naira, but japa cost don heavy.',
+    choices: [{ l: 'Okay o…', h: '' }] }),
+  sick: p => ({ title: 'Malaria don catch you', text: 'Head dey pain you, fever, mouth dey bitter. You need treatment.',
+    choices: [{ l: `Go hospital (${naira(p.hosp)})`, h: '+35 body' }, { l: `Buy drugs for chemist (${naira(p.chem)})`, h: '+10 body' }] }),
+  interview: () => ({ title: 'Visa interview', text: `Your passport, test score (${S.ielts}), job offer and ${usd(S.usd)} proof of funds don complete. Fee: ${usd(VISA_USD)}. Officer ask you: "Why you wan come?"`,
+    choices: [{ l: 'Answer honestly about the job and your plan', h: 'Best chance' }, { l: 'Give the "agent" answer wey you cram', h: 'E risky' }] }),
+  ponr: () => ({ title: 'Flight don book', text: 'Mama dey cry for airport. Your friends dey snap last pictures. Na today.',
+    choices: [{ l: 'Board the flight', h: 'Japa. Your abroad chapter don start' }, { l: 'Turn back and stay', h: 'Build your life for here' }] }),
+  lease: p => ({ title: 'Five-year shop lease', text: `Your business don strong. One big shop for main road dey empty. Five years rent upfront: ${naira(p.amt)}.`,
+    choices: [{ l: 'Sign the lease', h: 'Stay. Your Build chapter don start' }, { l: 'Not yet', h: 'Keep your options open' }] }),
+
+  a_blacktax: p => ({ title: 'Now wey you dey abroad…', text: `${REG().open} the ${pw(p.what)} na ${usd(p.amt)}. Everybody dey talk say you dey do well for there.`,
+    choices: [{ l: `Send am all (${usd(p.amt)})`, h: 'Family go happy' }, { l: 'Send half, explain your bills', h: 'Smooth Talker go do am better' }, { l: 'Talk say you no fit this month', h: 'Family go vex' }] }),
+  a_winter: p => ({ title: 'Boiler don spoil', text: `E be minus three outside and heating no dey work. Emergency heater na ${usd(p.amt)}.`,
+    choices: [{ l: `Buy the heater (${usd(p.amt)})`, h: 'Stay warm' }, { l: 'Wear three jumper and wrapper', h: '−8 happiness, −5 body' }] }),
+  a_hours: () => ({ title: 'Dem wan cut your hours', text: 'Manager talk say the home dey "restructure". Your shifts go reduce for the next two weeks.',
+    choices: [{ l: 'Beg make dem leave your hours', h: 'Smooth Talker go do am better' }, { l: 'Accept am, look for extra shift', h: 'Pay go reduce 30% for 2 weeks' }] }),
+  a_rude: () => ({ title: '"Can I speak to someone else?"', text: 'One resident relative no gree make you help, dey ask for "someone else", even when na you dey for shift.',
+    choices: [{ l: 'Report am to manager', h: 'Your work suppose back you' }, { l: 'Calm down, continue your work', h: 'Smooth Talker go do am better' }, { l: 'Leave am like that', h: '−8 happiness' }] }),
+  a_owambe: p => ({ title: 'Owambe for Northland', text: `Naija wedding inside hall wey dem rent. Jollof correct. Aso-ebi na ${usd(p.aso)}.`,
+    choices: [{ l: `Go and spray ${usd(p.spray)}`, h: 'Your people, clout and work connection' }, { l: 'Go, no spray', h: 'Na only aso-ebi you go pay' }, { l: 'No go, you get shift', h: 'Your people go dey ask' }] }),
+  a_tunde: () => ({ title: 'Sunday rice for Tunde house', text: '"Come and chop. I go show you which bus pass cheap pass and which landlord no dey return deposit."',
+    choices: [{ l: 'Go Tunde house', h: '+happiness, e go save you money' }] }),
+  a_scam: p => ({ title: '"Better sponsor, quick quick"', text: `"Pay ${usd(p.amt)} and I go change your visa to hospital sponsor. Double pay. No exam."`,
+    choices: [{ l: `Pay ${usd(p.amt)}`, h: 'Shortcut to better pay?' }, { l: 'Check the official sponsor register', h: 'Check before you pay' }] }),
+  a_detty: p => ({ title: 'You go fly home for Christmas?', text: `Everybody dey go home for Detty December. Return ticket na ${usd(p.amt)}. This time, na you be the IJGB.`,
+    choices: [{ l: `Fly home (${usd(p.amt)})`, h: '+30 happiness, +20 family, e go pull you home' }, { l: 'Work Christmas shift (double pay)', h: '+$400, −10 happiness' }] }),
+  a_homesick: () => ({ title: 'Home dey call you', text: `${REG().open} your voice dey tire. You know say you fit always come back home.`,
+    choices: [{ l: 'Book one-way ticket go home', h: 'E go end your abroad chapter' }, { l: 'Push am, e go better', h: '+5 happiness' }] }),
+  a_promo: () => ({ title: 'Promotion: senior carer', text: 'You don finish the course. Manager wan make you senior carer: more pay and your own shift to lead.',
+    choices: [{ l: 'Accept the promotion', h: `Pay go rise to ${usd(620)} a week` }] }),
+  a_pr: p => ({ title: 'You wan settle for good?', text: `You qualify to settle: ${weeksAbroad()} weeks of steady work, Life in Northland test and savings. Application fee na ${usd(p.fee)}.`,
+    choices: [{ l: 'Apply to settle', h: 'E go end your abroad chapter' }, { l: 'Not yet', h: 'Keep your options open' }] }),
+  a_return: () => ({ title: 'Go home with your savings?', text: `You don save ${usd(S.usd)} and you get land for home. Friends dey talk say home need people like you now.`,
+    choices: [{ l: 'Fly home and build', h: 'E go end your abroad chapter' }, { l: 'Not yet', h: 'Stay small more' }] }),
+  a_deport: () => ({ title: 'Visa don cancel', text: 'Three warnings. Your sponsor don report you and dem cancel your visa. You get 28 days to comot.',
+    choices: [{ l: 'Pack and go home', h: 'E go end your abroad chapter' }] }),
+  a_sick: () => ({ title: 'Flu season don catch you', text: 'Fever and cold dey shake you. Doctor free, but the earliest appointment na next week.',
+    choices: [{ l: 'Take sick leave and rest', h: '+30 body, you go lose this week pay' }, { l: 'Pharmacy medicine, continue work', h: `+10 body, ${usd(15)}` }] }),
+
+  b_levy: p => ({ title: '"Owner, settle us"', text: `Some boys talk say na dem "control" this street, dem want ${naira(p.amt)} for "security".`,
+    choices: [{ l: `Pay them (${naira(p.amt)})`, h: 'Peace for now' }, { l: 'Report to market association', h: 'E go work if your people strong' }, { l: 'Refuse', h: 'Wahala fit happen for shop' }] }),
+  b_supplier: p => ({ title: 'Goods on credit?', text: `Your supplier wan give you ${naira(p.amt)} worth of goods on credit. Pay back in 4 weeks.`,
+    choices: [{ l: 'Collect the goods', h: 'Business level +1, pay later' }, { l: 'No thanks', h: 'No debt' }] }),
+  b_contract: p => ({ title: 'Big supply contract', text: `One company wan buy bulk for ${naira(p.amt)}. To deliver this week go cost you sleep.`,
+    choices: [{ l: 'Take the contract', h: '−25 strength, big payday' }, { l: 'E too much this week', h: 'Nothing go change' }] }),
+  b_theft: p => ({ title: 'Goods don miss', text: `Goods worth ${naira(p.amt)} don disappear, and one of your staff no fit explain.`,
+    choices: [{ l: 'Sack the staff', h: 'Staff −1' }, { l: `Last warning, install CCTV (${naira(price(40000))})`, h: '+reputation' }] }),
+  b_rival: p => ({ title: 'New shop don open for your side', text: 'One bigger shop open for next door and dem dey reduce price.',
+    choices: [{ l: 'Reduce your price too', h: 'Sales −20% for 4 weeks' }, { l: `Win with service: free delivery for regulars (${naira(p.amt)})`, h: '+reputation' }] }),
+  b_japalate: () => ({ title: '"E never late to japa"', text: '"My boss still need workers. I fit get you sponsored work. Just talk."',
+    choices: [{ l: 'Sell the business and japa', h: 'E go end your Build chapter' }, { l: 'No, I dey build here', h: 'Hold your ground' }] }),
+  b_election: () => ({ title: 'Councillor election', text: `Campaign don finish. Your people: ${S.community}. Clout: ${S.clout.toLocaleString()} fans. Dem dey count votes.`,
+    choices: [{ l: 'Wait for the result', h: 'Your chance depend on your people and clout' }] }),
+  b_empire: () => ({ title: 'Empire don born', text: `Three branches, business level ${S.biz}, and your name dey signboard everywhere for town. One magazine wan interview you.`,
+    choices: [{ l: 'Do the interview', h: 'E go end your Build chapter' }, { l: 'Keep low profile, dey grow', h: 'Continue' }] }),
+  b_housewarm: p => ({ title: 'House opening ceremony', text: `Your house for village don finish. The whole town want thanksgiving party: ${naira(p.amt)}.`,
+    choices: [{ l: 'Throw the party', h: 'E go end your Build chapter' }, { l: 'Small family prayer only', h: 'Continue' }] })
+};
+const PGR = {
+  'Mama is happy. "God will bless you, my child."': 'Mama happy well well. "God go bless you, my pikin."',
+  'You explained well. Half is fine for now.': 'You explain am well. Half dey okay for now.',
+  'Half paid, but your aunty is already gossiping.': 'You pay half, but your aunty don dey gossip already.',
+  'You said no. The family WhatsApp group went quiet.': 'You talk no. Family WhatsApp group don dey quiet.',
+  'You sprayed well, and the celebrant\'s uncle offered you a job on the spot!': 'You spray well, and the celebrant uncle give you work for ground!',
+  'You sprayed well, and a guest became a big customer. Business +1.': 'You spray well, and one guest turn big customer. Business +1.',
+  'You danced, you sprayed, everybody saw you.': 'You dance, you spray, everybody see you.',
+  'You showed face. Jollof was correct.': 'You show face. Jollof correct.',
+  '"Where were you?" Three people asked.': '"Where you dey?" Three people don ask.',
+  'You passed. Iya Ajo said "your loss."': 'You no join. Iya Ajo talk say "na your loss."',
+  'Six hours in the queue. You got 10 litres.': 'Six hours for queue. You manage get 10 litres.',
+  'The jerrycan boy smiled. Your wallet did not.': 'Jerrycan boy smile. Your wallet no smile.',
+  'Neighbours are coming to charge their phones.': 'Neighbours dey come charge their phone for your house.',
+  'The generator noise is now part of you.': 'Generator noise don join your body.',
+  'You slept on the balcony to catch breeze.': 'You sleep for balcony to catch breeze.',
+  'Solar installed. You are now the light of the compound.': 'Solar don enter. Na you be the light of the compound now.',
+  'Chief hugged you. "You are a serious person."': 'Chief hug you. "You be serious person."',
+  'Chief got vexed and blocked you. Street Smart badge earned.': 'Chief vex, block you. You don collect Street Smart badge.',
+  'Alhaji sent the money the same day. The baller network is opening up.': 'Alhaji send the money that same day. Baller network don dey open for you.',
+  'Alhaji respected your answer.': 'Alhaji respect your answer.',
+  'He collected the money and switched off his phone. It was a scam. Real visas never come "guaranteed".': 'E collect the money, off him phone. Na scam. Real visa no dey come "guaranteed".',
+  'He had no registration. You reported him. Street Smart badge earned.': 'E no get registration. You report am. You don collect Street Smart badge.',
+  'Your mind is moving towards japa.': 'Your mind don dey shift go japa side.',
+  'That one made you think twice.': 'That one make you think twice.',
+  'Your brother sent a voice note: "Thank you, Sister/Bros!"': 'Your brother send voice note: "Thank you, Sister/Bros!"',
+  'Half paid. The bursar said "by next month o."': 'You pay half. Bursar talk say "by next month o."',
+  'Your uncle paid instead. He will remind you for years.': 'Your uncle pay am. E go dey remind you for years.',
+  'Concerts, beach, owambe. Your IJGB friend asked, "When are you coming over?"': 'Concert, beach, owambe. Your IJGB friend ask you, "When you dey come over?"',
+  'You watched it all on Instagram stories.': 'You watch everything for Instagram story.',
+  'Drip, injection, rest. You feel human again.': 'Drip, injection, rest. You don feel like human again.',
+  'Agbo and tablets. Somehow, you survived.': 'Agbo and tablet. Somehow, you survive.',
+  'APPROVED. Your passport came back with a visa inside.': 'APPROVED! Your passport come back with visa inside.',
+  'Refused. Fee gone. You can reapply in 10 weeks.': 'Dem refuse am. Fee don go. You fit apply again after 10 weeks.',
+  'Wheels up. The lights of home fade under the clouds. Next stop: Northland.': 'Plane don fly. Light of home don disappear under cloud. Next stop: Northland.',
+  'You walked out of the airport. Mama hugged you twice.': 'You waka comot from airport. Mama hug you two times.',
+  'Signed. Your name is going up on the signboard. Year 2, the Build chapter, begins.': 'You don sign. Your name dey go up for signboard. Year 2, the Build chapter, don start.',
+  'The landlord said the offer will come again.': 'Landlord talk say the offer go still come back.',
+  'Mama posted your photo on her WhatsApp status: "My child abroad."': 'Mama post your picture for her WhatsApp status: "My pikin wey dey abroad."',
+  'You showed her your rent receipt. She understood.': 'You show am your rent receipt. She understand.',
+  '"Abroad people and their excuses," your aunty said.': '"Abroad people and their excuse," na wetin your aunty talk.',
+  'They think you have forgotten home.': 'Dem think say you don forget home.',
+  'Warm again. You finally understand why Tunde complains.': 'Body don warm. Now you understand why Tunde dey complain.',
+  'You slept in your coat. The heat back home feels like a dream.': 'You sleep inside your coat. Naija heat be like dream now.',
+  'She checked your record and kept your shifts. Good work pays.': 'She check your record, she leave your shifts. Good work dey pay.',
+  'Pay drops 30% for two weeks. Rent does not.': 'Pay go drop 30% for two weeks. Rent no go drop.',
+  'The manager spoke to them. The resident herself says you are her favourite.': 'Manager talk to them. The resident herself talk say na you be her favourite.',
+  'By the end of the week, they were asking for you by name.': 'Before the week end, na your name dem dey call.',
+  'It stayed with you all week.': 'E dey your mind the whole week.',
+  'A senior nurse at the party offered to mentor you. Course progress +2.': 'One senior nurse for the party talk say she go mentor you. Course progress +2.',
+  'You sprayed dollars. The DJ shouted your name.': 'You spray dollar. DJ shout your name.',
+  'You showed face. It felt like home for one night.': 'You show face. E be like home for one night.',
+  'You saw the pictures on Instagram after your shift.': 'You see the pictures for Instagram after your shift.',
+  'Tunde\'s tips saved you $40 this month. Family is family.': 'Tunde advice save you $40 this month. Family na family.',
+  'The "hospital" was not on the register. Street Smart badge earned.': 'The "hospital" no dey the register. You don collect Street Smart badge.',
+  'Airport hugs, owambe every night, and everyone asking "When are you going back?"': 'Airport hug, owambe every night, and everybody dey ask "When you dey go back?"',
+  'Christmas dinner was a staff-room mince pie. The money was good.': 'Christmas dinner na mince pie for staff room. But the money sweet.',
+  'You packed two boxes and a winter coat you will never wear again.': 'You pack two box and winter coat wey you no go wear again.',
+  'Mama prayed. You slept better that night.': 'Mama pray. You sleep well that night.',
+  'Your name badge now says "Senior". Mama has screenshotted it.': 'Your name badge don write "Senior". Mama don screenshot am.',
+  'Approved. Northland is officially home. Naija is still the root.': 'Approved. Northland don officially be home. Naija still be the root.',
+  'You can apply again later.': 'You fit apply again later.',
+  'One-way ticket booked. This time you are going home with a plan.': 'One-way ticket don book. This time, you dey go home with plan.',
+  'Not yet. The plot can wait.': 'Not yet. The land fit wait.',
+  'You left with your savings and a hard lesson about visa rules.': 'You comot with your savings and hard lesson about visa rules.',
+  'Pepper soup, rest and Nollywood. You are back on your feet.': 'Pepper soup, rest and Nollywood. You don stand up again.',
+  'Cold medicine and willpower.': 'Cold medicine and strong head.',
+  'They collected and left. "We go dey look your back."': 'Dem collect and waka. "We go dey look your back."',
+  'The market chairman called them. They have not come back.': 'Market chairman call them. Dem never come back.',
+  'The association was slow. Your shop was blocked for two days.': 'Association slow. Dem block your shop for two days.',
+  'They blocked your shop entrance. Sales will suffer for two weeks.': 'Dem block your shop entrance. Sales go suffer for two weeks.',
+  'Shelves full. Remember: pay back in 4 weeks.': 'Shelf don full. Remember: pay back in 4 weeks.',
+  'You only buy what you can pay for.': 'Na wetin you fit pay for, na im you dey buy.',
+  'Delivered on time. They want to work with you again.': 'You deliver on time. Dem wan work with you again.',
+  'They found another supplier.': 'Dem don find another supplier.',
+  'You let them go. Trust is expensive.': 'You sack am. Trust cost.',
+  'The camera is up. Nothing has gone missing since.': 'Camera don dey. Nothing don miss since.',
+  'Price war. Your customers stay, your margins do not.': 'Price war. Your customers stay, but your gain no stay.',
+  'Your regulars stayed. "Your customer service is different."': 'Your regular customers stay. "Your customer service different."',
+  'You sold the shop to your apprentice and booked a flight.': 'You sell the shop give your apprentice, book flight.',
+  'Tunde laughed: "Odogwu of your street!"': 'Tunde laugh: "Odogwu of your street!"',
+  'You won! The road will finally be fixed.': 'You win! That road go finally get repair.',
+  'You lost by 312 votes. You can campaign again.': 'You lose with 312 votes. You fit campaign again.',
+  '"From POS stand to empire," the headline says.': 'Headline talk say: "From POS stand to empire."',
+  'Quiet money. You keep building.': 'Quiet money. You dey build.',
+  'Canopies, jollof and a live band. The elders gave you a chieftaincy title.': 'Canopy, jollof and live band. Elders give you chieftaincy title.',
+  'A quiet prayer with family. The house is home.': 'Small prayer with family. The house don be home.'
+};
+const PGRX = [
+  [/^You're in\. Your turn to collect is week (\d+)\.$/, m => `You don enter. Your turn to collect na week ${m[1]}.`],
+  [/^₦([\d,]+) to \$1 now\.$/, m => `Na ₦${m[1]} for $1 now.`],
+  [/^Fake sponsor\. .* Visa warning (\d) of 3\.$/, m => `Fake sponsor. Money don go, and your real employer receive strange email. Visa warning ${m[1]} of 3.`]
+];
+function pgResult(s) {
+  if (PGR[s]) return PGR[s];
+  for (const [rx, f] of PGRX) { const m = s.match(rx); if (m) return f(m); }
+  return s;
+}
+function eventView(q) {
+  const v = EV[q.id].view(q.p);
+  if (LANG !== 'pg' || !PGV[q.id]) return v;
+  const pv = PGV[q.id](q.p);
+  return { ...v, title: pv.title, text: pv.text, choices: v.choices.map((c, i) => ({ ...c, ...((pv.choices || [])[i] || {}) })) };
+}
+
 /* ---------- week flow ---------- */
 function endWeek() {
   const results = [];
@@ -743,8 +937,9 @@ function endWeek() {
 }
 function choose(i) {
   const q = S.queue[0];
-  const text = EV[q.id].pick(q.p, i);
-  log(`<b>${EV[q.id].view(q.p).title}:</b> ${text}`);
+  const title = eventView(q).title, raw = EV[q.id].pick(q.p, i);
+  const text = LANG === 'pg' ? pgResult(raw) : raw;
+  log(`<b>${esc(title)}:</b> ${esc(text)}`);
   S.result = text; normalize();
 }
 function nextEvent() {
@@ -1309,7 +1504,7 @@ function planView() {
   </section>`;
 }
 function lifeView() {
-  const q = S.queue[0]; const v = EV[q.id].view(q.p);
+  const q = S.queue[0]; const v = eventView(q);
   const body = S.result
     ? `<div class="result">${esc(S.result)}</div><button class="btn" data-act="next">${t('cont')}</button>`
     : `<div class="choices">${v.choices.map((c, i) => `<button class="choice" data-act="choose" data-i="${i}"><span>${esc(c.l)}</span>${c.h ? `<small>${esc(c.h)}</small>` : ''}</button>`).join('')}</div>`;
