@@ -152,6 +152,18 @@ table.ledger tr.total td { border-bottom: 0; font-weight: 700; padding-top: 8px;
 .help .track ul { padding-left: 0; }
 .help .track .note { margin: 6px 0 0; }
 .help > .btn:last-child { align-self: flex-start; }
+.endings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.end { border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 10px; display: flex; flex-direction: column; gap: 4px; background: var(--surface-2); min-width: 0; }
+.end b { font-size: 13.5px; }
+.end small { font-size: 12px; color: var(--muted); }
+.end.got { border-left: 4px solid var(--ink); }
+.end.got.japa { border-left-color: var(--japa); }
+.end.got.stay { border-left-color: var(--stay); }
+.end.locked { border-style: dashed; background: transparent; }
+.end.locked b { color: var(--muted); }
+small.first { display: block; font-size: 11.5px; color: var(--muted); }
+.unlock { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 8px; background: color-mix(in srgb, var(--gold) 16%, var(--surface)); }
+@media (max-width: 420px) { .endings { grid-template-columns: 1fr; } }
 @media (max-width: 420px) {
   .stats { grid-template-columns: 1fr; }
   .tracks { grid-template-columns: 1fr; }
@@ -168,6 +180,7 @@ table.ledger tr.total td { border-bottom: 0; font-weight: 700; padding-top: 8px;
       <div class="sub" id="tagline">Weekly-loop prototype · Year 1</div>
     </div>
     <div class="row">
+    <button class="lookbtn" id="hallbtn" data-act="hall">Lives lived</button>
     <button class="lookbtn" id="helpbtn" data-act="help">How to play</button>
     <button class="lookbtn" id="newgame" data-act="newgame" hidden>New game</button>
     <div class="lang" role="group" aria-label="Language">
@@ -249,7 +262,7 @@ const salesBase = () => { const B = S.build; return Math.round(price(10000) * S.
 function startBuild(lease) {
   S.build = { start: S.week, lease: !!lease, staff: 0, branches: 1, rep: 50, registered: false, loan: 0, loanWeeks: 0, apprentice: false, leader: 0, campaign: 0, house: 0,
     worked: false, disrupted: 0, priceWar: 0, supplier: 0, supplierDue: 0, empireWait: 0, houseWait: 0 };
-  S.biz = Math.max(S.biz, 1); S.resolve = Math.min(S.resolve, -20); S.ending = null;
+  S.biz = Math.max(S.biz, 1); S.resolve = Math.min(S.resolve, -20); S.ending = null; S.recorded = false; S.newUnlock = false; S.newBests = [];
   log(`<b>Build chapter:</b> ${lease ? 'Your shop on the main road opens.' : 'You decide to stay and build.'} Year 2 begins.`);
 }
 const abroadPay = () => S.abroad.promoted ? 620 : 480;
@@ -736,7 +749,7 @@ function choose(i) {
 }
 function nextEvent() {
   S.queue.shift(); S.result = null;
-  if (S.ending) { S.phase = 'end'; return; }
+  if (S.ending) { finishRun(); return; }
   if (!S.queue.length) settle();
 }
 function settleAbroad() {
@@ -827,7 +840,7 @@ function homeTail(L) {
 }
 function nextWeek() {
   S.week += 1;
-  if (S.week > lastWeek()) { S.ending = S.abroad ? 'year2' : S.build ? 'year2b' : 'year'; S.phase = 'end'; return; }
+  if (S.week > lastWeek()) { S.ending = S.abroad ? 'year2' : S.build ? 'year2b' : 'year'; finishRun(); return; }
   // milestone check
   S.queue = [];
   if (S.abroad) {
@@ -899,6 +912,58 @@ function endingInfo() {
   if (S.resolve > 40) return { name: 'Visa Wahala', pg: 'Year one done, you still dey run up and down for papers.', side: 'japa' };
   if (S.resolve < -40) return { name: 'Steady Life', pg: 'No noise, no wahala. You dey build small small.', side: 'stay' };
   return { name: 'Still Deciding', pg: 'Japa or stay? Your mind still dey middle.', side: 'none' };
+}
+
+/* ---------- endings collection and personal bests (saved on this device, kept across new games) ---------- */
+const ENDINGS = [
+  { n: 'Visa Wahala', g: 'Year 1', h: 'Reach week 52 still chasing your japa papers.' },
+  { n: 'Still Deciding', g: 'Year 1', h: 'Reach week 52 without picking a side.' },
+  { n: 'Settled Abroad', g: 'Abroad chapter', h: 'Pass the Life in Northland test, save $4,000 and apply to settle.' },
+  { n: 'Lonely Success', g: 'Abroad chapter', h: 'Settle abroad while your family bond is very low.' },
+  { n: 'Diaspora Star', g: 'Abroad chapter', h: 'Settle abroad with 5,000+ fans.' },
+  { n: 'Remittance Hero', g: 'Abroad chapter', h: 'Send $3,000+ home and reach week 104 abroad.' },
+  { n: 'Still Finding My Feet', g: 'Abroad chapter', h: 'Reach week 104 abroad without settling or going home.' },
+  { n: 'Back to Base', g: 'Abroad chapter', h: 'Buy land back home, save $5,000 and fly home to build.' },
+  { n: 'Homecoming Headliner', g: 'Abroad chapter', h: 'Fly home with land and 3,000+ fans.' },
+  { n: 'Japa Reverse', g: 'Abroad chapter', h: 'Go home from abroad without owning land.' },
+  { n: 'Sent Back', g: 'Abroad chapter', h: 'Collect three visa warnings.' },
+  { n: 'Odogwu', g: 'Build chapter', h: 'Reach business level 12 with 3 branches and 70 reputation.' },
+  { n: 'Billionaire Baller', g: 'Build chapter', h: 'Build your business empire while very rich.' },
+  { n: 'Changemaker', g: 'Build chapter', h: 'Campaign and win the councillor election.' },
+  { n: 'Community Pillar', g: 'Build chapter', h: 'Finish your hometown house and throw the party.' },
+  { n: 'Odogwu in the Making', g: 'Build chapter', h: 'Reach week 104 rich, but without an empire.' },
+  { n: 'Japa Late', g: 'Build chapter', h: 'Sell the shop and japa when Tunde asks.' },
+  { n: 'Steady Life', g: 'Any path', h: 'Reach the end of a year leaning firmly towards staying.' },
+  { n: 'Burnout', g: 'Any path', h: 'Reach the end with your health worn down.' }
+];
+const BESTS = [
+  { k: 'worth', label: 'Biggest net worth', get: () => S.money + S.usd * S.fx, fmt: v => naira(v) },
+  { k: 'remit', label: 'Most money sent home', get: () => S.abroad ? S.abroad.remitted : null, fmt: v => usd(v) },
+  { k: 'flight', label: 'Fastest japa', get: () => S.abroad ? S.abroad.start : null, fmt: v => `flew in week ${v}`, low: true },
+  { k: 'biz', label: 'Biggest business', get: () => S.build ? S.biz : null, fmt: v => `level ${v}` },
+  { k: 'clout', label: 'Most fans', get: () => S.clout || null, fmt: v => `${v.toLocaleString()} fans` },
+  { k: 'family', label: 'Strongest family bond', get: () => S.family, fmt: v => `${v}/100` },
+  { k: 'community', label: 'Biggest community', get: () => S.community, fmt: v => `${v}/100` }
+];
+const emptyHall = () => ({ runs: 0, endings: {}, bests: {} });
+function loadHall() { try { return JSON.parse(localStorage.getItem('jos-hall')) || emptyHall(); } catch (e) { return emptyHall(); } }
+function saveHall(h) { try { localStorage.setItem('jos-hall', JSON.stringify(h)); } catch (e) {} }
+function finishRun() {
+  S.phase = 'end';
+  if (S.recorded) return;
+  const e = endingInfo(), h = loadHall(), who = `${S.name}, ${REG().name}`;
+  if (!S.runCounted) { h.runs += 1; S.runCounted = true; }
+  S.newUnlock = !h.endings[e.name];
+  const rec = h.endings[e.name] || { count: 0, pg: e.pg, side: e.side, first: who };
+  rec.count += 1; h.endings[e.name] = rec;
+  S.newBests = [];
+  for (const b of BESTS) {
+    const v = b.get();
+    if (v === null || v === undefined || !isFinite(v)) continue;
+    const old = h.bests[b.k], val = Math.round(v);
+    if (!old || (b.low ? val < old.v : val > old.v)) { h.bests[b.k] = { v: val, who, ending: e.name }; S.newBests.push(b.label); }
+  }
+  S.recorded = true; saveHall(h); save();
 }
 
 /* ---------- art: everything below is drawn in code ---------- */
@@ -1073,7 +1138,27 @@ function save() { try { localStorage.setItem('jos-save', JSON.stringify(S)); } c
 function load() { try { const r = localStorage.getItem('jos-save'); if (r) S = JSON.parse(r); } catch (e) { S = null; } }
 
 /* ---------- render ---------- */
-let confirmReset = false, showHelp = false;
+let confirmReset = false, showHelp = false, showHall = false;
+function hallView() {
+  const h = loadHall(), got = ENDINGS.filter(x => h.endings[x.n]).length;
+  const back = `<button class="btn" data-act="hall-close">${!S ? 'Back to setup' : S.phase === 'end' ? 'Back to my life card' : 'Back to my game'}</button>`;
+  const tile = x => {
+    const r = h.endings[x.n];
+    return r
+      ? `<div class="end got ${r.side}"><div class="row between"><b>${esc(x.n)}</b>${r.count > 1 ? `<span class="tag">×${r.count}</span>` : ''}</div><small>"${esc(r.pg)}"</small><small class="first">First: ${esc(r.first)}</small></div>`
+      : `<div class="end locked"><b>Locked</b><small>${esc(x.h)}</small></div>`;
+  };
+  return `<section class="panel help hall">
+    <div class="row between"><h2>Lives lived</h2>${back}</div>
+    <div class="row between"><span><b>${got} of ${ENDINGS.length}</b> endings unlocked</span><span class="note">${h.runs} ${h.runs === 1 ? 'life' : 'lives'} played</span></div>
+    <span class="bar" role="meter" aria-label="Endings unlocked" aria-valuenow="${got}" aria-valuemin="0" aria-valuemax="${ENDINGS.length}"><i style="width:${got / ENDINGS.length * 100}%"></i></span>
+    ${['Year 1', 'Abroad chapter', 'Build chapter', 'Any path'].map(g => `<h3>${g}</h3><div class="endings">${ENDINGS.filter(x => x.g === g).map(tile).join('')}</div>`).join('')}
+    <h3>Personal bests</h3>
+    <table class="ledger">${BESTS.map(b => { const r = h.bests[b.k]; return `<tr><td>${b.label}${r ? `<small class="first">${esc(r.who)} · ${esc(r.ending)}</small>` : ''}</td><td>${r ? b.fmt(r.v) : 'Not yet'}</td></tr>`; }).join('')}</table>
+    <p class="note" style="margin:0">Saved on this device. Starting a new game does not erase it.</p>
+    ${back}
+  </section>`;
+}
 function helpView() {
   const back = `<button class="btn" data-act="help-close">${S ? 'Back to my game' : 'Back to setup'}</button>`;
   return `<section class="panel help">
@@ -1114,6 +1199,7 @@ function helpView() {
 
     <h3>Endings</h3>
     <p style="margin:0">Each run ends with a life card and a Pidgin verdict, like <i>Settled Abroad</i>, <i>Back to Base</i>, <i>Odogwu</i> or <i>Changemaker</i>. Press <b>${t('newGame')}</b> to try the other path.</p>
+    <p style="margin:0">There are ${ENDINGS.length} endings to collect. Open <b>Lives lived</b> at the top to see which ones you have unlocked, hints for the locked ones, and your personal bests: net worth, money sent home, fastest japa, biggest business, fans, family bond and community. It stays saved on this device, even when you start a new game.</p>
     <p class="note" style="margin:0">Watch out: "double your money" schemes and "visa guaranteed" agents are scams. Spotting them earns the Street Smart badge. <b>New game</b> at the top starts over at any time.</p>
     ${back}
   </section>`;
@@ -1250,6 +1336,11 @@ function endView() {
     <div class="me">${playerFace('lg')}<span class="label">${esc(S.name)} · ${stillAbroad() ? 'now in Northland' : S.abroad ? `back in ${REG().name}` : REG().name} · week ${Math.min(S.week, lastWeek())}</span></div>
     <div class="ending">${e.name}</div>
     <div class="pg">"${e.pg}"</div>
+    ${S.newUnlock || (S.newBests && S.newBests.length) ? `<div class="unlock">
+      ${S.newUnlock ? `<b>New ending unlocked: ${esc(e.name)}</b>` : ''}
+      ${S.newBests && S.newBests.length ? `<span>New personal best: ${esc(S.newBests.join(', '))}</span>` : ''}
+    </div>` : ''}
+    <button class="btn ghost" data-act="hall">See all endings (${ENDINGS.filter(x => loadHall().endings[x.n]).length} of ${ENDINGS.length})</button>
     <table class="ledger">
       <tr><td>Cash</td><td>${naira(S.money)}</td></tr><tr><td>Dollar savings</td><td>${usd(S.usd)}</td></tr>
       <tr><td>Family bond</td><td>${S.family}</td></tr><tr><td>Community</td><td>${S.community}</td></tr>
@@ -1286,9 +1377,11 @@ function render() {
   document.getElementById('tagline').textContent = S && S.abroad ? 'Year 2 · The Abroad chapter' : S && S.build ? 'Year 2 · The Build chapter' : 'Weekly-loop prototype · Year 1';
   document.getElementById('lang-en').setAttribute('aria-pressed', LANG === 'en');
   document.getElementById('lang-pg').setAttribute('aria-pressed', LANG === 'pg');
-  document.getElementById('newgame').hidden = !S || showHelp;
-  document.getElementById('helpbtn').hidden = showHelp;
+  document.getElementById('newgame').hidden = !S || showHelp || showHall;
+  document.getElementById('helpbtn').hidden = showHelp || showHall;
+  document.getElementById('hallbtn').hidden = showHelp || showHall;
   if (showHelp) { app.innerHTML = helpView(); return; }
+  if (showHall) { app.innerHTML = hallView(); return; }
   if (!S) { app.innerHTML = setupView(); return; }
   if (confirmReset) {
     app.innerHTML = `<section class="panel"><h2>Start a new game?</h2>
@@ -1318,7 +1411,9 @@ document.addEventListener('click', e => {
   if (a === 'choose') choose(Number(b.dataset.i));
   if (a === 'next') nextEvent();
   if (a === 'nextweek') nextWeek();
-  if (a === 'help') { if (!S) setup.name = (document.getElementById('nm') || {}).value || setup.name; showHelp = true; render(); window.scrollTo({ top: 0 }); return; }
+  if (a === 'help') { if (!S) setup.name = (document.getElementById('nm') || {}).value || setup.name; showHelp = true; showHall = false; render(); window.scrollTo({ top: 0 }); return; }
+  if (a === 'hall') { if (!S) setup.name = (document.getElementById('nm') || {}).value || setup.name; showHall = true; showHelp = false; render(); window.scrollTo({ top: 0 }); return; }
+  if (a === 'hall-close') { showHall = false; render(); window.scrollTo({ top: 0 }); return; }
   if (a === 'help-close') { showHelp = false; render(); window.scrollTo({ top: 0 }); return; }
   if (a === 'newgame') { confirmReset = true; render(); window.scrollTo({ top: 0 }); return; }
   if (a === 'reset-no') { confirmReset = false; }
