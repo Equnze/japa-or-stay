@@ -301,6 +301,12 @@ function startBuild(lease) {
 }
 const abroadPay = () => S.abroad.promoted ? 620 : 480;
 const SETTLE_USD = 4000, RETURN_USD = 5000;
+const HOME_ASKERS = [
+  { who: 'Mama', art: 'mama', open: 'REGION', reasons: ['blood pressure medicine', 'hospital bill', 'roof leaking for the village house'], thanks: 'Mama is happy. "God will bless you, my child."' },
+  { who: 'Your uncle', art: 'uncle', open: 'My dear, ', reasons: ['shop rent for his store', 'land case in court', 'wedding of his daughter'], thanks: 'Your uncle called you "my favourite" in the family group chat.' },
+  { who: 'Your younger sister', art: 'sister', open: 'Abeg, ', reasons: ['final-year project', 'new laptop for school', 'NYSC transport'], thanks: 'Your sister sent ten heart emojis and a voice note of her screaming.' },
+  { who: 'An elder from your church or mosque', art: 'elder', elder: true, reasons: ['the new building', 'a widow\'s rent', 'the youth programme'], thanks: 'Your name was announced at the service. Mama heard about it.' }
+];
 const ABROAD_ASKERS = [
   { who: 'Mama', art: 'mama', open: 'REGION', reasons: ['generator repair', 'Papa\'s hospital bill', 'roof for the village house'], thanks: 'Mama posted your photo on her WhatsApp status: "My child abroad."' },
   { who: 'Your uncle', art: 'uncle', open: 'My dear, ', reasons: ['shop rent for his store', 'land case in court', 'wedding of his daughter'], thanks: 'Your uncle called you "my favourite" in the family group chat.' },
@@ -522,12 +528,20 @@ const moneyCommitted = () => S.picked.reduce((a, k) => a + CARDS[k].cost(), 0);
 
 /* ---------- events ---------- */
 const EV = {
+  // black tax at home: different people ask for different things, at most once every 4 weeks
   blacktax: {
-    make: () => ({ amt: Math.round(price(28000) * (1 + S.clout / 15000) * (S.job ? 1.3 : 1) / 100) * 100, what: pick(['blood pressure medicine', 'hospital bill', 'church building levy', 'roof leaking for the village house']) }),
-    view: p => ({ who: 'Mama', av: 'M', cls: '', title: 'Family request', text: `${REG().open} the ${p.what} money is ${naira(p.amt)}. Abeg, help us.`,
+    cond: () => S.week - (S.lastAsk || 0) >= 4,
+    make: () => {
+      const r = pick(HOME_ASKERS);
+      S.lastAsk = S.week;
+      return { who: r.who, art: r.art, open: r.open === 'REGION' ? REG().open + ' ' : r.open, elder: !!r.elder, thanks: r.thanks, what: pick(r.reasons),
+        amt: Math.round(price(28000) * (1 + S.clout / 15000) * (S.job ? 1.3 : 1) / 100) * 100 };
+    },
+    view: p => ({ who: p.who || 'Mama', av: 'M', cls: '', title: 'Family request',
+      text: p.elder ? `They are raising money for ${p.what} and hope you can give ${naira(p.amt)}.` : `${p.open === undefined ? REG().open + ' ' : p.open}the ${p.what} money is ${naira(p.amt)}. Abeg, help us.`,
       choices: [{ l: `Pay it all (${naira(p.amt)})`, h: 'Family bond up, money down' }, { l: `Negotiate: pay half`, h: 'Smooth Talker does better' }, { l: 'Refuse this time', h: 'Family bond falls, guilt hits' }] }),
     pick: (p, i) => {
-      if (i === 0) { S.money -= p.amt; S.family += 10 * (S.trait === 'family' ? 1.5 : 1); return 'Mama is happy. "God will bless you, my child."'; }
+      if (i === 0) { S.money -= p.amt; S.family += 10 * (S.trait === 'family' ? 1.5 : 1); return p.thanks || 'Mama is happy. "God will bless you, my child."'; }
       if (i === 1) { S.money -= Math.round(p.amt / 2); if (S.trait === 'smooth' || chance(0.5)) { S.family += 3; return 'You explained well. Half is fine for now.'; } S.family -= 4; return 'Half paid, but your aunty is already gossiping.'; }
       S.family -= 12; S.mood -= 6; return 'You said no. The family WhatsApp group went quiet.';
     } },
@@ -957,7 +971,7 @@ const PGW = {
 };
 const pw = s => PGW[s] || s;
 const PGV = {
-  blacktax: p => ({ title: 'Family wahala', text: `${REG().open} the ${pw(p.what)} money na ${naira(p.amt)}. Abeg, help us.`,
+  blacktax: p => ({ title: 'Family wahala', text: p.elder ? `Dem dey gather money for ${pw(p.what)}, dem hope say you fit give ${naira(p.amt)}.` : `${p.open === undefined ? REG().open + ' ' : p.open}the ${pw(p.what)} money na ${naira(p.amt)}. Abeg, help us.`,
     choices: [{ l: `Pay am all (${naira(p.amt)})`, h: 'Family go happy, your pocket go cry' }, { l: 'Price am: pay half', h: 'Smooth Talker go do am better' }, { l: 'Say no this time', h: 'Family go vex, guilt go catch you' }] }),
   owambe: p => ({ title: 'Owambe dey this Saturday', text: `Dem invite you to ${pw(p.whose)}. Aso-ebi na ${naira(p.aso)}.`,
     choices: [{ l: `Go and spray ${naira(p.spray)}`, h: 'Your people, clout and connection go rise' }, { l: 'Go, but no spray', h: 'Na only aso-ebi you go pay' }, { l: 'No go at all', h: 'You save money, but your people go dey ask' }] }),
@@ -1224,7 +1238,7 @@ Object.assign(PGR, {
 PGRX.push([/^You got the job! Starting pay (.+) a week\.$/, m => `You get the work! Starting pay na ${m[1]} every week.`]);
 Object.assign(PGW, {
   'shop rent for his store': 'shop rent for him store', 'land case in court': 'land case for court', 'wedding of his daughter': 'him daughter wedding',
-  'final-year project': 'final year project', 'new laptop for school': 'new laptop for school', 'NYSC transport money': 'NYSC transport money',
+  'final-year project': 'final year project', 'new laptop for school': 'new laptop for school', 'NYSC transport money': 'NYSC transport money', 'NYSC transport': 'NYSC transport',
   'the new building': 'the new building', 'a widow\'s rent': 'one widow rent', 'the youth programme': 'the youth programme'
 });
 Object.assign(PGR, {
