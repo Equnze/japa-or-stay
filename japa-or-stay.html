@@ -322,6 +322,9 @@ const ABROAD_ASKERS = [
   { who: 'An elder from your church or mosque', art: 'elder', elder: true, reasons: ['the new building', 'a widow\'s rent', 'the youth programme'], thanks: 'Your name was announced at the service. Mama heard about it.' }
 ];
 function startAbroad() {
+  // a Year 1 business is sold before the flight; the money goes with you
+  const sale = S.biz > 0 ? price(30000 * S.biz) : 0;
+  if (sale) { S.money += sale; log(`<b>Business sold:</b> You sold your stock and stall for ${naira(sale)} before the flight.`); S.biz = 0; }
   const move = Math.max(0, S.money - 50000), d = Math.round(move * 0.98 / S.fx);
   S.money -= move; S.usd += d;
   S.abroad = { start: S.week, strikes: 0, course: 0, promoted: false, lifeStudy: 0, lifeTest: false, remitted: 0, land: 0, cc: 0, cut: 0, prWait: 0, returnWait: 0 };
@@ -589,13 +592,13 @@ const EV = {
       S.money -= p.solar; S.solar = true; S.resolve -= 4; return 'Solar installed. You are now the light of the compound.'; } },
   // at most twice a year; after a scheme has collapsed on you, the Chairman comes back with a different story
   ponzi: {
-    cond: () => S.week > 5 && !S.ponzi && S.money > 100000 && timesThisYear('ponzi') < 2,
+    cond: () => S.week > 5 && !S.ponzi && !S.ponziBlocked && S.money > 100000 && timesThisYear('ponzi') < 2,
     make: () => ({ amt: Math.round(Math.min(S.money * 0.6, price(300000)) / 1000) * 1000, again: (S.ponziLost || 0) > 0 }),
     view: p => ({ who: 'Chairman "Money Rain"', av: 'C', cls: 'g', title: p.again ? '"Money Rain" is back' : 'A "Money Rain" opportunity',
       text: p.again ? `"My guy, I know last time was market wahala. This one is real estate in Abuja, it cannot fail. Put ${naira(p.amt)}, four weeks, you double am."` : `"My guy, put ${naira(p.amt)} in my oil and gas scheme. Four weeks, you double am. Na how I take buy my third jeep."`,
       choices: [{ l: `Invest ${naira(p.amt)}`, h: 'Could double… or vanish' }, { l: 'Ask for documents first', h: 'Street Smart move' }] }),
     pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.ponzi = { amt: p.amt, due: S.week + 4 }; S.resolve -= 3; return 'The Chairman hugged you. "You are a serious person."'; }
-      S.streetSmart = true; return 'The Chairman got vexed and blocked you. Street Smart badge earned.'; } },
+      S.streetSmart = true; S.ponziBlocked = true; return 'The Chairman got vexed and blocked you. Street Smart badge earned.'; } },
   sponsor: {
     cond: () => S.clout >= 2500 && timesThisYear('sponsor') < 2,
     make: () => ({ amt: price(150000) }),
@@ -613,14 +616,14 @@ const EV = {
   tunde: {
     cond: () => timesThisYear('tunde') < 4,
     make: () => ({ good: chance(0.5) }),
-    view: p => ({ who: 'Cousin Tunde (Northland)', av: 'T', cls: 'j', title: 'A message from abroad', text: p.good ? '"Bro, I just paid my rent and still sent money home. Light dey 24/7. Come, e get as e be."' : '"Honestly? I work night shifts in the cold and I miss pepper soup. Some days I wonder why I came."',
+    view: p => ({ who: 'Cousin Tunde (Northland)', av: 'T', cls: 'j', title: 'A message from abroad', text: p.good ? '"My person, I just paid my rent and still sent money home. Light dey 24/7. Come, e get as e be."' : '"Honestly? I work night shifts in the cold and I miss pepper soup. Some days I wonder why I came."',
       choices: [{ l: 'Reply and gist', h: 'See how life is over there' }] }),
     pick: p => { if (p.good) { S.resolve += 8; return 'Your mind is moving towards japa.'; } S.resolve -= 6; S.mood -= 2; return 'That one made you think twice.'; } },
   school: {
     make: () => ({ amt: price(45000) }),
     view: p => ({ who: 'Mama', av: 'M', cls: '', title: 'Back to school', text: `${REG().open} your younger brother's school fees are due: ${naira(p.amt)}.`,
       choices: [{ l: `Pay the fees (${naira(p.amt)})`, h: 'Family bond up' }, { l: 'Pay half and promise the rest', h: 'Smooth Talker does better' }, { l: 'Say you cannot', h: 'Family bond falls' }] }),
-    pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.family += 10; return 'Your brother sent a voice note: "Thank you, Sister/Bros!"'; }
+    pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.family += 10; return 'Your brother sent a voice note: "Thank you o! God bless you!"'; }
       if (i === 1) { S.money -= Math.round(p.amt / 2); S.family += S.trait === 'smooth' ? 4 : -2; return 'Half paid. The bursar said "by next month o."'; }
       S.family -= 12; S.mood -= 5; return 'Your uncle paid instead. He will remind you for years.'; } },
   detty: {
@@ -813,7 +816,7 @@ const EV = {
     make: () => ({}),
     view: () => ({ who: 'Your business', title: 'An empire is born', text: `Three branches, business level ${S.biz}, and your name on signboards across town. A magazine wants to profile you. You are worth about ${naira(S.money + S.usd * S.fx)}${S.money + S.usd * S.fx < price(20000000) ? `. Wait until you pass ${naira(price(20000000))} and they will call you a billionaire baller` : ''}.`,
       choices: [{ l: 'Do the interview', h: 'Ends your Build chapter' }, { l: 'Keep a low profile and keep growing', h: 'Continue' }] }),
-    pick: (p, i) => { if (i === 0) { S.ending = 'empire'; return '"From POS stand to empire," the headline says.'; } S.build.empireWait = S.week + 10; return 'Quiet money. You keep building.'; } },
+    pick: (p, i) => { if (i === 0) { S.ending = 'empire'; return '"From one small shop to an empire," the headline says.'; } S.build.empireWait = S.week + 10; return 'Quiet money. You keep building.'; } },
   b_housewarm: {
     make: () => ({ amt: fun(150000) }),
     view: p => ({ who: 'Your hometown', title: 'House opening ceremony', text: `Your house in the village is finished. The whole town wants a thanksgiving party: ${naira(p.amt)}.`,
@@ -935,18 +938,18 @@ Object.assign(EV, {
   a_foodstall: {
     cond: () => timesThisYear('a_foodstall') < 1 && weeksAbroad() >= 8 && S.usd >= 600,
     make: () => ({ amt: 200 }),
-    view: p => ({ who: 'Your friend Bisi', title: 'Puff-puff at the Saturday market', text: `Bisi wants to run a Naija food stall at the Saturday market: puff-puff, suya and zobo. She needs ${usd(p.amt)} for the gazebo and gas. She runs it, you share the profit.`,
+    view: p => ({ who: 'Your friend Ronke', title: 'Puff-puff at the Saturday market', text: `Ronke wants to run a Naija food stall at the Saturday market: puff-puff, suya and zobo. She needs ${usd(p.amt)} for the gazebo and gas. She runs it, you share the profit.`,
       choices: [{ l: `Invest ${usd(p.amt)}`, h: 'Could pay back double' }, { l: 'Wish her well', h: 'Nothing changes' }] }),
-    pick: (p, i) => { if (i === 1) return 'Bisi said she understands. She still saved you some puff-puff.';
+    pick: (p, i) => { if (i === 1) return 'Ronke said she understands. She still saved you some puff-puff.';
       S.usd -= p.amt; if (chance(0.6)) { S.usd += p.amt * 2; S.clout += 150; S.mood += 6; return 'Sold out three Saturdays in a row. Your share came back double, and the stall video went round the community.'; }
-      S.mood -= 4; return 'Rain every Saturday and a council permit problem. Bisi closed the stall. The money is gone.'; } },
+      S.mood -= 4; return 'Rain every Saturday and a council permit problem. Ronke closed the stall. The money is gone.'; } },
   a_colleague: {
     cond: () => timesThisYear('a_colleague') < 1 && weeksAbroad() >= 6,
     make: () => ({ amt: 200 }),
     view: p => ({ who: 'Your colleague Emeka', title: 'Visa trouble at work', text: 'Emeka from your shift just found out his sponsor lost its licence. He has 60 days to find a new sponsor or leave Northland.',
       choices: [{ l: 'Help him search and apply', h: '−10 energy, +6 community' }, { l: `Lend him ${usd(p.amt)} for fees`, h: '+8 community, money down' }, { l: 'Stay out of it', h: 'Nothing changes' }] }),
     pick: (p, i) => { if (i === 0) { S.energy -= 10; S.community += 6; S.mood += 3; return 'Three evenings of applications. A hospital in the next town said yes. Emeka cried on the phone.'; }
-      if (i === 1) { S.usd -= p.amt; S.community += 8; return 'He paid the fees and found a new sponsor. He says he will pay you back "by month end".'; } S.mood -= 2; return 'You kept your head down. His locker was empty two months later.'; } },
+      if (i === 1) { S.usd -= p.amt; S.community += 8; S.abroad.emekaOwes = { amt: p.amt, due: S.week + 6 }; return 'He paid the fees and found a new sponsor. He says he will pay you back "by month end".'; } S.mood -= 2; return 'You kept your head down. His locker was empty two months later.'; } },
   a_powerbill: {
     cond: () => winter() && timesThisYear('a_powerbill') < 1,
     make: () => ({ amt: 180 }),
@@ -964,7 +967,7 @@ Object.assign(EV, {
     cond: () => timesThisYear('a_exchanger') < 1 && S.usd >= 500,
     make: () => ({ amt: 300 }),
     view: p => ({ who: 'A man from the community', title: '"Better rate than the bank"', text: `A man at the Naija shop offers a much better naira rate than your bank app if you send ${usd(p.amt)} through him. Plenty of people use him. Some have stories.`,
-      choices: [{ l: 'Use the bank app as usual', h: 'Safe' }, { l: `Send ${usd(p.amt)} through him`, h: 'Mama gets more, or nothing' }] }),
+      choices: [{ l: `Send ${usd(p.amt)} through the bank app`, h: 'Safe, normal rate' }, { l: `Send ${usd(p.amt)} through him`, h: 'Mama gets more, or nothing' }] }),
     pick: (p, i) => { if (i === 0) { S.usd -= p.amt; S.abroad.remitted += p.amt; S.family += 4; return 'Sent through the app. Mama confirmed it landed.'; }
       S.usd -= p.amt; if (chance(0.7)) { S.abroad.remitted += p.amt; S.family += 10; return 'Mama got more naira than ever. "Whatever you did, do it again."'; }
       S.family -= 4; S.mood -= 10; S.streetSmart = true; return 'Two weeks later, Mama has still not received anything. The man has stopped answering. Street Smart badge earned.'; } },
@@ -973,7 +976,7 @@ Object.assign(EV, {
     make: () => ({ amt: 400 }),
     view: p => ({ who: 'Your landlord', title: 'The flat is being sold', text: `Your landlord is selling the flat. You have four weeks to move out. A new room needs a ${usd(p.amt)} deposit.`,
       choices: [{ l: `Find a new room (${usd(p.amt)})`, h: 'Money down, fresh start' }, { l: 'Squeeze into Tunde\'s place for a while', h: '−8 mood, +4 family' }] }),
-    pick: (p, i) => { S.abroad.moved = true; if (i === 0) { S.usd -= p.amt; S.mood += 2; return 'New room, closer to work. The radiator actually works.'; } S.mood -= 8; S.family += 4; return 'Mattress on Tunde\'s living room floor. His children think you are a new uncle.'; } },
+    pick: (p, i) => { S.abroad.moved = true; if (i === 0) { S.usd -= p.amt; S.mood += 2; return 'New room, closer to work. The radiator actually works.'; } S.mood -= 8; S.family += 4; return 'Mattress on Tunde\'s living room floor. His children have adopted you as family.'; } },
   a_newbie: {
     cond: () => timesThisYear('a_newbie') < 1 && weeksAbroad() >= 16,
     make: () => ({}),
@@ -1034,7 +1037,7 @@ Object.assign(EV, {
     view: p => ({ who: 'Your cousin back home', title: '"Bring me come"', text: `Your cousin wants you to help him japa too. He asks for ${usd(p.amt)} for his English test and an "agent".`,
       choices: [{ l: `Send ${usd(p.amt)}`, h: 'Family up, money down' }, { l: 'Send him the official visa website and guide him', h: 'Street Smart move' }, { l: 'Say you cannot right now', h: '−6 family' }] }),
     pick: (p, i) => { if (i === 0) { S.usd -= p.amt; S.family += 8; return 'He thanked you. Two weeks later, the "agent" stopped picking his calls.'; }
-      if (i === 1) { S.family += 3; S.streetSmart = true; return 'You spent an evening on video call walking him through the real process.'; } S.family -= 6; return '"So you don forget us," he typed.'; } },
+      if (i === 1) { S.family += 3; S.streetSmart = true; return 'You spent an evening on video call walking him through the real process. Street Smart badge earned.'; } S.family -= 6; return '"So you don forget us," he typed.'; } },
   a_mamasolar: {
     cond: () => !S.abroad.mamaSolar && timesThisYear('a_mamasolar') < 1 && weeksAbroad() >= 4,
     make: () => ({ amt: 250, fuel: 40 }),
@@ -1138,7 +1141,7 @@ const PGV = {
     choices: [{ l: 'Collect the sponsorship', h: 'Money and clout, e go tie you to Naija' }, { l: 'Decline am with respect', h: 'Keep your freedom' }] }),
   agent: p => ({ title: '"Visa guaranteed!"', text: `"Pay ${naira(p.amt)} and I go arrange Northland work, visa and ticket. 100% guaranteed. Plenty people don go."`,
     choices: [{ l: `Pay ${naira(p.amt)}`, h: 'Shortcut to job offer?' }, { l: 'Ask for him registration and references', h: 'Check before you pay' }] }),
-  tunde: p => ({ title: 'Message from abroad', text: p.good ? '"Bro, I just pay my rent and still send money home. Light dey 24/7. Come, e get as e be."' : '"Honestly? I dey work night shift for cold and I miss pepper soup. Some days I dey wonder why I come."',
+  tunde: p => ({ title: 'Message from abroad', text: p.good ? '"My person, I just pay my rent and still send money home. Light dey 24/7. Come, e get as e be."' : '"Honestly? I dey work night shift for cold and I miss pepper soup. Some days I dey wonder why I come."',
     choices: [{ l: 'Reply am and gist', h: 'See how life be for there' }] }),
   school: p => ({ title: 'School don resume', text: `${REG().open} your younger brother school fees don reach: ${naira(p.amt)}.`,
     choices: [{ l: `Pay the fees (${naira(p.amt)})`, h: 'Family go happy' }, { l: 'Pay half, promise the rest', h: 'Smooth Talker go do am better' }, { l: 'Talk say you no fit', h: 'Family go vex' }] }),
@@ -1232,7 +1235,7 @@ const PGR = {
   'He had no registration. You reported him. Street Smart badge earned.': 'E no get registration. You report am. You don collect Street Smart badge.',
   'Your mind is moving towards japa.': 'Your mind don dey shift go japa side.',
   'That one made you think twice.': 'That one make you think twice.',
-  'Your brother sent a voice note: "Thank you, Sister/Bros!"': 'Your brother send voice note: "Thank you, Sister/Bros!"',
+  'Your brother sent a voice note: "Thank you o! God bless you!"': 'Your brother send voice note: "Thank you o! God go bless you!"',
   'Half paid. The bursar said "by next month o."': 'You pay half. Bursar talk say "by next month o."',
   'Your uncle paid instead. He will remind you for years.': 'Your uncle pay am. E go dey remind you for years.',
   'Concerts, beach, owambe. Your IJGB friend asked, "When are you coming over?"': 'Concert, beach, owambe. Your IJGB friend ask you, "When you dey come over?"',
@@ -1282,9 +1285,9 @@ const PGR = {
   'Your name was read out. An aunty pressed a plate of jollof into your hands.': 'Dem call your name. One aunty push plate of jollof enter your hand.',
   'You stirred a pot of egusi big enough to bathe in. Everyone knows you now.': 'You stir pot of egusi wey big reach to baff inside. Everybody don know you now.',
   'Maybe next year.': 'Next year, God willing.',
-  'Bisi said she understands. She still saved you some puff-puff.': 'Bisi talk say she understand. She still keep puff-puff for you.',
+  'Ronke said she understands. She still saved you some puff-puff.': 'Ronke talk say she understand. She still keep puff-puff for you.',
   'Sold out three Saturdays in a row. Your share came back double, and the stall video went round the community.': 'Market finish three Saturdays straight. Your share come back double, and the stall video go round the community.',
-  'Rain every Saturday and a council permit problem. Bisi closed the stall. The money is gone.': 'Rain every Saturday and council permit wahala. Bisi close the stall. The money don go.',
+  'Rain every Saturday and a council permit problem. Ronke closed the stall. The money is gone.': 'Rain every Saturday and council permit wahala. Ronke close the stall. The money don go.',
   'Three evenings of applications. A hospital in the next town said yes. Emeka cried on the phone.': 'Three evenings of application. One hospital for next town talk yes. Emeka cry for phone.',
   'He paid the fees and found a new sponsor. He says he will pay you back "by month end".': 'Him pay the fees and find new sponsor. Him talk say him go pay you back "by month end".',
   'You kept your head down. His locker was empty two months later.': 'You keep quiet. Two months after, him locker don empty.',
@@ -1297,7 +1300,7 @@ const PGR = {
   'Mama got more naira than ever. "Whatever you did, do it again."': 'Mama collect naira pass before. "Anything wey you do, do am again."',
   'Two weeks later, Mama has still not received anything. The man has stopped answering. Street Smart badge earned.': 'Two weeks after, Mama never still receive anything. The man don stop to answer. You don collect Street Smart badge.',
   'New room, closer to work. The radiator actually works.': 'New room, near work. The radiator dey work sef.',
-  "Mattress on Tunde's living room floor. His children think you are a new uncle.": 'Mattress for Tunde parlour floor. Him pikin dem think say you be new uncle.',
+  "Mattress on Tunde's living room floor. His children have adopted you as family.": 'Mattress for Tunde parlour floor. Him pikin dem don adopt you as family.',
   'Bus pass, bank account, the African shop. He calls you "my senior" now.': 'Bus pass, bank account, African shop. Him dey call you "my senior" now.',
   'He wore it the next day with a big smile. You remember being him.': 'Him wear am the next day with big smile. You remember when you be like am.',
   'He figured it out. Everyone does, eventually.': 'Him later understand am. Everybody dey understand am at last.',
@@ -1332,7 +1335,7 @@ const PGR = {
   'Tunde laughed: "Odogwu of your street!"': 'Tunde laugh: "Odogwu of your street!"',
   'You won! The road will finally be fixed.': 'You win! That road go finally get repair.',
   'You lost by 312 votes. Your supporters are still with you: campaign again and you start halfway.': 'You lose with 312 votes. Your supporters still dey with you: campaign again and you go start from halfway.',
-  '"From POS stand to empire," the headline says.': 'Headline talk say: "From POS stand to empire."',
+  '"From one small shop to an empire," the headline says.': 'Headline talk say: "From one small shop to empire."',
   'Quiet money. You keep building.': 'Quiet money. You dey build.',
   'Canopies, jollof and a live band. The elders gave you a chieftaincy title.': 'Canopy, jollof and live band. Elders give you chieftaincy title.',
   'A quiet prayer with family. The house is home.': 'Small prayer with family. The house don be home.'
@@ -1376,7 +1379,7 @@ Object.assign(PGV, {
   a_quiet: p => QUIET_AB_PG[p.v],
   a_harvest: p => ({ title: 'Harvest for Northland', text: `Naija church and mosque people dey do joint harvest and food drive. Pledge start from ${usd(p.amt)}.`,
     choices: [{ l: `Give ${usd(p.amt)}`, h: '+8 your people, +4 happiness' }, { l: 'Help for kitchen', h: '−8 strength, +6 your people' }, { l: 'Skip am this year', h: 'Nothing go change' }] }),
-  a_foodstall: p => ({ title: 'Puff-puff for Saturday market', text: `Bisi wan run Naija food stall for Saturday market: puff-puff, suya and zobo. She need ${usd(p.amt)} for gazebo and gas. She go run am, una go share profit.`,
+  a_foodstall: p => ({ title: 'Puff-puff for Saturday market', text: `Ronke wan run Naija food stall for Saturday market: puff-puff, suya and zobo. She need ${usd(p.amt)} for gazebo and gas. She go run am, una go share profit.`,
     choices: [{ l: `Put ${usd(p.amt)}`, h: 'E fit double' }, { l: 'Wish her well', h: 'Nothing go change' }] }),
   a_colleague: p => ({ title: 'Visa wahala for work', text: 'Emeka for your shift just find out say him sponsor don lose licence. Him get 60 days to find new sponsor or comot Northland.',
     choices: [{ l: 'Help am search and apply', h: '−10 strength, +6 your people' }, { l: `Borrow am ${usd(p.amt)} for fees`, h: '+8 your people, money go down' }, { l: 'No enter am', h: 'Nothing go change' }] }),
@@ -1385,7 +1388,7 @@ Object.assign(PGV, {
   a_dentist: p => ({ title: 'Tooth dey pain', text: `Free dentist get three-month waiting list. Private dentist fit see you tomorrow for ${usd(p.amt)}.`,
     choices: [{ l: `Go private (${usd(p.amt)})`, h: 'Pain go go' }, { l: 'Wait for the free one', h: '−8 body, −6 happiness' }] }),
   a_exchanger: p => ({ title: '"Better rate pass bank"', text: `One man for Naija shop dey offer better naira rate pass your bank app if you send ${usd(p.amt)} through am. Plenty people dey use am. Some get story.`,
-    choices: [{ l: 'Use bank app like before', h: 'E safe' }, { l: `Send ${usd(p.amt)} through am`, h: 'Mama go get more, or nothing' }] }),
+    choices: [{ l: `Send ${usd(p.amt)} through bank app`, h: 'E safe, normal rate' }, { l: `Send ${usd(p.amt)} through am`, h: 'Mama go get more, or nothing' }] }),
   a_move: p => ({ title: 'Dem dey sell the flat', text: `Your landlord wan sell the flat. You get four weeks to pack comot. New room need ${usd(p.amt)} deposit.`,
     choices: [{ l: `Find new room (${usd(p.amt)})`, h: 'Money go down, fresh start' }, { l: 'Squeeze inside Tunde house small', h: '−8 happiness, +4 family' }] }),
   a_newbie: () => ({ title: 'E just land', text: 'Musa just land from Kaduna and start for your shift. Him wear thin jacket and him no sabi how bus dey work.',
@@ -1496,7 +1499,7 @@ Object.assign(PGR, {
   'You now know half the Nigerians in town.': 'You don know half of the Naija people for town.',
   'They said the door is always open.': 'Dem talk say door dey always open.',
   'He thanked you. Two weeks later, the "agent" stopped picking his calls.': 'E thank you. Two weeks after, the "agent" no dey pick him call again.',
-  'You spent an evening on video call walking him through the real process.': 'You spend one evening for video call dey show am the real process.',
+  'You spent an evening on video call walking him through the real process. Street Smart badge earned.': 'You spend one evening for video call dey show am the real process. You don collect Street Smart badge.',
   '"So you don forget us," he typed.': '"So you don forget us," na wetin e type.',
   'Mama sent a video of the fan spinning. "My child has brought light!"': 'Mama send video of fan dey turn. "My pikin don bring light!"',
   'Generator fuel for two weeks.': 'Generator fuel for two weeks.',
@@ -1563,8 +1566,10 @@ function endWeek() {
 }
 function choose(i) {
   const q = S.queue[0], before = snap();
+  const hadBadge = S.streetSmart;
   const title = eventView(q).title, raw = EV[q.id].pick(q.p, i);
-  const text = LANG === 'pg' ? pgResult(raw) : raw;
+  let text = LANG === 'pg' ? pgResult(raw) : raw;
+  if (hadBadge) text = text.replace('Street Smart badge earned.', 'Your street sense saved you again.').replace('You don collect Street Smart badge.', 'Your street sense don save you again.');
   log(`<b>${esc(title)}:</b> ${esc(text)}`);
   S.result = text; normalize();
   S.resultFx = fxChips(before, snap());
@@ -1578,6 +1583,7 @@ function settleAbroad() {
   const A = S.abroad, L = [];
   if (S.pendingPay) { const p = Math.round(S.pendingPay * (A.cut > 0 ? 0.7 : 1) * bodyMult()); L.push([(A.cut > 0 ? 'Wages (hours cut 30%)' : 'Wages') + (weak() ? ' · weak body, half the hours' : ''), p]); S.usd += p; S.pendingPay = 0; }
   if (A.cut > 0) A.cut -= 1;
+  if (A.emekaOwes && S.week >= A.emekaOwes.due) { if (chance(0.7)) { L.push(['Emeka paid you back', A.emekaOwes.amt]); S.usd += A.emekaOwes.amt; S.community += 3; log('<b>Emeka:</b> He paid back every dollar, with a pack of chin chin from home.'); } else { S.mood -= 3; log('<b>Emeka:</b> "Next month, I promise." You are starting to doubt it.'); } A.emekaOwes = null; }
   const rent = Math.round(160 * S.idxA), food = Math.round(70 * S.idxA), trans = Math.round(30 * S.idxA);
   L.push(['Rent (shared flat)', -rent], ['Food', -food], ['Bus pass', -trans]);
   S.usd -= rent + food + trans;
