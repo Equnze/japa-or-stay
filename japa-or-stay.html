@@ -166,6 +166,12 @@ table.ledger tr.total td { border-bottom: 0; font-weight: 700; padding-top: 8px;
 .help .track ul { padding-left: 0; }
 .help .track .note { margin: 6px 0 0; }
 .help > .btn:last-child { align-self: flex-start; }
+.share { display: flex; flex-direction: column; gap: 12px; }
+.share .pic { width: 100%; max-width: 420px; aspect-ratio: 4 / 5; border-radius: 14px; border: 1px solid var(--line); background: var(--surface-2); display: grid; place-items: center; overflow: hidden; align-self: center; }
+.share .pic img { width: 100%; height: 100%; display: block; }
+.share .row { flex-wrap: wrap; }
+.share .row .btn { flex: 1 1 160px; text-align: center; text-decoration: none; }
+.share .msg { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; font-size: 14px; margin: 0; white-space: pre-wrap; }
 .helptabs { align-self: flex-start; }
 .helptabs button { font-size: 13px; padding: 8px 16px; }
 .eg-intro { margin: 0; font-size: 16px; }
@@ -2326,6 +2332,129 @@ function settleView() {
       : `Prices rose ${L.inf.toFixed(2)}% this week. The dollar went ${L.fxUp ? 'up' : 'down'} to ₦${Math.round(S.fx).toLocaleString('en-NG')}. ${S.build ? 'Your shop prices rise with inflation, but so do your costs.' : S.job ? 'Your salary does not rise with inflation.' : 'Everything costs a little more each week.'}`}</div>
     <button class="btn" data-act="nextweek">${t('cont')}</button></section>`;
 }
+
+// ---------- Share my life: a picture of the life card, ready for WhatsApp, Instagram and X ----------
+const SHARE_URL = 'https://japa-or-stay.pages.dev/';
+let showShare = false, sharePic = null;
+// the few facts that tell this life's story, best first
+function lifeHighlights() {
+  const out = [], A = S.abroad, B = S.build;
+  if (A) {
+    out.push(`Flew to Northland in week ${A.start}`);
+    if (S.ending === 'settled') out.push(`Got permanent papers in week ${Math.min(S.week, 104)}`);
+    if (A.promoted) out.push('Promoted to senior carer');
+    if (A.remitted >= 100) out.push(`Sent ${usd(A.remitted)} home to family`);
+    if (A.land) out.push(`Bought ${A.land} plot${A.land > 1 ? 's' : ''} of land back home`);
+  }
+  if (B) {
+    out.push(B.lease ? `Opened a shop on the main road in week ${B.start}` : `Chose to stay and build in week ${B.start}`);
+    if (S.ending === 'changemaker') out.push('Won the councillor election');
+    if (B.house >= 8) out.push('Finished the family house in the village');
+    else if (B.house > 0) out.push(`Built the village house to stage ${B.house} of 8`);
+    if (B.branches > 1) out.push(`Business level ${S.biz} with ${B.branches} branches`);
+    else if (S.biz > 1) out.push(`Grew the business to level ${S.biz}`);
+  }
+  if (!A && !B) {
+    if (S.passport) out.push('Got an international passport');
+    if (S.ielts >= 6.5) out.push(`Scored ${S.ielts} on the English test`);
+    if (S.offer) out.push('Landed a job offer abroad');
+    if (S.biz > 0) out.push(`Grew a small business to level ${S.biz}`);
+  }
+  if (S.clout >= 1000) out.push(`${S.clout.toLocaleString('en-NG')} fans online`);
+  if (S.streetSmart) out.push('Spotted a scam and earned Street Smart');
+  if (S.family >= 80) out.push('Stayed close to family the whole time');
+  if (!out.length) out.push(`Lived ${Math.min(S.week, 104)} weeks of Naija life`);
+  // endings about fame lead with the fans
+  if (/Star|Headliner/.test(endingInfo().name)) { const i = out.findIndex(h => / fans online$/.test(h)); if (i > 0) out.unshift(out.splice(i, 1)[0]); }
+  return out.slice(0, 4);
+}
+function shareText() {
+  const e = endingInfo();
+  return `I lived ${Math.min(S.week, 104)} weeks in Japa or Stay and got "${e.name}": "${e.pg}"\n${lifeHighlights().slice(0, 2).join('. ')}.\nJapa or stay? Play free and see your own ending: ${SHARE_URL}`;
+}
+// turn one of the game's SVG drawings into a standalone picture with real colours (no page styles)
+function svgForCanvas(html, w, h) {
+  const root = document.documentElement, had = root.getAttribute('data-theme');
+  root.setAttribute('data-theme', 'light'); // the card always uses the light palette
+  const cs = getComputedStyle(root);
+  const resolve = str => str.replace(/var\((--[\w-]+)(?:,\s*([^)]+))?\)/g, (m, name, fb) => (cs.getPropertyValue(name).trim() || (fb || '#888').trim()));
+  const tmp = document.createElement('div'); tmp.innerHTML = html;
+  const svg = tmp.querySelector('svg'); let out = '';
+  if (svg) { svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); svg.setAttribute('width', w); svg.setAttribute('height', h); svg.removeAttribute('class'); out = resolve(svg.outerHTML); }
+  if (had === null) root.removeAttribute('data-theme'); else root.setAttribute('data-theme', had);
+  return out;
+}
+const loadImg = src => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = src; });
+function wrapLines(ctx, text, maxW) {
+  const words = text.split(' '), lines = []; let line = '';
+  for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; }
+  if (line) lines.push(line); return lines;
+}
+async function makeLifeCard() {
+  const W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d'), e = endingInfo();
+  try { await Promise.all([document.fonts.load('800 80px "Bricolage Grotesque"'), document.fonts.load('600 40px Figtree'), document.fonts.load('400 40px Figtree')]); } catch (er) {}
+  const disp = '"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif', body = 'Figtree, "Segoe UI", system-ui, sans-serif';
+  const sideCol = e.side === 'japa' ? '#3346A8' : e.side === 'stay' ? '#0E7A4C' : '#13201A';
+  x.fillStyle = '#EEF2EC'; x.fillRect(0, 0, W, H);
+  // the flag stripe
+  [['#0E7A4C', 0], ['#D99A0E', W / 3], ['#3346A8', 2 * W / 3]].forEach(([col, px]) => { x.fillStyle = col; x.fillRect(px, 0, W / 3 + 1, 18); });
+  // the city (or Northland) picture
+  try { const sc = svgForCanvas(scene(stillAbroad() ? 'north' : S.region), W, 270); if (sc) x.drawImage(await loadImg('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(sc)), 0, 18, W, 270); } catch (er) {}
+  // the player's face, in a white circle over the picture
+  x.fillStyle = '#FFFFFF'; x.beginPath(); x.arc(170, 300, 112, 0, Math.PI * 2); x.fill();
+  x.strokeStyle = sideCol; x.lineWidth = 8; x.stroke();
+  try { const fc = svgForCanvas(playerFace('lg'), 200, 200); if (fc) x.drawImage(await loadImg('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(fc)), 70, 200, 200, 200); } catch (er) {}
+  // who and where
+  x.fillStyle = '#5A6A61'; x.font = `600 34px ${body}`;
+  x.fillText(`${S.name} · ${REG().name}${S.abroad ? (stillAbroad() ? ' → Northland' : ' → Northland → home') : ''}`.slice(0, 48), 310, 350);
+  x.fillText(`${Math.min(S.week, 104)} weeks lived`, 310, 395);
+  // the ending
+  let y = 520; x.fillStyle = sideCol; x.font = `800 ${e.name.length > 18 ? 84 : 104}px ${disp}`;
+  for (const l of wrapLines(x, e.name, W - 140)) { x.fillText(l, 70, y); y += e.name.length > 18 ? 92 : 112; }
+  x.fillStyle = '#13201A'; x.font = `italic 400 42px ${body}`;
+  for (const l of wrapLines(x, '"' + e.pg + '"', W - 140).slice(0, 3)) { x.fillText(l, 70, y); y += 56; }
+  // the highlights
+  y += 30; x.font = `600 36px ${body}`;
+  for (const h of lifeHighlights()) {
+    if (y > H - 230) break;
+    x.fillStyle = sideCol; x.beginPath(); x.arc(84, y - 12, 9, 0, Math.PI * 2); x.fill();
+    x.fillStyle = '#13201A'; const ls = wrapLines(x, h, W - 180); ls.slice(0, 2).forEach((l, i) => x.fillText(l, 112, y + i * 46)); y += 46 * Math.min(2, ls.length) + 22;
+  }
+  // footer
+  x.fillStyle = '#13201A'; x.fillRect(0, H - 170, W, 170);
+  x.fillStyle = '#FFFFFF'; x.font = `800 52px ${disp}`; x.fillText('Japa', 70, H - 95);
+  const jw = x.measureText('Japa ').width; x.fillStyle = '#E8A317'; x.fillText('or', 70 + jw, H - 95);
+  const ow = x.measureText('or ').width; x.fillStyle = '#FFFFFF'; x.fillText('Stay', 70 + jw + ow, H - 95);
+  x.font = `600 32px ${body}`; x.fillStyle = '#CFE6D8'; x.fillText('What would you choose? Play free:', 70, H - 48);
+  x.textAlign = 'right'; x.fillStyle = '#FFFFFF'; x.font = `700 32px ${body}`; x.fillText('japa-or-stay.pages.dev', W - 70, H - 48); x.textAlign = 'left';
+  return new Promise(ok => c.toBlob(b => ok(b), 'image/png'));
+}
+function shareView() {
+  const native = !!navigator.share;
+  return `<section class="panel share">
+    <div class="row between"><h2>Share your life</h2><button class="btn ghost" data-act="share-close">Back</button></div>
+    <div class="pic" id="sharepic">${sharePic ? `<img src="${sharePic.url}" alt="Your life card: ${esc(endingInfo().name)}">` : '<span class="note">Drawing your life card…</span>'}</div>
+    <div class="row">
+      ${native ? '<button class="btn" data-act="share-native">Share picture</button>' : ''}
+      <a class="btn ${native ? 'ghost' : ''}" href="https://wa.me/?text=${encodeURIComponent(shareText())}" target="_blank" rel="noopener">Send on WhatsApp</a>
+    </div>
+    <div class="row">
+      ${sharePic ? `<a class="btn ghost" href="${sharePic.url}" download="japa-or-stay-${esc(S.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}.png">Save picture</a>` : ''}
+      <button class="btn ghost" data-act="share-copy">Copy message</button>
+    </div>
+    <p class="note" style="margin:0">The message that goes with it:</p>
+    <p class="msg">${esc(shareText())}</p>
+    <p class="note" style="margin:0">Tip: for WhatsApp status or Instagram, save the picture first, then post it with the message.</p>
+  </section>`;
+}
+async function openShare() {
+  showShare = true; render(); window.scrollTo({ top: 0 });
+  if (sharePic && sharePic.key === S.week + endingInfo().name) return;
+  try { const b = await makeLifeCard(); if (sharePic) URL.revokeObjectURL(sharePic.url); sharePic = { blob: b, url: URL.createObjectURL(b), key: S.week + endingInfo().name }; }
+  catch (er) { sharePic = null; }
+  if (showShare) render();
+}
 function endView() {
   const e = endingInfo();
   return `<section class="lifecard" style="border-color:var(--${e.side === 'japa' ? 'japa' : e.side === 'stay' ? 'stay' : 'ink'})">
@@ -2337,6 +2466,7 @@ function endView() {
       ${S.newUnlock ? `<b>New ending unlocked: ${esc(e.name)}</b>` : ''}
       ${S.newBests && S.newBests.length ? `<span>New personal best: ${esc(S.newBests.join(', '))}</span>` : ''}
     </div>` : ''}
+    <button class="btn" data-act="share">Share my life</button>
     <button class="btn ghost" data-act="hall">See all endings (${ENDINGS.filter(x => loadHall().endings[x.n]).length} of ${ENDINGS.length})</button>
     ${FEEDBACK_URL ? `<a class="btn ghost" style="text-align:center;text-decoration:none" href="${esc(FEEDBACK_URL)}" target="_blank" rel="noopener">Tell us what you think (2 minutes)</a>` : ''}
     <table class="ledger">
@@ -2409,6 +2539,7 @@ function render() {
   document.getElementById('installbtn').hidden = !canOfferInstall() || showInstall;
   if (showInstall) { app.innerHTML = installView(); return; }
   if (showHelp) { app.innerHTML = helpView(); return; }
+  if (showShare && S) { app.innerHTML = shareView(); return; }
   if (showHall) { app.innerHTML = hallView(); return; }
   if (!S) { app.innerHTML = setupView(); return; }
   if (confirmReset) {
@@ -2562,6 +2693,14 @@ document.addEventListener('click', e => {
     return;
   }
   if (a === 'install-close') { showInstall = false; render(); window.scrollTo({ top: 0 }); return; }
+  if (a === 'share') { openShare(); return; }
+  if (a === 'share-close') { showShare = false; render(); return; }
+  if (a === 'share-copy') { const tx = shareText(); (navigator.clipboard ? navigator.clipboard.writeText(tx) : Promise.reject()).then(() => toast('Message copied'), () => toast('Could not copy. Select the message and copy it.')); return; }
+  if (a === 'share-native') {
+    const tx = shareText(), file = sharePic && new File([sharePic.blob], 'japa-or-stay-life.png', { type: 'image/png' });
+    const data = file && navigator.canShare && navigator.canShare({ files: [file] }) ? { files: [file], text: tx } : { text: tx, url: SHARE_URL };
+    navigator.share(data).catch(() => {}); return;
+  }
   if (a === 'helpmode') { helpMode = b.dataset.v; render(); return; }
   if (a === 'lang') { LANG = b.dataset.v; try { localStorage.setItem('jos-lang', LANG); } catch (er) {} render(); return; }
   if (a === 'region') { setup.name = document.getElementById('nm').value || setup.name; setup.region = b.dataset.v; render(); return; }
@@ -2591,6 +2730,7 @@ document.addEventListener('click', e => {
   if (a === 'help-close') { showHelp = false; render(); window.scrollTo({ top: 0 }); return; }
   if (a === 'newgame') { confirmReset = true; render(); window.scrollTo({ top: 0 }); return; }
   if (a === 'reset-no') { confirmReset = false; }
+  if (a === 'restart') showShare = false;
   if (a === 'restart') { confirmReset = false; S = null; try { localStorage.removeItem('jos-save'); } catch (er) {} }
   if (S && before !== S.phase) {
     if (S.phase === 'settle' && S.ledger) Sound.play(S.ledger.lines.reduce((x, [, v]) => x + v, 0) >= 0 ? 'coins' : 'thud');
