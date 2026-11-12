@@ -273,6 +273,12 @@ const price = b => Math.round(b * S.idx * REG().R / 100) * 100;
 const fun = b => Math.round(price(b) * (detty() ? 1.4 : 1) / 100) * 100;
 const weeklyPay = () => Math.round(90000 * REG().pay * (1 + 0.08 * Math.floor(S.skills.work)) / 1000) * 1000;
 const hustleBoost = () => S.trait === 'hustler' ? 1.25 : 1;
+// a worn-down body earns half; a low mood shows on camera and at home
+const weak = () => S.health < 30;
+const bodyMult = () => weak() ? 0.5 : 1;
+const moodMult = () => S.mood < 15 ? 0.5 : 1;
+// each chemist/pharmacy visit in a row helps less; rest or the hospital resets it
+const chemGain = () => Math.max(3, 10 - 2 * (S.chemUses || 0));
 const japaReady = () => S.passport && S.ielts >= 6.5 && S.offer && S.usd >= POF_USD;
 // Year 2 (abroad) helpers: abroad, cash is in dollars; the naira account stays at home
 const lastWeek = () => (S.abroad || S.build || S.japaY2) ? 104 : LAST_WEEK;
@@ -342,7 +348,7 @@ const CARDS = {
     run: () => { S.energy -= 10; if (chance(0.3 + 0.04 * S.skills.work)) { S.job = true; return `You got a job at ${/^[AEIOU]/.test(REG().name) ? 'an' : 'a'} ${REG().name} firm. Starting pay ${naira(weeklyPay())} a week.`; } S.mood -= 4; return 'No call back this week. "We will get back to you."'; } },
   pos: { name: 'Run a POS stand', blocks: 6, cost: () => 0, can: () => true,
     tags: () => ['+₦15k–40k', '−15 energy', 'Stay'],
-    run: () => { const g = Math.round(rnd(15000, 40000) * S.idx * hustleBoost() / 100) * 100; S.money += g; S.energy -= 15; S.resolve -= 2; return `POS hustle made ${naira(g)}.`; } },
+    run: () => { const g = Math.round(rnd(15000, 40000) * S.idx * hustleBoost() * bodyMult() / 100) * 100; S.money += g; S.energy -= 15; S.resolve -= 2; return `POS hustle made ${naira(g)}.`; } },
   study: { name: 'Study for the English test', blocks: 4, cost: () => price(5000), can: () => S.ielts < 6.5,
     tags: () => ['English skill +', '−8 energy', 'Japa'],
     run: () => { S.skills.english += 0.8 * (S.trait === 'book' ? 1.5 : 1); S.energy -= 8; S.resolve += 3; return `Study session done. English skill ${S.skills.english.toFixed(1)}.`; } },
@@ -362,7 +368,7 @@ const CARDS = {
     run: () => { const n = Math.round((S.money - 50000) * 0.5); if (n <= 0) return 'Nothing to move this week. Your other plans used up the cash first.'; S.money -= n; const d = n * 0.98 / S.fx; S.usd += d; S.resolve += 2; return `Converted ${naira(n)} to ${usd(d)}.`; } },
   rest: { name: 'Rest at home', blocks: 4, cost: () => 0, can: () => true,
     tags: () => ['+30 energy', '+5 health'],
-    run: () => { S.energy += 30; S.health += 5; S.mood += 3; return 'You rested. NEPA even brought light for some hours.'; } },
+    run: () => { S.energy += 30; S.health += 5; S.mood += 3; S.chemUses = Math.max(0, (S.chemUses || 0) - 2); return 'You rested. NEPA even brought light for some hours.'; } },
   chill: { name: 'Chill with friends', blocks: 3, cost: () => fun(6000), can: () => true,
     tags: () => ['+12 mood', '−5 energy'],
     run: () => { S.mood += 12; S.energy -= 5; return `Suya and gist with ${REG().friend}. Mood up.`; } },
@@ -375,7 +381,7 @@ const CARDS = {
   skit: { name: 'Make a skit', blocks: 3, cost: () => price(3000), can: () => true,
     tags: () => ['+clout', 'brand deals at 2k'],
     // fan growth slows as you get bigger (square root), so it no longer compounds out of control
-    run: () => { let g = Math.round(rnd(30, 120) + Math.sqrt(S.clout) * 3); let m = ''; if (chance(0.08)) { g = g * 2 + 800; m = ' It went viral!'; } S.clout += g; S.mood += 3;
+    run: () => { let g = Math.round(rnd(30, 120) + Math.sqrt(S.clout) * 3); let m = ''; if (chance(0.08)) { g = g * 2 + 800; m = ' It went viral!'; } if (moodMult() < 1) { g = Math.round(g * 0.5); m += ' Your low mood showed on camera.'; } S.clout += g; S.mood += 3;
       if (S.clout >= 2000 && chance(0.25)) { const d = Math.round(Math.min(400000, S.clout * 25) / 1000) * 1000; S.money += d; m += ` Brand deal: ${naira(d)}.`; }
       return `Skit posted: +${g} fans.${m}`; } },
   studio: { name: 'Studio session', blocks: 4, cost: () => price(25000), can: () => true,
@@ -387,7 +393,7 @@ const CARDS = {
   // Year 1 business: each level costs more than the last, and it tops out at level 8 (the Build chapter takes it further)
   stock: { name: 'Buy stock for your business', blocks: 4, cost: () => price(60000 * (1 + 0.5 * S.biz)), can: () => S.biz < 8,
     tags: () => [`level ${S.biz} → ${S.biz + 1}`, 'weekly profit', 'Stay'],
-    run: () => { S.biz += 1; S.resolve -= 6; S.energy -= 6; return `Business is now level ${S.biz}. Profit comes at settle-up.`; } },
+    run: () => { S.resolve -= 6; S.energy -= 6; if (weak() && chance(0.5)) return 'You were too weak to arrange the goods. Half of them spoiled. Rest small, then try again.'; S.biz += 1; return `Business is now level ${S.biz}. Profit comes at settle-up.`; } },
   repay: { name: 'Repay the loan app', blocks: 1, cost: () => 0, can: () => S.debt > 0 && S.money > 0,
     tags: () => [`owe ${naira(S.debt)}`],
     run: () => { const p = Math.min(S.money, S.debt); S.money -= p; S.debt -= p; S.mood += 5; return S.debt <= 0 ? 'Loan cleared. The calls stopped.' : `Paid ${naira(p)}. Still owe ${naira(S.debt)}.`; } },
@@ -401,7 +407,7 @@ const CARDS = {
     run: () => { S.pendingPay += 170; S.energy -= 18; S.health -= 3; return 'Night shift done. The tea in the staff room saved you.'; } },
   a_gig: { ab: true, name: 'Cash-in-hand side gig', blocks: 5, cost: () => 0, can: () => true,
     tags: () => ['+$100–160 now', 'visa risk'],
-    run: () => { const g = Math.round(rnd(100, 160) * hustleBoost()); S.usd += g; S.energy -= 14;
+    run: () => { const g = Math.round(rnd(100, 160) * hustleBoost() * bodyMult()); S.usd += g; S.energy -= 14;
       if (chance(0.2)) { S.abroad.strikes += 1; return `Braiding and deliveries made ${usd(g)}, but your sponsor heard about it. Visa warning ${S.abroad.strikes} of 3.`; }
       return `Braiding and deliveries made ${usd(g)}. Nobody noticed. This time.`; } },
   a_remit: { ab: true, name: 'Send money home', blocks: 1, cost: () => 150, can: () => S.usd >= 150,
@@ -430,7 +436,7 @@ const CARDS = {
     run: () => { S.mood += 10; S.resolve += 3; return 'Museum, park, a street market. The city is starting to feel familiar.'; } },
   a_vlog: { ab: true, name: 'Diaspora vlog', blocks: 3, cost: () => 5, can: () => true,
     tags: () => ['+clout', 'brand deals in $'],
-    run: () => { let g = Math.round(rnd(60, 200) + Math.sqrt(S.clout) * 3.5); let m = ''; if (chance(0.1)) { g = g * 2 + 1000; m = ' "A day in my life abroad" went viral!'; } S.clout += g; S.mood += 3;
+    run: () => { let g = Math.round(rnd(60, 200) + Math.sqrt(S.clout) * 3.5); let m = ''; if (chance(0.1)) { g = g * 2 + 1000; m = ' "A day in my life abroad" went viral!'; } if (moodMult() < 1) { g = Math.round(g * 0.5); m += ' Your low mood showed on camera.'; } S.clout += g; S.mood += 3;
       if (S.clout >= 2000 && chance(0.3)) { const d = Math.round(Math.min(1200, S.clout * 0.25)); S.usd += d; m += ` Brand deal: ${usd(d)}.`; }
       return `Vlog posted: +${g} fans.${m}`; } },
   a_land: { ab: true, name: 'Buy a plot back home', blocks: 1, cost: () => Math.round(price(2500000) / S.fx), can: () => S.abroad.land < 3,
@@ -438,7 +444,7 @@ const CARDS = {
     run: () => { S.abroad.land += 1; S.resolve -= 8; S.family += 5; return `Your uncle sent pictures of the plot. Survey done. Plots owned: ${S.abroad.land}.`; } },
   a_rest: { ab: true, name: 'Rest in your room', blocks: 4, cost: () => 0, can: () => true,
     tags: () => ['+30 energy', '+5 health'],
-    run: () => { S.energy += 30; S.health += 5; S.mood += 2; return 'Heating on, phone off, Nollywood on.'; } },
+    run: () => { S.energy += 30; S.health += 5; S.mood += 2; S.chemUses = Math.max(0, (S.chemUses || 0) - 2); return 'Heating on, phone off, Nollywood on.'; } },
   a_paycard: { ab: true, name: 'Pay off the credit card', blocks: 1, cost: () => 0, can: () => S.abroad.cc > 0 && S.usd > 0,
     tags: () => [`owe ${usd(S.abroad.cc)}`],
     run: () => { const p = Math.min(S.usd, S.abroad.cc); S.usd -= p; S.abroad.cc -= p; S.mood += 4; return S.abroad.cc <= 0 ? 'Card cleared.' : `Paid ${usd(p)}. Still owe ${usd(S.abroad.cc)}.`; } },
@@ -449,7 +455,7 @@ const CARDS = {
     run: () => { S.build.worked = true; S.energy -= 22; S.build.rep += 2; S.skills.work += 0.2; return 'Customers, haggling, receipts. Sales are counted at settle-up.'; } },
   b_restock: { bd: true, name: 'Restock in bulk', blocks: 4, cost: () => price(50000 * S.biz), can: () => S.biz < 15,
     tags: () => [`level ${S.biz} → ${S.biz + 1}`, 'more sales'],
-    run: () => { S.biz += 1; S.energy -= 8; return `Bulk goods from the market. Business level ${S.biz}.`; } },
+    run: () => { S.energy -= 8; if (weak() && chance(0.5)) return 'You were too weak to arrange the goods. Half of them spoiled. Rest small, then try again.'; S.biz += 1; return `Bulk goods from the market. Business level ${S.biz}.`; } },
   b_hire: { bd: true, name: 'Hire a sales assistant', blocks: 2, cost: () => price(30000), can: () => S.build.staff < 5,
     tags: () => [`staff ${S.build.staff} → ${S.build.staff + 1}`, `wage ${naira(price(15000))}/wk`],
     run: () => { S.build.staff += 1; return `You hired help. Staff: ${S.build.staff}. The shop can now open when you are not there.`; } },
@@ -626,8 +632,13 @@ const EV = {
     cond: () => S.health < 35,
     make: () => ({ hosp: price(60000), chem: price(8000) }),
     view: p => ({ who: 'Your body', av: '+', cls: 'b', title: 'Malaria don catch you', text: 'Headache, fever, bitter mouth. You have been working hard with little rest, and your body is paying for it. Tip: pick "Rest at home" to get your strength back.',
-      choices: [{ l: `Go to hospital (${naira(p.hosp)})`, h: '+35 health' }, { l: `Buy drugs at the chemist (${naira(p.chem)})`, h: '+10 health' }] }),
-    pick: (p, i) => { if (i === 0) { S.money -= p.hosp; S.health += 35; return 'Drip, injection, rest. You feel human again.'; } S.money -= p.chem; S.health += 10; return 'Agbo and tablets. Somehow, you survived.'; } },
+      choices: [{ l: `Go to hospital (${naira(p.hosp)})`, h: '+35 health' }, { l: `Buy drugs at the chemist (${naira(p.chem)})`, h: `+${chemGain()} health${S.chemUses ? ', working less each time' : ''}` }] }),
+    pick: (p, i) => { if (i === 0) { S.money -= p.hosp; S.health += 35; S.chemUses = 0; return 'Drip, injection, rest. You feel human again.'; } S.money -= p.chem; S.health += chemGain(); S.chemUses = (S.chemUses || 0) + 1; return S.chemUses >= 3 ? 'Agbo and tablets again. The chemist said, "This one needs proper rest, not more drugs."' : 'Agbo and tablets. Somehow, you survived.'; } },
+  collapse: {
+    make: () => ({ bill: price(150000) }),
+    view: p => ({ who: 'Your body', av: '+', cls: 'b', title: 'You collapsed', text: `Weeks without proper rest. You fainted ${S.build ? 'in the shop' : 'at work'} and woke up on a hospital bed with a drip. The doctor says one full week of bed rest, no arguments. Bill: ${naira(p.bill)}.`,
+      choices: [{ l: `Pay the bill and rest (${naira(p.bill)})`, h: '+45 health, lose this week' }] }),
+    pick: p => { S.money -= p.bill; S.health += 45; S.energy += 40; S.mood -= 8; S.family -= 5; S.pendingPay = 0; S.chemUses = 0; return 'Mama travelled down to sit with you. "Money no be everything, my child."'; } },
   interview: {
     make: () => ({}),
     view: () => ({ who: 'Northland Embassy', av: 'E', cls: 'j', title: 'Visa interview', text: `Your passport, test score (${S.ielts}), job offer and ${usd(S.usd)} proof of funds are all in. Fee: ${usd(VISA_USD)}. The officer asks: "Why do you want to come?"`,
@@ -739,8 +750,13 @@ const EV = {
     cond: () => S.health < 35,
     make: () => ({}),
     view: () => ({ who: 'Your body', title: 'Flu season got you', text: 'Fever and chills. The doctor is free, but the earliest appointment is next week.',
-      choices: [{ l: 'Take sick leave and rest', h: '+30 health, lose this week\'s pay' }, { l: 'Pharmacy medicine and keep working', h: `+10 health, ${usd(15)}` }] }),
-    pick: (p, i) => { if (i === 0) { S.health += 30; S.pendingPay = 0; return 'Pepper soup, rest and Nollywood. You are back on your feet.'; } S.usd -= 15; S.health += 10; return 'Cold medicine and willpower.'; } },
+      choices: [{ l: 'Take sick leave and rest', h: '+30 health, lose this week\'s pay' }, { l: 'Pharmacy medicine and keep working', h: `+${chemGain()} health, ${usd(15)}` }] }),
+    pick: (p, i) => { if (i === 0) { S.health += 30; S.pendingPay = 0; S.chemUses = 0; return 'Pepper soup, rest and Nollywood. You are back on your feet.'; } S.usd -= 15; S.health += chemGain(); S.chemUses = (S.chemUses || 0) + 1; return 'Cold medicine and willpower.'; } },
+  a_collapse: {
+    make: () => ({ bill: 250 }),
+    view: p => ({ who: 'Your body', title: 'You collapsed on shift', text: `Weeks without proper rest. You fainted in the corridor and woke up in A&E. The doctor signs you off for a week. Bills and missed shifts: ${usd(p.bill)}.`,
+      choices: [{ l: 'Rest and recover', h: `+45 health, lose this week, ${usd(p.bill)}` }] }),
+    pick: p => { S.usd -= p.bill; S.health += 45; S.energy += 40; S.mood -= 8; S.family -= 5; S.pendingPay = 0; S.chemUses = 0; return 'Mama cried on the video call. "Money no be everything, my child."'; } },
 
   /* ----- Year 2: Build chapter events (stay; money in naira) ----- */
   b_levy: {
@@ -1007,7 +1023,9 @@ const PGV = {
   devalue: () => ({ title: 'Naira don fall', text: 'Exchange rate jump like 20% overnight. Dollar savings don worth more for naira, but japa cost don heavy.',
     choices: [{ l: 'Okay o…', h: '' }] }),
   sick: p => ({ title: 'Malaria don catch you', text: 'Head dey pain you, fever, mouth dey bitter. You don dey work too much without rest, and your body don dey vex. Tip: pick "Rest at home" make your strength come back.',
-    choices: [{ l: `Go hospital (${naira(p.hosp)})`, h: '+35 body' }, { l: `Buy drugs for chemist (${naira(p.chem)})`, h: '+10 body' }] }),
+    choices: [{ l: `Go hospital (${naira(p.hosp)})`, h: '+35 body' }, { l: `Buy drugs for chemist (${naira(p.chem)})`, h: `+${chemGain()} body${S.chemUses ? ', e dey work less every time' : ''}` }] }),
+  collapse: p => ({ title: 'You don collapse', text: `Many weeks without proper rest. You faint ${S.build ? 'for shop' : 'for work'} and wake up for hospital bed with drip. Doctor talk say one full week of bed rest, no argument. Bill: ${naira(p.bill)}.`,
+    choices: [{ l: `Pay the bill and rest (${naira(p.bill)})`, h: '+45 body, you go lose this week' }] }),
   interview: () => ({ title: 'Visa interview', text: `Your passport, test score (${S.ielts}), job offer and ${usd(S.usd)} proof of funds don complete. Fee: ${usd(VISA_USD)}. Officer ask you: "Why you wan come?"`,
     choices: [{ l: 'Answer honestly about the job and your plan', h: 'Best chance' }, { l: 'Give the "agent" answer wey you cram', h: 'E risky' }] }),
   ponr: () => ({ title: 'Flight don book', text: 'Mama dey cry for airport. Your friends dey snap last pictures. Na today.',
@@ -1041,8 +1059,10 @@ const PGV = {
     choices: [{ l: 'Fly home and build', h: 'E go end your abroad chapter' }, { l: 'Not yet', h: 'Stay small more' }] }),
   a_deport: () => ({ title: 'Visa don cancel', text: 'Three warnings. Your sponsor don report you and dem cancel your visa. You get 28 days to comot.',
     choices: [{ l: 'Pack and go home', h: 'E go end your abroad chapter' }] }),
+  a_collapse: p => ({ title: 'You collapse for work', text: `Many weeks without proper rest. You faint for corridor and wake up for A&E. Doctor sign you off for one week. Bills and shifts wey you miss: ${usd(p.bill)}.`,
+    choices: [{ l: 'Rest make body come back', h: `+45 body, you go lose this week, ${usd(p.bill)}` }] }),
   a_sick: () => ({ title: 'Flu season don catch you', text: 'Fever and cold dey shake you. Doctor free, but the earliest appointment na next week.',
-    choices: [{ l: 'Take sick leave and rest', h: '+30 body, you go lose this week pay' }, { l: 'Pharmacy medicine, continue work', h: `+10 body, ${usd(15)}` }] }),
+    choices: [{ l: 'Take sick leave and rest', h: '+30 body, you go lose this week pay' }, { l: 'Pharmacy medicine, continue work', h: `+${chemGain()} body, ${usd(15)}` }] }),
 
   b_levy: p => ({ title: '"Owner, settle us"', text: `Some boys talk say na dem "control" this street, dem want ${naira(p.amt)} for "security".`,
     choices: [{ l: `Pay them (${naira(p.amt)})`, h: 'Peace for now' }, { l: 'Report to market association', h: 'E go work if your people strong' }, { l: 'Refuse', h: 'Wahala fit happen for shop' }] }),
@@ -1130,6 +1150,10 @@ const PGR = {
   'You left with your savings and a hard lesson about visa rules.': 'You comot with your savings and hard lesson about visa rules.',
   'Pepper soup, rest and Nollywood. You are back on your feet.': 'Pepper soup, rest and Nollywood. You don stand up again.',
   'Cold medicine and willpower.': 'Cold medicine and strong head.',
+  'Agbo and tablets again. The chemist said, "This one needs proper rest, not more drugs."': 'Agbo and tablet again. Chemist talk say, "This one need proper rest, no be more drugs."',
+  'Mama travelled down to sit with you. "Money no be everything, my child."': 'Mama travel come sit with you. "Money no be everything, my pikin."',
+  'Mama cried on the video call. "Money no be everything, my child."': 'Mama cry for video call. "Money no be everything, my pikin."',
+  'You were too weak to arrange the goods. Half of them spoiled. Rest small, then try again.': 'Body no strong to arrange the goods. Half of dem spoil. Rest small, then try again.',
   'They collected and left. "We go dey look your back."': 'Dem collect and waka. "We go dey look your back."',
   'The market chairman called them. They have not come back.': 'Market chairman call them. Dem never come back.',
   'The association was slow. Your shop was blocked for two days.': 'Association slow. Dem block your shop for two days.',
@@ -1363,7 +1387,7 @@ function nextEvent() {
 }
 function settleAbroad() {
   const A = S.abroad, L = [];
-  if (S.pendingPay) { const p = Math.round(S.pendingPay * (A.cut > 0 ? 0.7 : 1)); L.push([A.cut > 0 ? 'Wages (hours cut 30%)' : 'Wages', p]); S.usd += p; S.pendingPay = 0; }
+  if (S.pendingPay) { const p = Math.round(S.pendingPay * (A.cut > 0 ? 0.7 : 1) * bodyMult()); L.push([(A.cut > 0 ? 'Wages (hours cut 30%)' : 'Wages') + (weak() ? ' · weak body, half the hours' : ''), p]); S.usd += p; S.pendingPay = 0; }
   if (A.cut > 0) A.cut -= 1;
   const rent = Math.round(160 * S.idxA), food = Math.round(70 * S.idxA), trans = Math.round(30 * S.idxA);
   L.push(['Rent (shared flat)', -rent], ['Food', -food], ['Bus pass', -trans]);
@@ -1375,6 +1399,7 @@ function settleAbroad() {
   // drift: distance strains family; the cold and loneliness pull mood down
   S.energy += 12; S.mood -= 2; S.family -= 3; S.community -= 1;
   if (S.energy < 15) S.health -= 10;
+  if (S.mood < 15) { S.family -= 3; if (chance(0.3)) log('<b>Low mood:</b> You snapped at Mama on the phone. She asked if you are okay.'); }
   const oldFx = S.fx;
   S.idxA *= 1.001; S.idx *= 1 + 0.005 + rnd(-0.002, 0.004); S.fx *= 1 + rnd(-0.012, 0.018);
   S.ledger = { lines: L, fxUp: S.fx > oldFx, inf: 0.1, abroad: true };
@@ -1386,6 +1411,7 @@ function settleBuild() {
   if (B.worked || B.staff >= 1) {
     let s = salesBase() * (B.worked ? 1 : 0.6); const why = [];
     if (S.fuel) { s *= 0.8; why.push('fuel scarcity'); }
+    if (weak()) { s *= 0.5; why.push('weak body'); }
     if (!S.solar) { s *= 0.9; why.push('NEPA'); }
     if (B.disrupted > 0) { s *= 0.5; why.push('shop blocked'); }
     if (B.priceWar > 0) { s *= 0.8; why.push('price war'); }
@@ -1412,8 +1438,8 @@ function settle() {
   if (S.abroad) return settleAbroad();
   if (S.build) return settleBuild();
   const L = [];
-  if (S.pendingPay) { L.push([t('pay'), S.pendingPay]); S.money += S.pendingPay; S.pendingPay = 0; }
-  if (S.biz > 0) { const p = Math.round(S.biz * 11000 * S.idx * REG().R * hustleBoost() * (S.fuel ? 0.7 : 1) / 100) * 100; L.push([`Business profit (level ${S.biz})`, p]); S.money += p; }
+  if (S.pendingPay) { const w = Math.round(S.pendingPay * bodyMult() / 100) * 100; L.push([t('pay') + (weak() ? ' · weak body, half pay' : ''), w]); S.money += w; S.pendingPay = 0; }
+  if (S.biz > 0) { const p = Math.round(S.biz * 11000 * S.idx * REG().R * hustleBoost() * (S.fuel ? 0.7 : 1) * bodyMult() / 100) * 100; L.push([`Business profit (level ${S.biz})${weak() ? ' · weak body' : ''}`, p]); S.money += p; }
   const rent = Math.round(price(12000) * (S.rentMult || 1) / 100) * 100, food = price(10000), trans = price(5000) * (S.fuel ? 2 : 1);
   L.push(['Rent', -rent], ['Food', -food], [S.fuel ? 'Transport (fuel scarcity ×2)' : 'Transport', -trans]);
   S.money -= rent + food + trans;
@@ -1439,6 +1465,7 @@ function homeTail(L) {
   // drift
   S.energy += 12; S.mood -= 2; S.family -= 2; S.community -= 1;
   if (S.energy < 15) S.health -= 10;
+  if (S.mood < 15) { S.family -= 3; if (chance(0.3)) log('<b>Low mood:</b> You snapped at Mama on the phone. She asked if you are okay.'); }
   if (S.fuel > 0) S.fuel -= 1;
   const oldFx = S.fx, oldIdx = S.idx;
   S.idx *= 1 + 0.005 + rnd(-0.002, 0.004);
@@ -1452,7 +1479,8 @@ function nextWeek() {
   if (S.week > lastWeek()) { S.ending = S.abroad ? 'year2' : S.build ? 'year2b' : 'year'; finishRun(); return; }
   // milestone check
   S.queue = [];
-  if (S.abroad) {
+  if (S.health <= 5 && S.week >= (S.collapseWait || 0)) { queueEvent(S.abroad ? 'a_collapse' : 'collapse'); S.collapseWait = S.week + 3; }
+  else if (S.abroad) {
     const A = S.abroad;
     if (A.strikes >= 3) queueEvent('a_deport');
     else if (A.course >= 5 && !A.promoted) queueEvent('a_promo');
@@ -1504,6 +1532,7 @@ function endingInfo() {
     if (S.ending === 'japalate') return { name: 'Japa Late', pg: 'Better late than never? Abroad, we go see.', side: 'japa' };
     if (S.ending === 'changemaker') return { name: 'Changemaker', pg: 'Honourable! Now the road go finally get coal tar.', side: 'stay' };
     if (S.ending === 'pillar') return { name: 'Community Pillar', pg: 'Your house stand for village, your name stand for town.', side: 'stay' };
+    if (S.ending === 'empire' && S.health < 30) return { name: 'Burnt-Out Odogwu', pg: 'Empire don stand, but body don tire. Money no fit buy new body.', side: 'stay' };
     if (S.ending === 'empire') return rich >= price(20000000)
       ? { name: 'Billionaire Baller', pg: 'Odogwu! Na you dem go dey spray for owambe now.', side: 'stay' }
       : { name: 'Odogwu', pg: 'From small shop to empire. Na you be the main character.', side: 'stay' };
@@ -1517,6 +1546,7 @@ function endingInfo() {
     return { name: 'Remittance Hero', pg: 'Family go dey hear "credit alert" from overseas.', side: 'japa' };
   }
   if (S.ending === 'stay') {
+    if (S.health < 30) return { name: 'Burnout', pg: 'Shop don open, but body don tire. Rest small.', side: 'none' };
     if (rich >= price(8000000)) return { name: 'Billionaire Baller', pg: 'Odogwu! Na you dem go dey spray for owambe now.', side: 'stay' };
     if (S.clout >= 3000) return { name: 'Homegrown Headliner', pg: 'Naija don make you, and you no regret am.', side: 'stay' };
     return { name: 'Odogwu in Progress', pg: 'Shop don open. The hustle don get address.', side: 'stay' };
@@ -1542,6 +1572,7 @@ const ENDINGS = [
   { n: 'Japa Reverse', g: 'Abroad chapter', h: 'Go home from abroad without owning land.' },
   { n: 'Sent Back', g: 'Abroad chapter', h: 'Collect three visa warnings.' },
   { n: 'Odogwu', g: 'Build chapter', h: 'Reach business level 12 with 3 branches and 70 reputation.' },
+  { n: 'Burnt-Out Odogwu', g: 'Build chapter', h: 'Build your business empire while your body is worn out.' },
   { n: 'Billionaire Baller', g: 'Build chapter', h: 'Build your business empire while very rich.' },
   { n: 'Changemaker', g: 'Build chapter', h: 'Campaign and win the councillor election.' },
   { n: 'Community Pillar', g: 'Build chapter', h: 'Finish your hometown house and throw the party.' },
@@ -1659,7 +1690,7 @@ const ICONS = {
 const iconArt = (k, label) => `<svg class="face" viewBox="0 0 100 100" role="img" aria-label="${esc(label)}"><circle cx="50" cy="50" r="50" fill="var(--icon-bg)"/>${ICONS[k]}</svg>`;
 const EV_ART = { blacktax: 'mama', school: 'mama', owambe: 'friend', detty: 'friend', ajo: 'iya', fuel: 'news', devalue: 'news', nepa: 'nepa', ponzi: 'chairman', sponsor: 'alhaji', agent: 'fixit', tunde: 'tunde', sick: 'sick', interview: 'embassy', ponr: 'plane', lease: 'landlord',
   a_blacktax: 'mama', a_winter: 'cold', a_hours: 'manager', a_rude: 'manager', a_owambe: 'friend', a_tunde: 'tunde', a_scam: 'fixit', a_detty: 'plane',
-  a_homesick: 'mama', a_promo: 'manager', a_pr: 'embassy', a_return: 'plane', a_deport: 'embassy', a_sick: 'sick',
+  a_homesick: 'mama', a_promo: 'manager', a_pr: 'embassy', a_return: 'plane', a_deport: 'embassy', a_sick: 'sick', collapse: 'sick', a_collapse: 'sick',
   b_levy: 'areaboy', b_supplier: 'trader', b_contract: 'alhaji', b_theft: 'shop', b_rival: 'shop', b_japalate: 'tunde', b_election: 'ballot', b_empire: 'odogwu', b_housewarm: 'mama',
   loanshame: 'news', y_okada: 'sick', y_phone: 'news', y_bank: 'news', y_landlord: 'landlord', y_interview: 'banker', y_guests: 'mama', y_bill: 'nepa', y_giving: 'iya',
   kano_harmattan: 'cold', kano_durbar: 'friend', enugu_august: 'iya', enugu_newyam: 'mama', lagos_traffic: 'news', ph_soot: 'sick', ph_flood: 'news',
@@ -1801,7 +1832,8 @@ function helpView() {
     <h3>Keep your life balanced</h3>
     <ul>
       <li><b>Energy</b> drops when you work. Rest brings it back. Below 15, your health suffers.</li>
-      <li><b>Mood, family bond and community</b> slowly fall every week. Chill, call home, go to church or mosque, attend owambes.</li>
+      <li><b>Health</b> below 30 means a weak body: you earn half and your business grows slowly. At 0 you collapse and lose a whole week to the hospital. Cheap chemist drugs help less each time; resting is the real cure.</li>
+      <li><b>Mood, family bond and community</b> slowly fall every week. Chill, call home, go to church or mosque, attend owambes. Very low mood means fewer fans and more quarrels at home.</li>
       <li>The <b>meter</b> shows which way you are leaning. The cards you are dealt follow it.</li>
       <li>Run out of money and a <b>loan app</b> covers you, with interest, taking 30% of your cash until it is paid.</li>
     </ul>
