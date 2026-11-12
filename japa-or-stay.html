@@ -304,7 +304,7 @@ function startBuild(lease) {
   S.build = { start: S.week, lease: !!lease, staff: 0, branches: 1, rep: 50, registered: false, loan: 0, loanWeeks: 0, apprentice: false, leader: 0, campaign: 0, house: 0,
     worked: false, disrupted: 0, priceWar: 0, supplier: 0, supplierDue: 0, empireWait: 0, houseWait: 0 };
   S.biz = Math.max(S.biz, 1); S.resolve = Math.min(S.resolve, -20); S.ending = null; S.recorded = false; S.newUnlock = false; S.newBests = [];
-  log(`<b>Build chapter:</b> ${lease ? 'Your shop on the main road opens.' : 'You decide to stay and build.'} Year 2 begins.`);
+  log(`<b>Build chapter:</b> ${lease ? 'Your shop on the main road opens.' : 'You decide to stay and build.'} ${S.week > 52 ? 'Year 2 begins.' : 'The Build chapter begins early.'}`);
 }
 const abroadPay = () => S.abroad.promoted ? 620 : 480;
 const SETTLE_USD = 4000, RETURN_USD = 5000, SETTLE_WEEKS = 40;
@@ -661,7 +661,7 @@ const EV = {
     make: () => ({ amt: price(1200000) }),
     view: p => ({ who: 'Landlord', av: 'L', cls: '', title: 'A five-year shop lease', text: `Your business is strong. A big shop on the main road is free. Five years' rent upfront: ${naira(p.amt)}.`,
       choices: [{ l: 'Sign the lease', h: 'Stay. Your Build chapter begins' }, { l: 'Not yet', h: 'Keep your options open' }] }),
-    pick: (p, i) => { if (i === 0) { S.money -= p.amt; startBuild(true); return 'Signed. Your name is going up on the signboard. Year 2, the Build chapter, begins.'; } S.leaseOffered = S.week + 8; return 'The landlord said the offer will come again.'; } },
+    pick: (p, i) => { if (i === 0) { S.money -= p.amt; startBuild(true); return 'Signed. Your name is going up on the signboard. The Build chapter begins.'; } S.leaseOffered = S.week + 8; return 'The landlord said the offer will come again.'; } },
 
   /* ----- Year 2: abroad events (money in dollars) ----- */
   // black tax abroad: different people ask for different things, about once a month at most
@@ -798,11 +798,11 @@ const EV = {
       choices: [{ l: 'Cut your prices too', h: 'Sales −20% for 4 weeks' }, { l: `Win on service: free delivery for regulars (${naira(p.amt)})`, h: '+reputation' }] }),
     pick: (p, i) => { if (i === 0) { S.build.priceWar = 4; return 'Price war. Your customers stay, your margins do not.'; } S.money -= p.amt; S.build.rep += 10; return 'Your regulars stayed. "Your customer service is different."'; } },
   b_japalate: {
-    cond: () => S.mood < 35 || S.resolve > 30,
+    cond: () => S.week - S.build.start >= 12 && (S.mood < 35 || S.resolve > 30),
     make: () => ({}),
     view: () => ({ who: 'Cousin Tunde', title: '"It is not too late to japa"', text: '"My boss still needs workers. I can get you a sponsored job. Just say the word."',
       choices: [{ l: 'Sell the business and japa', h: 'Ends your Build chapter' }, { l: 'No, I am building here', h: 'Stay the course' }] }),
-    pick: (p, i) => { if (i === 0) { S.ending = 'japalate'; return 'You sold the shop to your apprentice and booked a flight.'; } S.resolve -= 10; S.mood += 3; return 'Tunde laughed: "Odogwu of your street!"'; } },
+    pick: (p, i) => { if (i === 0) { S.ending = 'japalate'; return S.build.apprentice ? 'You sold the shop to your apprentice and booked a flight.' : 'You sold the shop and the goods and booked a flight.'; } S.resolve -= 10; S.mood += 3; return 'Tunde laughed: "Odogwu of your street!"'; } },
   b_election: {
     make: () => ({}),
     view: () => ({ who: 'Election day', title: 'Councillor election', text: `Your campaign is done. Community: ${S.community}. Clout: ${S.clout.toLocaleString()} fans. The votes are being counted.`,
@@ -1239,7 +1239,7 @@ const PGR = {
   'Refused. Fee gone. You can reapply in 10 weeks, and the officer has your file now, so your next try will be stronger.': 'Dem refuse am. Fee don go. You fit apply again after 10 weeks, and the officer don get your file now, so next time go better.',
   'Wheels up. The lights of home fade under the clouds. Next stop: Northland.': 'Plane don fly. Light of home don disappear under cloud. Next stop: Northland.',
   'You walked out of the airport. Mama hugged you twice.': 'You waka comot from airport. Mama hug you two times.',
-  'Signed. Your name is going up on the signboard. Year 2, the Build chapter, begins.': 'You don sign. Your name dey go up for signboard. Year 2, the Build chapter, don start.',
+  'Signed. Your name is going up on the signboard. The Build chapter begins.': 'You don sign. Your name dey go up for signboard. The Build chapter don start.',
   'The landlord said the offer will come again.': 'Landlord talk say the offer go still come back.',
   'Mama posted your photo on her WhatsApp status: "My child abroad."': 'Mama post your picture for her WhatsApp status: "My pikin wey dey abroad."',
   'You showed her your rent receipt. She understood.': 'You show am your rent receipt. She understand.',
@@ -1324,6 +1324,7 @@ const PGR = {
   'Price war. Your customers stay, your margins do not.': 'Price war. Your customers stay, but your gain no stay.',
   'Your regulars stayed. "Your customer service is different."': 'Your regular customers stay. "Your customer service different."',
   'You sold the shop to your apprentice and booked a flight.': 'You sell the shop give your apprentice, book flight.',
+  'You sold the shop and the goods and booked a flight.': 'You sell the shop and the goods, book flight.',
   'Tunde laughed: "Odogwu of your street!"': 'Tunde laugh: "Odogwu of your street!"',
   'You won! The road will finally be fixed.': 'You win! That road go finally get repair.',
   'You lost by 312 votes. Your supporters are still with you: campaign again and you start halfway.': 'You lose with 312 votes. Your supporters still dey with you: campaign again and you go start from halfway.',
@@ -2031,7 +2032,7 @@ function helpView() {
     </div>
     <p class="note" style="margin:0">Tip: pick one path early. Doing a bit of both usually gets you neither.</p>
 
-    <h3>Year 2 (weeks 53–104)</h3>
+    <h3>Year 2 (weeks 53–104, or earlier if you fly or sign a shop lease in Year 1)</h3>
     <ul>
       <li><b style="color:var(--japa)">Abroad chapter:</b> work care home shifts, finish the senior carer course, pass the Life in Northland test, live there 40 weeks and save $4,000 to settle. Or buy a plot of land at home and save $5,000: you will be offered the trip home to build (say "Not yet" if you want to stay longer). Avoid cash-in-hand gigs: 3 visa warnings and you are sent home.</li>
       <li><b style="color:var(--stay)">Build chapter:</b> run and restock the shop, hire staff, register with CAC and open branches for an empire. Or attend town union meetings and run for councillor. Or build your hometown house in 8 stages.</li>
@@ -2241,7 +2242,8 @@ function logView() {
   return `<section class="panel"><span class="label">${t('log')}</span><div class="log">${S.log.slice(0, 14).map(l => `<div>W${l.w} · ${l.m}</div>`).join('')}</div></section>`;
 }
 function render() {
-  document.getElementById('tagline').textContent = S && S.abroad ? 'Year 2 · The Abroad chapter' : S && S.build ? 'Year 2 · The Build chapter' : S && S.japaY2 ? 'Year 2 · Still chasing the visa' : 'Weekly-loop prototype · Year 1';
+  const yr = S && S.week > 52 ? 'Year 2' : 'Year 1';
+  document.getElementById('tagline').textContent = S && S.abroad ? `${yr} · The Abroad chapter` : S && S.build ? `${yr} · The Build chapter` : S && S.japaY2 ? 'Year 2 · Still chasing the visa' : 'Weekly-loop prototype · Year 1';
   document.getElementById('lang-en').setAttribute('aria-pressed', LANG === 'en');
   document.getElementById('lang-pg').setAttribute('aria-pressed', LANG === 'pg');
   document.getElementById('feedback').innerHTML = FEEDBACK_URL ? `· <a href="${esc(FEEDBACK_URL)}" target="_blank" rel="noopener">Send feedback</a>` : '';
