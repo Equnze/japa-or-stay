@@ -157,6 +157,8 @@ table.ledger tr.total td { border-bottom: 0; font-weight: 700; padding-top: 8px;
 .intro ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
 .foot { max-width: 540px; margin: 0 auto; padding-block: 8px 28px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); font-size: 12px; color: var(--muted); }
 .foot a { color: inherit; }
+.offchip { display: inline-block; margin-top: 6px; font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; color: var(--good); background: color-mix(in srgb, var(--good) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--good) 35%, transparent); }
+.offchip.now { color: var(--gold); background: color-mix(in srgb, var(--gold) 14%, var(--surface)); border-color: color-mix(in srgb, var(--gold) 45%, transparent); }
 .help h3 { font-family: var(--font-display); font-weight: 600; font-size: 16px; margin: 6px 0 0; }
 .help ol, .help ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
 .help .track ul { padding-left: 0; }
@@ -188,6 +190,7 @@ small.first { display: block; font-size: 11.5px; color: var(--muted); }
     <div>
       <h1>Japa <span class="or">or</span> Stay</h1>
       <div class="sub" id="tagline">Weekly-loop prototype · Year 1</div>
+      <span class="offchip" id="offchip" role="status" hidden></span>
     </div>
     <div class="row">
     <button class="lookbtn" id="installbtn" data-act="install" hidden>⬇ Install app</button>
@@ -228,14 +231,16 @@ const T = {
     pay: 'Salary', resolve: 'Which way are you leaning?', stay: 'Stay', japa: 'Japa', jtrack: 'Japa checklist', strack: 'Build at home',
     week: 'Week', newGame: 'Start a new life', start: 'Start my life', log: 'What happened', settleTitle: 'Week settled', noCards: 'Pick cards that fit your time and money.',
     cashAb: 'Cash', homeAcct: 'Home account', goHome: 'Go home', settleAb: 'Settle abroad', atrack: 'Settle in Northland', rtrack: 'Roots at home',
-    yourWeek: 'Your week so far', alsoWeek: 'Over the week', leaning: 'leaning', debtWord: 'debt' },
+    yourWeek: 'Your week so far', alsoWeek: 'Over the week', leaning: 'leaning', debtWord: 'debt',
+    offReady: 'Works offline', offNow: 'Playing offline' },
   pg: { money: 'Kudi for hand', savings: 'Dollar account', fx: '₦ for $1', energy: 'Strength', mood: 'Happiness', health: 'Body', family: 'Family matter', community: 'Your people', clout: 'Clout',
     plan: 'Plan', life: 'Wahala', settle: 'Count money', progress: 'Progress',
     planTitle: 'How you go run this week?', blocksLeft: 'time remain', endWeek: 'Close this week', cont: 'Make we continue', notEnough: 'You no get enough kudi',
     pay: 'Your money don land', resolve: 'Which side your mind dey?', stay: 'Stay', japa: 'Japa', jtrack: 'Japa papers', strack: 'Build for here',
     week: 'Week', newGame: 'Start new life', start: 'Make we start', log: 'Wetin happen', settleTitle: 'This week don close', noCards: 'Pick wetin your time and kudi fit carry.',
     cashAb: 'Dollar for hand', homeAcct: 'Naija account', goHome: 'Go back home', settleAb: 'Settle for abroad', atrack: 'Papers for abroad', rtrack: 'Root for house',
-    yourWeek: 'Your week so far', alsoWeek: 'For this week', leaning: 'mind dey go', debtWord: 'debt' }
+    yourWeek: 'Your week so far', alsoWeek: 'For this week', leaning: 'mind dey go', debtWord: 'debt',
+    offReady: 'E dey work without data', offNow: 'You dey play offline' }
 };
 let LANG = 'en';
 try { LANG = localStorage.getItem('jos-lang') || 'en'; } catch (e) {}
@@ -1825,6 +1830,7 @@ function introView() {
       <li><b>Watch your bars and money</b> at settle-up. Green and red chips show what changed.</li>
     </ol>
     <p class="note" style="margin:0">Your goal: by the end of Year 1, japa (leave) or stay and build. Neither is wrong.</p>
+    ${offlineCapable ? `<p class="note" style="margin:0"><b>Works offline:</b> after this first visit, the game opens and plays without data. Look for <b>✓ Works offline</b> at the top.</p>` : ''}
     <div class="row"><button class="btn" data-act="intro-ok">Got it</button><button class="btn ghost" data-act="help">Read the full guide</button></div>
   </section>`;
 }
@@ -1854,6 +1860,7 @@ function render() {
   document.getElementById('lang-en').setAttribute('aria-pressed', LANG === 'en');
   document.getElementById('lang-pg').setAttribute('aria-pressed', LANG === 'pg');
   document.getElementById('feedback').innerHTML = FEEDBACK_URL ? `· <a href="${esc(FEEDBACK_URL)}" target="_blank" rel="noopener">Send feedback</a>` : '';
+  updateOffline();
   const sb = document.getElementById('soundbtn'); sb.textContent = Sound.label(); sb.setAttribute('aria-pressed', Sound.mode !== 'off');
   document.getElementById('newgame').hidden = !S || showHelp || showHall;
   document.getElementById('helpbtn').hidden = showHelp || showHall;
@@ -1955,6 +1962,25 @@ const Sound = (() => {
   };
 })();
 document.addEventListener('visibilitychange', () => Sound.pause(document.hidden));
+
+/* ---------- offline badge: shows once the website has saved the game on this device ---------- */
+let offlineCapable = false, offlineReady = false;
+try { offlineCapable = 'serviceWorker' in navigator && location.protocol === 'https:' && window.self === window.top; } catch (e) {}
+function updateOffline() {
+  const el = document.getElementById('offchip');
+  if (!el) return;
+  if (!offlineReady) { el.hidden = true; return; }
+  const on = navigator.onLine !== false;
+  el.hidden = false;
+  el.classList.toggle('now', !on);
+  el.textContent = on ? `✓ ${t('offReady')}` : `● ${t('offNow')}`;
+  el.title = on ? 'The game is saved on this device. You can play without data after this visit.' : 'No internet right now. Your game still works and saves on this device.';
+}
+if (offlineCapable) {
+  try { navigator.serviceWorker.ready.then(() => { offlineReady = true; updateOffline(); }).catch(() => {}); } catch (e) {}
+}
+addEventListener('online', updateOffline);
+addEventListener('offline', updateOffline);
 
 /* ---------- install as an app (only offered on the website, where the browser supports it) ---------- */
 let installPrompt = null;

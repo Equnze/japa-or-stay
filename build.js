@@ -12,7 +12,7 @@ const root = __dirname;
 const out = path.join(root, 'dist');
 
 const title = 'Japa or Stay';
-const desc = 'Leave Nigeria or build at home? A free Naija life-sim game: two years, one choice. Plays in your browser, in English or Pidgin.';
+const desc = 'Leave Nigeria or build at home? A free Naija life-sim game: two years, one choice. Plays in your browser in English or Pidgin, and works offline after your first visit.';
 const imgAlt = 'Japa or Stay: a snowy Northland street above a Lagos skyline, with the question "Leave Nigeria or build at home?"';
 
 const head = `<!doctype html>
