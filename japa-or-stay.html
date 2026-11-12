@@ -301,6 +301,12 @@ function startBuild(lease) {
 }
 const abroadPay = () => S.abroad.promoted ? 620 : 480;
 const SETTLE_USD = 4000, RETURN_USD = 5000;
+const ABROAD_ASKERS = [
+  { who: 'Mama', art: 'mama', open: 'REGION', reasons: ['generator repair', 'Papa\'s hospital bill', 'roof for the village house'], thanks: 'Mama posted your photo on her WhatsApp status: "My child abroad."' },
+  { who: 'Your uncle', art: 'uncle', open: 'My dear, ', reasons: ['shop rent for his store', 'land case in court', 'wedding of his daughter'], thanks: 'Your uncle called you "my favourite" in the family group chat.' },
+  { who: 'Your younger sister', art: 'sister', open: 'Abeg, ', reasons: ['final-year project', 'new laptop for school', 'NYSC transport money'], thanks: 'Your sister sent ten heart emojis and a voice note of her screaming.' },
+  { who: 'An elder from your church or mosque', art: 'elder', elder: true, reasons: ['the new building', 'a widow\'s rent', 'the youth programme'], thanks: 'Your name was announced at the service. Mama heard about it.' }
+];
 function startAbroad() {
   const move = Math.max(0, S.money - 50000), d = Math.round(move * 0.98 / S.fx);
   S.money -= move; S.usd += d;
@@ -335,7 +341,9 @@ const CARDS = {
     tags: () => ['English skill +', '−8 energy', 'Japa'],
     run: () => { S.skills.english += 0.8 * (S.trait === 'book' ? 1.5 : 1); S.energy -= 8; S.resolve += 3; return `Study session done. English skill ${S.skills.english.toFixed(1)}.`; } },
   test: { name: 'Sit the English test', blocks: 2, cost: () => S.usd >= TEST_USD ? 0 : Math.round(TEST_USD * S.fx), can: () => S.skills.english >= 3 && S.ielts < 6.5,
-    tags: () => [S.usd >= TEST_USD ? `${usd(TEST_USD)} from dollar account` : `fee ${usd(TEST_USD)}`, 'need 6.5', 'Japa'],
+    // tell players how ready they are, so they can decide whether to study more before paying the fee
+    tags: () => { const base = 4 + S.skills.english * 0.45, r2 = x => Math.max(0, Math.min(9, Math.round(x * 2) / 2)), lo = r2(base - 0.5), hi = r2(base + 0.5);
+      return [S.usd >= TEST_USD ? `${usd(TEST_USD)} from dollar account` : `fee ${usd(TEST_USD)}`, `likely score ${lo}–${hi}`, hi < 6.5 ? 'need 6.5: study more first' : lo >= 6.5 ? 'need 6.5: ready' : 'need 6.5: could go either way', 'Japa']; },
     run: () => { if (S.usd >= TEST_USD) S.usd -= TEST_USD; const sc = Math.min(9, Math.round((4 + S.skills.english * 0.45 + rnd(-0.5, 0.5)) * 2) / 2); S.ielts = Math.max(S.ielts, sc); S.resolve += 5; return sc >= 6.5 ? `You scored ${sc}. Test passed!` : `You scored ${sc}. You need 6.5. Study more and try again.`; } },
   passport: { name: 'Passport office', blocks: 3, cost: () => price(80000), can: () => !S.passport,
     tags: () => ['~50% done this week', 'Japa'],
@@ -622,13 +630,20 @@ const EV = {
     pick: (p, i) => { if (i === 0) { S.money -= p.amt; startBuild(true); return 'Signed. Your name is going up on the signboard. Year 2, the Build chapter, begins.'; } S.leaseOffered = S.week + 8; return 'The landlord said the offer will come again.'; } },
 
   /* ----- Year 2: abroad events (money in dollars) ----- */
+  // black tax abroad: different people ask for different things, about once a month at most
   a_blacktax: {
-    make: () => ({ amt: Math.round((60 + rnd(0, 140)) * (1 + S.clout / 20000)), what: pick(['generator repair', 'Papa\'s hospital bill', 'your cousin\'s school fees', 'church harvest levy', 'roof for the village house']) }),
-    view: p => ({ who: 'Mama', title: 'Now that you are abroad…', text: `${REG().open} the ${p.what} is ${usd(p.amt)}. Everybody says you are doing well over there.`,
+    cond: () => S.week - (S.abroad.lastAsk || 0) >= 4,
+    make: () => {
+      const r = pick(ABROAD_ASKERS);
+      S.abroad.lastAsk = S.week;
+      return { who: r.who, art: r.art, open: r.open === 'REGION' ? REG().open + ' ' : r.open, elder: !!r.elder, thanks: r.thanks, what: pick(r.reasons), amt: Math.round((60 + rnd(0, 140)) * (1 + S.clout / 20000)) };
+    },
+    view: p => ({ who: p.who || 'Mama', title: 'Now that you are abroad…',
+      text: p.elder ? `They are raising money for ${p.what} and hope you can give ${usd(p.amt)}. "God has blessed you over there."` : `${p.open || ''}the ${p.what} needs ${usd(p.amt)}. Everybody says you are doing well over there.`,
       choices: [{ l: `Send it all (${usd(p.amt)})`, h: 'Family bond up' }, { l: 'Send half and explain your bills', h: 'Smooth Talker does better' }, { l: 'Say you cannot this month', h: 'Family bond falls' }] }),
     pick: (p, i) => {
-      if (i === 0) { S.usd -= p.amt; S.abroad.remitted += p.amt; S.family += 10; return 'Mama posted your photo on her WhatsApp status: "My child abroad."'; }
-      if (i === 1) { const h = Math.round(p.amt / 2); S.usd -= h; S.abroad.remitted += h; if (S.trait === 'smooth' || chance(0.5)) { S.family += 4; return 'You showed her your rent receipt. She understood.'; } S.family -= 4; return '"Abroad people and their excuses," your aunty said.'; }
+      if (i === 0) { S.usd -= p.amt; S.abroad.remitted += p.amt; S.family += 10; return p.thanks || 'Mama posted your photo on her WhatsApp status: "My child abroad."'; }
+      if (i === 1) { const h = Math.round(p.amt / 2); S.usd -= h; S.abroad.remitted += h; if (S.trait === 'smooth' || chance(0.5)) { S.family += 4; return 'You showed them your rent receipt. They understood.'; } S.family -= 4; return '"Abroad people and their excuses," someone said in the family group.'; }
       S.family -= 12; S.mood -= 6; return 'They think you have forgotten home.'; } },
   a_winter: {
     cond: () => winter(),
@@ -974,7 +989,7 @@ const PGV = {
   lease: p => ({ title: 'Five-year shop lease', text: `Your business don strong. One big shop for main road dey empty. Five years rent upfront: ${naira(p.amt)}.`,
     choices: [{ l: 'Sign the lease', h: 'Stay. Your Build chapter don start' }, { l: 'Not yet', h: 'Keep your options open' }] }),
 
-  a_blacktax: p => ({ title: 'Now wey you dey abroad…', text: `${REG().open} the ${pw(p.what)} na ${usd(p.amt)}. Everybody dey talk say you dey do well for there.`,
+  a_blacktax: p => ({ title: 'Now wey you dey abroad…', text: p.elder ? `Dem dey gather money for ${pw(p.what)}, dem hope say you fit give ${usd(p.amt)}. "God don bless you for there."` : `${p.open === undefined ? REG().open + ' ' : p.open}the ${pw(p.what)} na ${usd(p.amt)}. Everybody dey talk say you dey do well for there.`,
     choices: [{ l: `Send am all (${usd(p.amt)})`, h: 'Family go happy' }, { l: 'Send half, explain your bills', h: 'Smooth Talker go do am better' }, { l: 'Talk say you no fit this month', h: 'Family go vex' }] }),
   a_winter: p => ({ title: 'Boiler don spoil', text: `E be minus three outside and heating no dey work. Emergency heater na ${usd(p.amt)}.`,
     choices: [{ l: `Buy the heater (${usd(p.amt)})`, h: 'Stay warm' }, { l: 'Wear three jumper and wrapper', h: '−8 happiness, −5 body' }] }),
@@ -1206,6 +1221,18 @@ Object.assign(PGR, {
   'The alert was fake. The goods are gone.': 'Fake alert. Goods don go.'
 });
 PGRX.push([/^You got the job! Starting pay (.+) a week\.$/, m => `You get the work! Starting pay na ${m[1]} every week.`]);
+Object.assign(PGW, {
+  'shop rent for his store': 'shop rent for him store', 'land case in court': 'land case for court', 'wedding of his daughter': 'him daughter wedding',
+  'final-year project': 'final year project', 'new laptop for school': 'new laptop for school', 'NYSC transport money': 'NYSC transport money',
+  'the new building': 'the new building', 'a widow\'s rent': 'one widow rent', 'the youth programme': 'the youth programme'
+});
+Object.assign(PGR, {
+  'Your uncle called you "my favourite" in the family group chat.': 'Your uncle call you "my favourite" for family group chat.',
+  'Your sister sent ten heart emojis and a voice note of her screaming.': 'Your sister send ten heart emoji and voice note wey she dey shout.',
+  'Your name was announced at the service. Mama heard about it.': 'Dem announce your name for service. Mama hear am.',
+  'You showed them your rent receipt. They understood.': 'You show them your rent receipt. Dem understand.',
+  '"Abroad people and their excuses," someone said in the family group.': '"Abroad people and their excuse," somebody talk for family group.'
+});
 Object.assign(PGV, {
   a_flatmate: () => ({ title: 'Music for 2am', text: 'Your flatmate dey play drill music for 2am, three nights straight. You get early shift.',
     choices: [{ l: 'Talk to am calm calm', h: 'Smooth Talker go do am better' }, { l: `Buy earplugs (${usd(10)})`, h: 'At least, you go sleep' }, { l: 'Keep quiet', h: '−8 strength, −4 happiness' }] }),
@@ -1563,6 +1590,9 @@ const NPCS = {
   iya: { skin: SKINS[2], head: 'gele', wrap: '#6B3FA0', cloth: '#6B3FA0', dot: '#F2C230', label: 'Iya Ajo' },
   tunde: { skin: SKINS[3], head: 'beanie', wrap: '#3346A8', cloth: '#2B2F3A', dot: '#3B4150', extra: ['scarf'], mood: 'flat', label: 'Cousin Tunde' },
   odogwu: { skin: SKINS[1], head: 'redcap', cloth: '#14110F', dot: '#D4A017', extra: ['beads'], label: 'Business owner' },
+  uncle: { skin: SKINS[0], head: 'fila', wrap: '#5B3A8C', cloth: '#5B3A8C', dot: '#E8D2A6', label: 'Uncle' },
+  sister: { skin: SKINS[3], head: 'braids', cloth: '#D9472B', dot: '#F6E7C1', label: 'Younger sister' },
+  elder: { skin: SKINS[1], head: 'kufi', wrap: '#F2EEE4', trim: '#8C5532', cloth: '#F2EEE4', dot: '#8C5532', mood: 'flat', label: 'Elder' },
   chairman: { skin: SKINS[2], head: 'short', cloth: '#1C1C1C', dot: '#D4A017', extra: ['shades'], label: 'Chairman Money Rain' },
   banker: { skin: SKINS[1], head: 'fila', wrap: '#22314F', cloth: '#22314F', dot: '#8FA3C7', mood: 'flat', label: 'Bank interviewer' },
   alhaji: { skin: SKINS[2], head: 'kufi', wrap: '#F2EEE4', trim: '#1E7A4C', cloth: '#F2EEE4', dot: '#1E7A4C', label: 'Alhaji Sule' },
@@ -1597,8 +1627,8 @@ const EV_ART = { blacktax: 'mama', school: 'mama', owambe: 'friend', detty: 'fri
   kano_harmattan: 'cold', kano_durbar: 'friend', enugu_august: 'iya', enugu_newyam: 'mama', lagos_traffic: 'news', ph_soot: 'sick', ph_flood: 'news',
   a_snow: 'cold', a_council: 'embassy', a_afroshop: 'shop',
   a_flatmate: 'friend', a_strike: 'news', a_committee: 'iya', a_cousin: 'tunde', a_mamasolar: 'mama', b_park: 'areaboy', b_alert: 'fixit' };
-function eventArt(id, who) {
-  const k = EV_ART[id];
+function eventArt(id, who, p) {
+  const k = (p && p.art) || EV_ART[id];
   if (ICONS[k]) return iconArt(k, who);
   if (k === 'friend') return face({ ...FRIENDS[S.region], label: who });
   return face({ ...NPCS[k], label: who });
@@ -1878,7 +1908,7 @@ function lifeView() {
     : `<div class="choices">${v.choices.map((c, i) => `<button class="choice" data-act="choose" data-i="${i}"><span>${esc(c.l)}</span>${c.h ? `<small>${esc(c.h)}</small>` : ''}</button>`).join('')}</div>`;
   return `<section class="panel event">${tabs('life')}
     ${S.weekFx && S.weekFx.length ? `<div class="weekfx"><span class="label">${t('yourWeek')}</span>${chipsHtml(S.weekFx)}</div>` : ''}
-    <div class="who">${eventArt(q.id, v.who)}<div><div class="label">${esc(v.who)}</div><h2>${esc(v.title)}</h2></div></div>
+    <div class="who">${eventArt(q.id, v.who, q.p)}<div><div class="label">${esc(v.who)}</div><h2>${esc(v.title)}</h2></div></div>
     <p class="quote" style="margin:0">${esc(v.text)}</p>${body}
     ${S.queue.length > 1 ? `<span class="note">${S.queue.length - 1} more this week</span>` : ''}</section>`;
 }
