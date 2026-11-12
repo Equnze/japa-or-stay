@@ -339,7 +339,7 @@ const CARDS = {
     run: () => { S.resolve += 5; if (chance(0.2 + 0.04 * S.skills.work)) { S.offer = true; return 'A care home in Northland sent you a sponsored job offer!'; } return 'Applications sent. Silence for now.'; } },
   convert: { name: 'Move ₦ to dollar account', blocks: 1, cost: () => 0, can: () => S.money > 80000,
     tags: () => [`~${usd((S.money - 50000) * 0.5 / S.fx)}`, '2% fee', 'Japa'],
-    run: () => { const n = Math.round((S.money - 50000) * 0.5); S.money -= n; const d = n * 0.98 / S.fx; S.usd += d; S.resolve += 2; return `Converted ${naira(n)} to ${usd(d)}.`; } },
+    run: () => { const n = Math.round((S.money - 50000) * 0.5); if (n <= 0) return 'Nothing to move this week. Your other plans used up the cash first.'; S.money -= n; const d = n * 0.98 / S.fx; S.usd += d; S.resolve += 2; return `Converted ${naira(n)} to ${usd(d)}.`; } },
   rest: { name: 'Rest at home', blocks: 4, cost: () => 0, can: () => true,
     tags: () => ['+30 energy', '+5 health'],
     run: () => { S.energy += 30; S.health += 5; S.mood += 3; return 'You rested. NEPA even brought light for some hours.'; } },
@@ -578,14 +578,14 @@ const EV = {
       choices: [{ l: 'Enjoy Detty December', h: '+20 mood, clout up, money down' }, { l: 'Stay low-key and save', h: '−5 mood' }] }),
     pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.mood += 20; S.clout += 150; S.resolve += 4; return 'Concerts, beach, owambe. Your IJGB friend asked, "When are you coming over?"'; } S.mood -= 5; return 'You watched it all on Instagram stories.'; } },
   devalue: {
-    view: () => ({ who: 'News', av: '₦', cls: 'b', title: 'The naira has fallen', text: 'The exchange rate jumped about 30% overnight. Dollar savings are worth more in naira, but japa costs just got heavier.',
+    view: () => ({ who: 'News', av: '₦', cls: 'b', title: 'The naira has fallen', text: 'The exchange rate jumped about 20% overnight. Dollar savings are worth more in naira, but japa costs just got heavier.',
       choices: [{ l: 'Okay…', h: '' }] }),
     make: () => ({}),
-    pick: () => { S.fx *= 1.3; return `₦${Math.round(S.fx).toLocaleString('en-NG')} to $1 now.`; } },
+    pick: () => { S.fx *= 1.2; return `₦${Math.round(S.fx).toLocaleString('en-NG')} to $1 now.`; } },
   sick: {
     cond: () => S.health < 35,
     make: () => ({ hosp: price(60000), chem: price(8000) }),
-    view: p => ({ who: 'Your body', av: '+', cls: 'b', title: 'Malaria don catch you', text: 'Headache, fever, bitter mouth. You need treatment.',
+    view: p => ({ who: 'Your body', av: '+', cls: 'b', title: 'Malaria don catch you', text: 'Headache, fever, bitter mouth. You have been working hard with little rest, and your body is paying for it. Tip: pick "Rest at home" to get your strength back.',
       choices: [{ l: `Go to hospital (${naira(p.hosp)})`, h: '+35 health' }, { l: `Buy drugs at the chemist (${naira(p.chem)})`, h: '+10 health' }] }),
     pick: (p, i) => { if (i === 0) { S.money -= p.hosp; S.health += 35; return 'Drip, injection, rest. You feel human again.'; } S.money -= p.chem; S.health += 10; return 'Agbo and tablets. Somehow, you survived.'; } },
   interview: {
@@ -899,9 +899,9 @@ const PGV = {
     choices: [{ l: `Pay the fees (${naira(p.amt)})`, h: 'Family go happy' }, { l: 'Pay half, promise the rest', h: 'Smooth Talker go do am better' }, { l: 'Talk say you no fit', h: 'Family go vex' }] }),
   detty: p => ({ title: 'Detty December!', text: `Your IJGB friend don land from abroad with gist and full itinerary. One week of party: ${naira(p.amt)}.`,
     choices: [{ l: 'Enjoy Detty December', h: '+20 happiness, clout up, money down' }, { l: 'Stay low and save', h: '−5 happiness' }] }),
-  devalue: () => ({ title: 'Naira don fall', text: 'Exchange rate jump like 30% overnight. Dollar savings don worth more for naira, but japa cost don heavy.',
+  devalue: () => ({ title: 'Naira don fall', text: 'Exchange rate jump like 20% overnight. Dollar savings don worth more for naira, but japa cost don heavy.',
     choices: [{ l: 'Okay o…', h: '' }] }),
-  sick: p => ({ title: 'Malaria don catch you', text: 'Head dey pain you, fever, mouth dey bitter. You need treatment.',
+  sick: p => ({ title: 'Malaria don catch you', text: 'Head dey pain you, fever, mouth dey bitter. You don dey work too much without rest, and your body don dey vex. Tip: pick "Rest at home" make your strength come back.',
     choices: [{ l: `Go hospital (${naira(p.hosp)})`, h: '+35 body' }, { l: `Buy drugs for chemist (${naira(p.chem)})`, h: '+10 body' }] }),
   interview: () => ({ title: 'Visa interview', text: `Your passport, test score (${S.ielts}), job offer and ${usd(S.usd)} proof of funds don complete. Fee: ${usd(VISA_USD)}. Officer ask you: "Why you wan come?"`,
     choices: [{ l: 'Answer honestly about the job and your plan', h: 'Best chance' }, { l: 'Give the "agent" answer wey you cram', h: 'E risky' }] }),
@@ -1180,8 +1180,9 @@ function endWeek() {
   if (!ab && [2, 19, 37, 54, 71, 89].includes(S.week)) queueEvent('school');
   if (!ab && (S.week === 49 || S.week === 101)) queueEvent('detty');
   if (ab && S.week === 101) queueEvent('a_detty');
-  if (chance(0.04)) queueEvent('devalue');
-  if (S.health < 35) queueEvent(ab ? 'a_sick' : 'sick');
+  if (chance(0.02)) queueEvent('devalue');
+  // illness: not two weeks running, so it never becomes an every-week event
+  if (S.health < 35 && S.sickWeek !== S.week - 1) { queueEvent(ab ? 'a_sick' : 'sick'); S.sickWeek = S.week; }
   // no event repeats within the last 3 weeks (unless nothing else is possible)
   const recent = S.recent || [];
   let pool = (ab ? ABROAD_POOL : S.build ? BUILD_POOL : RANDOM_POOL).filter(id => !EV[id].cond || EV[id].cond());
@@ -1365,7 +1366,8 @@ function endingInfo() {
     return { name: 'Odogwu in Progress', pg: 'Shop don open. The hustle don get address.', side: 'stay' };
   }
   if (S.health < 30) return { name: 'Burnout', pg: 'Body no be firewood. Rest small.', side: 'none' };
-  if (S.resolve > 40) return { name: 'Visa Wahala', pg: 'Year one done, you still dey run up and down for papers.', side: 'japa' };
+  // judged on real japa progress (passport, English test, job offer), not just the meter
+  if (S.resolve > 40 || [S.passport, S.ielts >= 6.5, S.offer].filter(Boolean).length >= 2) return { name: 'Visa Wahala', pg: 'Year one done, you still dey run up and down for papers.', side: 'japa' };
   if (S.resolve < -40) return { name: 'Steady Life', pg: 'No noise, no wahala. You dey build small small.', side: 'stay' };
   return { name: 'Still Deciding', pg: 'Japa or stay? Your mind still dey middle.', side: 'none' };
 }
