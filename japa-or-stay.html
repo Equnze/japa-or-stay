@@ -360,12 +360,13 @@ const CARDS = {
     run: () => { S.family += 6 * (S.trait === 'family' ? 1.5 : 1); S.resolve -= 1; return 'Mama prayed for you for ten minutes straight.'; } },
   skit: { name: 'Make a skit', blocks: 3, cost: () => price(3000), can: () => true,
     tags: () => ['+clout', 'brand deals at 2k'],
-    run: () => { let g = Math.round(rnd(30, 120) + S.clout * 0.12); let m = ''; if (chance(0.08)) { g = g * 3 + 1500; m = ' It went viral!'; } S.clout += g; S.mood += 3;
+    // fan growth slows as you get bigger (square root), so it no longer compounds out of control
+    run: () => { let g = Math.round(rnd(30, 120) + Math.sqrt(S.clout) * 3); let m = ''; if (chance(0.08)) { g = g * 2 + 800; m = ' It went viral!'; } S.clout += g; S.mood += 3;
       if (S.clout >= 2000 && chance(0.25)) { const d = Math.round(Math.min(400000, S.clout * 25) / 1000) * 1000; S.money += d; m += ` Brand deal: ${naira(d)}.`; }
       return `Skit posted: +${g} fans.${m}`; } },
   studio: { name: 'Studio session', blocks: 4, cost: () => price(25000), can: () => true,
     tags: () => ['song could blow', '+clout'],
-    run: () => { let g = Math.round(rnd(20, 90)); let m = ''; if (chance(0.07 + S.clout / 100000)) { g += 4000; const b = price(150000); S.money += b; m = ` The song blew! Show bookings paid ${naira(b)}.`; } S.clout += g; S.energy -= 6; return `You recorded a song. +${g} fans.${m}`; } },
+    run: () => { let g = Math.round(rnd(20, 90)); let m = ''; if (chance(Math.min(0.15, 0.07 + S.clout / 100000))) { g += 2500; const b = price(150000); S.money += b; m = ` The song blew! Show bookings paid ${naira(b)}.`; } S.clout += g; S.energy -= 6; return `You recorded a song. +${g} fans.${m}`; } },
   audition: { name: 'Nollywood audition', blocks: 3, cost: () => price(4000), can: () => true,
     tags: () => [S.region === 'enugu' ? '~35% role' : '~20% role', '+clout'],
     run: () => { S.energy -= 6; if (chance(S.region === 'enugu' ? 0.35 : 0.2)) { const f = price(70000); S.money += f; S.clout += 600; return `You got a supporting role! Paid ${naira(f)}, +600 fans.`; } return 'They said you are "not the look" this time.'; } },
@@ -415,7 +416,7 @@ const CARDS = {
     run: () => { S.mood += 10; S.resolve += 3; return 'Museum, park, a street market. The city is starting to feel familiar.'; } },
   a_vlog: { ab: true, name: 'Diaspora vlog', blocks: 3, cost: () => 5, can: () => true,
     tags: () => ['+clout', 'brand deals in $'],
-    run: () => { let g = Math.round(rnd(60, 200) + S.clout * 0.15); let m = ''; if (chance(0.1)) { g = g * 3 + 2000; m = ' "A day in my life abroad" went viral!'; } S.clout += g; S.mood += 3;
+    run: () => { let g = Math.round(rnd(60, 200) + Math.sqrt(S.clout) * 3.5); let m = ''; if (chance(0.1)) { g = g * 2 + 1000; m = ' "A day in my life abroad" went viral!'; } S.clout += g; S.mood += 3;
       if (S.clout >= 2000 && chance(0.3)) { const d = Math.round(Math.min(1200, S.clout * 0.25)); S.usd += d; m += ` Brand deal: ${usd(d)}.`; }
       return `Vlog posted: +${g} fans.${m}`; } },
   a_land: { ab: true, name: 'Buy a plot back home', blocks: 1, cost: () => Math.round(price(2500000) / S.fx), can: () => S.abroad.land < 3,
@@ -458,7 +459,13 @@ const CARDS = {
     run: () => { S.solar = true; S.build.rep += 3; return 'Panels on the roof. Your freezer and POS stay on all day.'; } },
   b_union: { bd: true, name: 'Town union meeting', blocks: 2, cost: () => price(5000), can: () => true,
     tags: () => ['+10 community', 'leadership +1', 'Stay'],
-    run: () => { S.community += 10; S.build.leader += 1; S.resolve -= 2; return `You spoke about the bad road. People listened. Leadership ${S.build.leader}.`; } },
+    run: () => {
+      S.community += 10; S.resolve -= 2;
+      if (S.build.leader >= 10) return pick(['The chairman asked you to close the meeting. Your word now carries weight in town.', 'Two elders came to you after the meeting for advice.', 'Nobody starts the meeting until you arrive.']);
+      S.build.leader += 1;
+      const topic = pick(['the bad road', 'the broken borehole', 'flooding in the market', 'fees at the community school', 'security at night', 'the transformer that keeps blowing', 'the refuse dump by the junction', 'the health centre with no nurse']);
+      return `You spoke about ${topic}. People listened. Leadership ${S.build.leader}${S.build.leader >= 10 ? ' (top)' : ''}.`;
+    } },
   b_campaign: { bd: true, name: 'Campaign for councillor', blocks: 5, cost: () => price(150000), can: () => S.community >= 70 && S.build.leader >= 6 && S.build.campaign < 8,
     tags: () => [`campaign ${S.build.campaign}/8`, 'Stay'],
     run: () => { S.build.campaign += 1; S.energy -= 12; S.clout += 150; return `Rallies, posters, market visits. Campaign progress ${S.build.campaign} of 8.`; } },
@@ -555,7 +562,7 @@ const EV = {
     pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.ponzi = { amt: p.amt, due: S.week + 4 }; S.resolve -= 3; return 'The Chairman hugged you. "You are a serious person."'; }
       S.streetSmart = true; return 'The Chairman got vexed and blocked you. Street Smart badge earned.'; } },
   sponsor: {
-    cond: () => S.clout >= 2500,
+    cond: () => S.clout >= 2500 && timesThisYear('sponsor') < 2,
     make: () => ({ amt: price(150000) }),
     view: p => ({ who: 'Alhaji Sule "Big Money" Bello', av: 'A', cls: 'g', title: 'A baller wants to sponsor you', text: `"I like what you are doing. I will sponsor your next project with ${naira(p.amt)}. Just mention my company."`,
       choices: [{ l: 'Accept the sponsorship', h: 'Money and clout, ties you to home' }, { l: 'Decline politely', h: 'Keep your independence' }] }),
@@ -804,48 +811,49 @@ Object.assign(EV, {
       choices: [{ l: 'Pay it', h: 'Money down' }, { l: 'Go to the office and dispute it', h: '−10 energy, ~50% cancelled' }] }),
     pick: (p, i) => { if (i === 0) { S.money -= p.amt; return 'Paid. You took a picture of the receipt, just in case.'; } S.energy -= 10; if (chance(0.5)) return 'After two visits, they cancelled it. Small victory.'; S.money -= p.amt; return 'They insisted. You paid, and they promised a prepaid meter "soon".'; } },
   y_giving: {
+    cond: () => timesThisYear('y_giving') < 2,
     make: () => ({ amt: price(10000) }),
     view: p => ({ who: 'Your church or mosque', title: 'Harvest and giving season', text: `Your congregation is collecting for families in need. Many people are giving around ${naira(p.amt)}.`,
       choices: [{ l: `Give ${naira(p.amt)}`, h: '+10 community, +5 mood' }, { l: 'Help with your hands instead', h: '−8 energy, +6 community' }, { l: 'Not this time', h: 'Nothing changes' }] }),
     pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.community += 10; S.mood += 5; return 'Your name was read out with thanks.'; } if (i === 1) { S.energy -= 8; S.community += 6; return 'You packed food parcels all Saturday.'; } return 'Maybe next time.'; } },
   kano_harmattan: {
-    cond: () => S.region === 'kano' && winter(),
+    cond: () => S.region === 'kano' && winter() && timesThisYear('kano_harmattan') < 1,
     make: () => ({ amt: price(4000) }),
     view: p => ({ who: 'Kano weather', title: 'Harmattan is here', text: 'Dust fills the air, lips crack and the mornings are cold. Your chest is not happy.',
       choices: [{ l: `Buy shea butter, a mask and a sweater (${naira(p.amt)})`, h: 'Stay healthy' }, { l: 'Endure it', h: '−8 health' }] }),
     pick: (p, i) => { if (i === 0) { S.money -= p.amt; return 'Shea butter everywhere. You survive the season in style.'; } S.health -= 8; return 'Dry cough, cracked lips. You will remember this harmattan.'; } },
   kano_durbar: {
-    cond: () => S.region === 'kano',
+    cond: () => S.region === 'kano' && timesThisYear('kano_durbar') < 1, // a yearly festival
     make: () => ({ amt: price(6000) }),
     view: p => ({ who: REG().friend, title: 'Durbar festival', text: `Horsemen in full regalia ride past the Emir's palace for Sallah. ${REG().friend} says you must come. Transport and food: ${naira(p.amt)}.`,
       choices: [{ l: 'Go to the Durbar', h: '+12 mood, +6 community' }, { l: 'Work instead', h: 'Nothing changes' }] }),
     pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.mood += 12; S.community += 6; S.clout += 60; return 'Drums, horses, colour everywhere. Your pictures got plenty of likes.'; } return 'You heard the drums from work.'; } },
   enugu_august: {
-    cond: () => S.region === 'enugu' && ['Jul', 'Aug'].includes(month()),
+    cond: () => S.region === 'enugu' && ['Jul', 'Aug'].includes(month()) && timesThisYear('enugu_august') < 1,
     make: () => ({ amt: price(20000) }),
     view: p => ({ who: 'Town union', title: 'August meeting levy', text: `The August meeting is collecting ${naira(p.amt)} from every member for the town's new borehole.`,
       choices: [{ l: `Pay the levy (${naira(p.amt)})`, h: '+10 community' }, { l: 'Promise to pay later', h: '−6 community' }] }),
     pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.community += 10; return 'Your name is on the list of contributors. The elders noticed.'; } S.community -= 6; return 'The women of the town wrote your name in "the other book".'; } },
   enugu_newyam: {
-    cond: () => S.region === 'enugu' && ['Aug', 'Sep'].includes(month()),
+    cond: () => S.region === 'enugu' && ['Aug', 'Sep'].includes(month()) && timesThisYear('enugu_newyam') < 1,
     make: () => ({ amt: price(15000) }),
     view: p => ({ who: 'Your village', title: 'New Yam festival', text: `The New Yam festival is this weekend in your village. Going home costs about ${naira(p.amt)}.`,
       choices: [{ l: 'Go home for the festival', h: '+12 mood, +8 family' }, { l: 'Stay in town', h: '−3 family' }] }),
     pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.mood += 12; S.family += 8; return 'Roasted yam, palm oil, masquerades and every relative asking about your plans.'; } S.family -= 3; return 'Mama sent you a picture of the yams.'; } },
   lagos_traffic: {
-    cond: () => S.region === 'lagos',
+    cond: () => S.region === 'lagos' && timesThisYear('lagos_traffic') < 3,
     make: () => ({ amt: price(4000) }),
     view: p => ({ who: 'Lagos roads', title: 'Go-slow everywhere', text: 'A trailer broke down on the bridge. Lagos traffic has locked down.',
       choices: [{ l: 'Leave home at 5am all week', h: '−12 energy' }, { l: `Take okadas through the side roads (${naira(p.amt)})`, h: 'Money down, a bit risky' }, { l: 'Arrive late and apologise', h: '−6 mood' }] }),
     pick: (p, i) => { if (i === 0) { S.energy -= 12; return 'You saw sunrise every day this week. You did not enjoy it.'; } if (i === 1) { S.money -= p.amt; if (chance(0.15)) { S.health -= 8; return 'You made it on time, but one okada nearly threw you off.'; } return 'You made it on time, wind in your face.'; } S.mood -= 6; return 'Your boss gave you "the look" three times.'; } },
   ph_soot: {
-    cond: () => S.region === 'ph',
+    cond: () => S.region === 'ph' && timesThisYear('ph_soot') < 2,
     make: () => ({ amt: price(25000) }),
     view: p => ({ who: 'Port Harcourt air', title: 'Black soot again', text: 'Black soot from illegal refining is settling on everything. Your nose and your white shirts are suffering.',
       choices: [{ l: `Buy an air purifier and masks (${naira(p.amt)})`, h: 'Protect your health' }, { l: 'Endure it', h: '−10 health' }] }),
     pick: (p, i) => { if (i === 0) { S.money -= p.amt; return 'The purifier hums all night. Your room is the cleanest in the compound.'; } S.health -= 10; return 'Black specks in your nose every morning.'; } },
   ph_flood: {
-    cond: () => (S.region === 'ph' || S.region === 'lagos') && ['Jun', 'Jul', 'Sep'].includes(month()),
+    cond: () => (S.region === 'ph' || S.region === 'lagos') && ['Jun', 'Jul', 'Sep'].includes(month()) && timesThisYear('ph_flood') < 1,
     make: () => ({ amt: price(40000) }),
     view: p => ({ who: 'Rainy season', title: 'Flood in your street', text: `Heavy rain flooded your street overnight. Water entered your room. Repairs and replacements: ${naira(p.amt)}.`,
       choices: [{ l: `Fix everything (${naira(p.amt)})`, h: 'Money down' }, { l: 'Dry what you can', h: '−8 mood, −5 health' }] }),
