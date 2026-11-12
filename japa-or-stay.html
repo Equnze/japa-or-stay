@@ -232,7 +232,8 @@ const T = {
     week: 'Week', newGame: 'Start a new life', start: 'Start my life', log: 'What happened', settleTitle: 'Week settled', noCards: 'Pick cards that fit your time and money.',
     cashAb: 'Cash', homeAcct: 'Home account', goHome: 'Go home', settleAb: 'Settle abroad', atrack: 'Settle in Northland', rtrack: 'Roots at home',
     yourWeek: 'Your week so far', alsoWeek: 'Over the week', leaning: 'leaning', debtWord: 'debt',
-    offReady: 'Works offline', offNow: 'Playing offline' },
+    offReady: 'Works offline', offNow: 'Playing offline',
+    loanTag: 'borrowed', loanToast: 'Not enough cash. The loan app will cover it, with interest.' },
   pg: { money: 'Kudi for hand', savings: 'Dollar account', fx: '₦ for $1', energy: 'Strength', mood: 'Happiness', health: 'Body', family: 'Family matter', community: 'Your people', clout: 'Clout',
     plan: 'Plan', life: 'Wahala', settle: 'Count money', progress: 'Progress',
     planTitle: 'How you go run this week?', blocksLeft: 'time remain', endWeek: 'Close this week', cont: 'Make we continue', notEnough: 'You no get enough kudi',
@@ -240,7 +241,8 @@ const T = {
     week: 'Week', newGame: 'Start new life', start: 'Make we start', log: 'Wetin happen', settleTitle: 'This week don close', noCards: 'Pick wetin your time and kudi fit carry.',
     cashAb: 'Dollar for hand', homeAcct: 'Naija account', goHome: 'Go back home', settleAb: 'Settle for abroad', atrack: 'Papers for abroad', rtrack: 'Root for house',
     yourWeek: 'Your week so far', alsoWeek: 'For this week', leaning: 'mind dey go', debtWord: 'debt',
-    offReady: 'E dey work without data', offNow: 'You dey play offline' }
+    offReady: 'E dey work without data', offNow: 'You dey play offline',
+    loanTag: 'on loan', loanToast: 'Kudi no reach. Loan app go cover am, with interest.' }
 };
 let LANG = 'en';
 try { LANG = localStorage.getItem('jos-lang') || 'en'; } catch (e) {}
@@ -277,6 +279,8 @@ const lastWeek = () => (S.abroad || S.build) ? 104 : LAST_WEEK;
 const wallet = () => S.abroad ? S.usd : S.money;
 const spend = n => { if (S.abroad) S.usd -= n; else S.money -= n; };
 const cur = n => S.abroad ? usd(n) : naira(n);
+// when cash runs short, a small amount can be borrowed to pay for a card (the loan app at home, a credit card abroad)
+const loanRoom = () => S.abroad ? 100 : price(30000);
 const winter = () => ['Jan', 'Feb', 'Nov', 'Dec'].includes(month());
 const weeksAbroad = () => S.abroad ? Math.min(S.week, 104) - S.abroad.start : 0;
 const stillAbroad = () => !!S.abroad && !['return', 'deported'].includes(S.ending);
@@ -301,7 +305,7 @@ function startAbroad() {
 
 function newState(name, region, trait, skin, look) {
   return {
-    name, region, trait, skin, look, week: 1, money: 150000, usd: 0, fx: 1500, idx: 1, fuel: 0,
+    name, region, trait, skin, look, week: 1, money: 200000, usd: 0, fx: 1500, idx: 1, fuel: 0,
     energy: 80, mood: 60, health: 85, family: 60, community: 40, clout: 0, resolve: 0,
     skills: { work: 1, english: 1 }, job: false, passport: false, ielts: 0, offer: false, biz: 0,
     ajo: null, ponzi: null, debt: 0, solar: false, streetSmart: false, visaWait: 0, visaDone: false, leaseOffered: 0,
@@ -315,8 +319,8 @@ const CARDS = {
   work: { name: 'Work the full week', blocks: 10, cost: () => 0, can: () => S.job,
     tags: () => [`+${naira(weeklyPay())} payday`, '−25 energy'],
     run: () => { S.pendingPay += weeklyPay(); S.energy -= 25; S.skills.work += 0.3; S.resolve -= 1; return 'You worked the week. Pay comes at settle-up.'; } },
-  jobhunt: { name: 'Job hunt', blocks: 5, cost: () => price(3000), can: () => !S.job,
-    tags: () => ['~30% chance of a job', '−10 energy'],
+  jobhunt: { name: 'Job hunt', blocks: 5, cost: () => 0, can: () => !S.job,
+    tags: () => ['~30% chance of a job', 'walk-in, free', '−10 energy'],
     run: () => { S.energy -= 10; if (chance(0.3 + 0.04 * S.skills.work)) { S.job = true; return `You got a job at a ${REG().name} firm. Starting pay ${naira(weeklyPay())} a week.`; } S.mood -= 4; return 'No call back this week. "We will get back to you."'; } },
   pos: { name: 'Run a POS stand', blocks: 6, cost: () => 0, can: () => true,
     tags: () => ['+₦15k–40k', '−15 energy', 'Stay'],
@@ -476,7 +480,7 @@ function dealHand() {
     return fillHand(always, k => CARDS[k].bd || SHARED_BUILD.includes(k));
   }
   const always = ['rest'];
-  if (S.job) always.push('work');
+  if (S.job) always.push('work'); else always.push('jobhunt'); // never leave an unemployed player without a way to look for work
   if (S.debt > 0) always.push('repay');
   if (CARDS.convert.can()) always.push('convert');
   // the next step on the path you lean toward is always dealt
@@ -1756,8 +1760,9 @@ function planView() {
   const used = blocksUsed(), left = BLOCKS - used, cash = wallet() - moneyCommitted();
   const cards = S.hand.map(k => {
     const c = CARDS[k], on = S.picked.includes(k), cost = c.cost();
-    const dis = !on && (c.blocks > left || cost > cash);
-    const tags = c.tags().map(x => `<span class="tag ${['Japa', 'Settle'].includes(x) ? 'j' : ['Stay', 'pulls home', 'roots at home'].includes(x) ? 's' : ''}">${x}</span>`).join('');
+    const dis = !on && (c.blocks > left || cost > cash + loanRoom());
+    const onLoan = !on && !dis && cost > cash;
+    const tags = (onLoan ? `<span class="tag neg">${t('loanTag')}</span>` : '') + c.tags().map(x => `<span class="tag ${['Japa', 'Settle'].includes(x) ? 'j' : ['Stay', 'pulls home', 'roots at home'].includes(x) ? 's' : ''}">${x}</span>`).join('');
     return `<button class="card" data-act="card" data-k="${k}" aria-pressed="${on}" ${dis ? 'disabled' : ''}>
       <span class="head">${cardIcon(k)}<span class="t">${c.name}</span></span>
       <span class="meta"><span>${c.blocks} blocks</span><span>${cost ? cur(cost) : 'free'}</span></span>
@@ -2031,7 +2036,10 @@ document.addEventListener('click', e => {
   if (a === 'start') { const n = (document.getElementById('nm').value || 'Ada').trim().slice(0, 20); S = newState(n, setup.region, setup.trait, setup.skin, setup.look); dealHand(); log(`<b>Start:</b> ${esc(n)} begins life in ${REG().name} with ${naira(S.money)}.`); save(); }
   if (a === 'card') { const k = b.dataset.k; if (S.picked.includes(k)) { S.picked = S.picked.filter(x => x !== k); Sound.play('untap'); } else {
       const c = CARDS[k]; if (c.blocks > BLOCKS - blocksUsed()) { Sound.play('error'); toast('Not enough time this week'); return; }
-      if (c.cost() > wallet() - moneyCommitted()) { Sound.play('error'); toast(t('notEnough')); return; } S.picked.push(k); Sound.play('tap'); } save(); }
+      const short = c.cost() - (wallet() - moneyCommitted());
+      if (short > loanRoom()) { Sound.play('error'); toast(t('notEnough')); return; }
+      if (short > 0) toast(t('loanToast'));
+      S.picked.push(k); Sound.play('tap'); } save(); }
   if (a === 'build') { startBuild(false); dealHand(); S.phase = 'plan'; save(); Sound.play('choose'); }
   if (a === 'start') Sound.play('choose');
   if (a === 'intro-ok' || a === 'start') { introSeen = true; try { localStorage.setItem('jos-intro', '1'); } catch (er) {} }
