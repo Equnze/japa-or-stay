@@ -57,6 +57,7 @@ h2 { font-family: var(--font-display); font-weight: 600; font-size: 20px; margin
 .lang { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
 .lang button { border: 0; background: transparent; color: var(--muted); padding: 6px 12px; font: 600 12px var(--font-body); letter-spacing: .04em; cursor: pointer; }
 .lang button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+@media (max-width: 600px) { .lookbtn, .lang button { min-height: 40px; padding-block: 8px; } }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .between { justify-content: space-between; }
@@ -537,7 +538,7 @@ const moneyCommitted = () => S.picked.reduce((a, k) => a + CARDS[k].cost(), 0);
 const EV = {
   // black tax at home: different people ask for different things, at most once every 4 weeks
   blacktax: {
-    cond: () => S.week - (S.lastAsk || 0) >= 4,
+    cond: () => S.week - (S.lastAsk || 0) >= 6,
     make: () => {
       const r = pick(HOME_ASKERS);
       S.lastAsk = S.week;
@@ -666,7 +667,7 @@ const EV = {
   /* ----- Year 2: abroad events (money in dollars) ----- */
   // black tax abroad: different people ask for different things, about once a month at most
   a_blacktax: {
-    cond: () => S.week - (S.abroad.lastAsk || 0) >= 4 && weeksAbroad() >= 4,
+    cond: () => S.week - (S.abroad.lastAsk || 0) >= 6 && weeksAbroad() >= 4,
     make: () => {
       const r = pick(ABROAD_ASKERS);
       S.abroad.lastAsk = S.week;
@@ -727,7 +728,7 @@ const EV = {
       choices: [{ l: `Fly home (${usd(p.amt)})`, h: '+30 mood, +20 family, pulls you home' }, { l: 'Work Christmas shifts (double pay)', h: '+$400, −10 mood' }] }),
     pick: (p, i) => { if (i === 0) { S.usd -= p.amt; S.mood += 30; S.family += 20; S.clout += 200; S.resolve -= 12; return 'Airport hugs, owambe every night, and everyone asking "When are you going back?"'; } S.usd += 400; S.mood -= 10; return 'Christmas dinner was a staff-room mince pie. The money was good.'; } },
   a_homesick: {
-    cond: () => S.mood < 35,
+    cond: () => (S.mood < 45 || (winter() && S.mood < 55)) && timesThisYear('a_homesick') < 2 && S.week - lastSeen('a_homesick') >= 8,
     make: () => ({}),
     view: () => ({ who: 'Mama', title: 'Homesick', text: `${REG().open} your voice sounds tired. You know you can always come home.`,
       choices: [{ l: 'Book a one-way ticket home', h: 'Ends your abroad chapter' }, { l: 'Push through, it will get better', h: '+5 mood' }] }),
@@ -780,7 +781,7 @@ const EV = {
       choices: [{ l: 'Take the goods', h: 'Business level +1, pay later' }, { l: 'No thanks', h: 'Stay debt-free' }] }),
     pick: (p, i) => { if (i === 0) { S.biz += 1; S.build.supplier = p.amt; S.build.supplierDue = S.week + 4; return 'Shelves full. Remember: pay back in 4 weeks.'; } return 'You only buy what you can pay for.'; } },
   b_contract: {
-    cond: () => S.build.registered,
+    cond: () => S.build.registered && timesThisYear('b_contract') < 3,
     make: () => ({ amt: price(450000) }),
     view: p => ({ who: 'A big customer', title: 'Bulk supply contract', text: `A company wants to buy in bulk for ${naira(p.amt)}. Delivering this week will cost you sleep.`,
       choices: [{ l: 'Take the contract', h: '−25 energy, big payday' }, { l: 'Too much this week', h: 'Nothing changes' }] }),
@@ -798,11 +799,11 @@ const EV = {
       choices: [{ l: 'Cut your prices too', h: 'Sales −20% for 4 weeks' }, { l: `Win on service: free delivery for regulars (${naira(p.amt)})`, h: '+reputation' }] }),
     pick: (p, i) => { if (i === 0) { S.build.priceWar = 4; return 'Price war. Your customers stay, your margins do not.'; } S.money -= p.amt; S.build.rep += 10; return 'Your regulars stayed. "Your customer service is different."'; } },
   b_japalate: {
-    cond: () => S.week - S.build.start >= 12 && (S.mood < 35 || S.resolve > 30),
+    cond: () => S.week - S.build.start >= 12 && S.week >= (S.build.japaLateWait || 0) && timesThisYear('b_japalate') < 2 && (S.mood < 35 || S.resolve > 30),
     make: () => ({}),
     view: () => ({ who: 'Cousin Tunde', title: '"It is not too late to japa"', text: '"My boss still needs workers. I can get you a sponsored job. Just say the word."',
       choices: [{ l: 'Sell the business and japa', h: 'Ends your Build chapter' }, { l: 'No, I am building here', h: 'Stay the course' }] }),
-    pick: (p, i) => { if (i === 0) { S.ending = 'japalate'; return S.build.apprentice ? 'You sold the shop to your apprentice and booked a flight.' : 'You sold the shop and the goods and booked a flight.'; } S.resolve -= 10; S.mood += 3; return 'Tunde laughed: "Odogwu of your street!"'; } },
+    pick: (p, i) => { if (i === 0) { S.ending = 'japalate'; return S.build.apprentice ? 'You sold the shop to your apprentice and booked a flight.' : 'You sold the shop and the goods and booked a flight.'; } S.build.japaLateWait = S.week + 10; S.resolve -= 10; S.mood += 3; return 'Tunde laughed: "Odogwu of your street!"'; } },
   b_election: {
     make: () => ({}),
     view: () => ({ who: 'Election day', title: 'Councillor election', text: `Your campaign is done. Community: ${S.community}. Clout: ${S.clout.toLocaleString()} fans. The votes are being counted.`,
@@ -810,7 +811,7 @@ const EV = {
     pick: () => { const c = 0.15 + S.community / 250 + Math.min(0.15, S.clout / 20000); if (chance(c)) { S.ending = 'changemaker'; return 'You won! The road will finally be fixed.'; } S.build.campaign = 4; S.mood -= 15; return 'You lost by 312 votes. Your supporters are still with you: campaign again and you start halfway.'; } },
   b_empire: {
     make: () => ({}),
-    view: () => ({ who: 'Your business', title: 'An empire is born', text: `Three branches, business level ${S.biz}, and your name on signboards across town. A magazine wants to profile you.`,
+    view: () => ({ who: 'Your business', title: 'An empire is born', text: `Three branches, business level ${S.biz}, and your name on signboards across town. A magazine wants to profile you. You are worth about ${naira(S.money + S.usd * S.fx)}${S.money + S.usd * S.fx < price(20000000) ? `. Wait until you pass ${naira(price(20000000))} and they will call you a billionaire baller` : ''}.`,
       choices: [{ l: 'Do the interview', h: 'Ends your Build chapter' }, { l: 'Keep a low profile and keep growing', h: 'Continue' }] }),
     pick: (p, i) => { if (i === 0) { S.ending = 'empire'; return '"From POS stand to empire," the headline says.'; } S.build.empireWait = S.week + 10; return 'Quiet money. You keep building.'; } },
   b_housewarm: {
@@ -1091,6 +1092,9 @@ function queueEvent(id) {
   S.evCount = S.evCount || {}; const key = id + '@' + Math.ceil(S.week / 52); S.evCount[key] = (S.evCount[key] || 0) + 1;
   S.evWeeks = S.evWeeks || {}; (S.evWeeks[id] = S.evWeeks[id] || []).push(S.week);
 }
+// the week an event last came up, and how long it must wait before coming back (so capped events don't bunch up)
+const lastSeen = id => { const a = (S.evWeeks || {})[id]; return a && a.length ? a[a.length - 1] : -99; };
+const MIN_GAP = { nepa: 3, fuel: 8, owambe: 6, a_owambe: 6, tunde: 8, a_tunde: 8, ajo: 6, a_winter: 4, a_hours: 8, a_rude: 8, a_flatmate: 8, b_contract: 6, b_levy: 6, b_theft: 6, b_rival: 6, b_park: 6, b_supplier: 6, b_alert: 8 };
 // how many times an event has happened in the last 52 weeks (used to cap repeats; a rolling year, so nothing bunches up at week 53)
 const timesThisYear = id => ((S.evWeeks || {})[id] || []).filter(w => w > S.week - 52).length;
 
@@ -1198,7 +1202,7 @@ const PGV = {
     choices: [{ l: 'Sell the business and japa', h: 'E go end your Build chapter' }, { l: 'No, I dey build here', h: 'Hold your ground' }] }),
   b_election: () => ({ title: 'Councillor election', text: `Campaign don finish. Your people: ${S.community}. Clout: ${S.clout.toLocaleString()} fans. Dem dey count votes.`,
     choices: [{ l: 'Wait for the result', h: 'Your chance depend on your people and clout' }] }),
-  b_empire: () => ({ title: 'Empire don born', text: `Three branches, business level ${S.biz}, and your name dey signboard everywhere for town. One magazine wan interview you.`,
+  b_empire: () => ({ title: 'Empire don born', text: `Three branches, business level ${S.biz}, and your name dey signboard everywhere for town. One magazine wan interview you. You worth like ${naira(S.money + S.usd * S.fx)}${S.money + S.usd * S.fx < price(20000000) ? `. Wait make you pass ${naira(price(20000000))} and dem go call you billionaire baller` : ''}.`,
     choices: [{ l: 'Do the interview', h: 'E go end your Build chapter' }, { l: 'Keep low profile, dey grow', h: 'Continue' }] }),
   b_housewarm: p => ({ title: 'House opening ceremony', text: `Your house for village don finish. The whole town want thanksgiving party: ${naira(p.amt)}.`,
     choices: [{ l: 'Throw the party', h: 'E go end your Build chapter' }, { l: 'Small family prayer only', h: 'Continue' }] })
@@ -1542,15 +1546,19 @@ function endWeek() {
   if (!ab && S.debt > price(300000) && timesThisYear('loanshame') < 2 && chance(0.4)) queueEvent('loanshame');
   // no event repeats within the last 3 weeks (unless nothing else is possible)
   const recent = S.recent || [];
-  let pool = (ab ? ABROAD_POOL : S.build ? BUILD_POOL : RANDOM_POOL).filter(id => !EV[id].cond || EV[id].cond());
+  let pool = (ab ? ABROAD_POOL : S.build ? BUILD_POOL : RANDOM_POOL).filter(id => (!EV[id].cond || EV[id].cond()) && S.week - lastSeen(id) >= (MIN_GAP[id] || 0));
   const fresh = pool.filter(id => !recent.includes(id) && !S.queue.some(q => q.id === id));
   if (fresh.length) pool = fresh;
-  else pool = [ab ? 'a_quiet' : 'y_quiet'];
-  queueEvent(pick(pool));
-  if (chance(0.35)) { const second = pick(pool); if (!S.queue.some(q => q.id === second)) queueEvent(second); }
+  else pool = chance(0.5) ? [] : [ab ? 'a_quiet' : 'y_quiet'];
+  if (pool.length) {
+    queueEvent(pick(pool));
+    if (chance(0.35)) { const second = pick(pool); if (!S.queue.some(q => q.id === second)) queueEvent(second); }
+  }
   S.recent = [...S.queue.map(q => q.id), ...recent].slice(0, 6);
   normalize();
   S.weekFx = fxChips(before, snap());
+  // a quiet week with nothing happening: go straight to the money summary
+  if (!S.queue.length) { const b2 = snap(); settle(); S.settleFx = fxChips(b2, snap(), true); return; }
   S.phase = 'life'; S.result = null; S.resultFx = null;
 }
 function choose(i) {
@@ -1755,7 +1763,7 @@ const ENDINGS = [
   { n: 'Sent Back', g: 'Abroad chapter', h: 'Collect three visa warnings.' },
   { n: 'Odogwu', g: 'Build chapter', h: 'Reach business level 12 with 3 branches and 70 reputation.' },
   { n: 'Burnt-Out Odogwu', g: 'Build chapter', h: 'Build your business empire while your body is worn out.' },
-  { n: 'Billionaire Baller', g: 'Build chapter', h: 'Build your business empire while very rich.' },
+  { n: 'Billionaire Baller', g: 'Build chapter', h: 'Do the magazine interview when you are worth ₦20m+ (you can say "not yet" and keep growing).' },
   { n: 'Changemaker', g: 'Build chapter', h: 'Campaign and win the councillor election.' },
   { n: 'Community Pillar', g: 'Build chapter', h: 'Finish your hometown house and throw the party.' },
   { n: 'Odogwu in the Making', g: 'Build chapter', h: 'Reach week 104 rich, but without an empire.' },
