@@ -2438,7 +2438,10 @@ document.addEventListener('click', e => {
     if (S.phase === 'end') Sound.play(S.newUnlock ? 'unlock' : 'fanfare');
   }
   render();
-  if (['end', 'next', 'nextweek', 'start', 'restart'].includes(a)) window.scrollTo({ top: 0, behavior: 'smooth' });
+  // mid-week steps: jump to the play area (cards, event or money summary), not the top of the page, so phone players don't scroll past the stats every time
+  const tabs = document.querySelector('.phase-tabs');
+  if (['end', 'next', 'nextweek'].includes(a) && tabs) tabs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  else if (['end', 'next', 'nextweek', 'start', 'restart'].includes(a)) window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
 window.claude?.hot?.snapshot?.(() => ({ S, setup }));
