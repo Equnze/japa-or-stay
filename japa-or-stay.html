@@ -2353,10 +2353,15 @@ function endView() {
 }
 // Paste a feedback form link here (for example a Google Form) to show "Send feedback" in the footer.
 const FEEDBACK_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSe4LPWrDo7fnTCTAgyEsTUFhm3Pu3-UGSOVPp7VxPJzHST8zA/viewform';
-let introSeen = false;
-try { introSeen = localStorage.getItem('jos-intro') === '1'; } catch (e) {}
+let introSeen = false, returning = false;
+try { introSeen = localStorage.getItem('jos-intro2') === '1'; returning = localStorage.getItem('jos-intro') === '1' || !!localStorage.getItem('jos-save') || !!localStorage.getItem('jos-hall'); } catch (e) {}
 function introView() {
   if (introSeen) return '';
+  if (returning) return `<section class="panel intro" aria-label="What is new">
+    <h2>New: an Easy guide</h2>
+    <p style="margin:0"><b>How to play</b> now opens with an Easy guide: every screen, card and goal explained in simple words, one topic at a time. Good for new players and young players too.</p>
+    <div class="row"><button class="btn" data-act="intro-guide">Open the Easy guide</button><button class="btn ghost" data-act="intro-ok">Got it</button></div>
+  </section>`;
   return `<section class="panel intro" aria-label="Quick start">
     <h2>New here? How a week works</h2>
     <ol>
@@ -2366,7 +2371,7 @@ function introView() {
     </ol>
     <p class="note" style="margin:0">Your goal: by the end of Year 1, japa (leave) or stay and build. Neither is wrong.</p>
     ${offlineCapable ? `<p class="note" style="margin:0"><b>Works offline:</b> after this first visit, the game opens and plays without data. Look for <b>✓ Works offline</b> at the top.</p>` : ''}
-    <div class="row"><button class="btn" data-act="intro-ok">Got it</button><button class="btn ghost" data-act="help">Read the easy guide</button></div>
+    <div class="row"><button class="btn" data-act="intro-ok">Got it</button><button class="btn ghost" data-act="intro-guide">Read the easy guide</button></div>
   </section>`;
 }
 function setupView() {
@@ -2414,7 +2419,7 @@ function render() {
   }
   if (S.phase === 'life' && !S.queue.length) settle(); // safety net for an out-of-step save
   const phase = { plan: planView, life: lifeView, settle: settleView, end: endView }[S.phase]();
-  app.innerHTML = (S.phase === 'end' ? phase + board() : board() + phase) + logView();
+  app.innerHTML = (S.phase === 'plan' ? introView() : '') + (S.phase === 'end' ? phase + board() : board() + phase) + logView();
 }
 /* ---------- sound: everything is generated in code with the Web Audio API (no audio files) ---------- */
 const Sound = (() => {
@@ -2573,7 +2578,9 @@ document.addEventListener('click', e => {
   if (a === 'build') { startBuild(false); dealHand(); S.phase = 'plan'; save(); Sound.play('choose'); }
   if (a === 'japa2') { startJapaY2(); dealHand(); S.phase = 'plan'; save(); Sound.play('choose'); }
   if (a === 'start') Sound.play('choose');
-  if (a === 'intro-ok' || a === 'start') { introSeen = true; try { localStorage.setItem('jos-intro', '1'); } catch (er) {} }
+  if (a === 'intro-ok' || a === 'start' || a === 'intro-guide') { introSeen = true; try { localStorage.setItem('jos-intro', '1'); localStorage.setItem('jos-intro2', '1'); } catch (er) {} }
+  if (a === 'intro-guide') { if (!S) setup.name = (document.getElementById('nm') || {}).value || setup.name; helpMode = 'easy'; showHelp = true; showHall = false; render(); window.scrollTo({ top: 0 }); return; }
+  if (a === 'intro-ok' && S) { render(); return; }
   if (a === 'end') { endWeek(); Sound.play('drum'); }
   if (a === 'choose') { choose(Number(b.dataset.i)); Sound.play('choose'); }
   if (a === 'next') nextEvent();
