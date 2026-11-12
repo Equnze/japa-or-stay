@@ -275,7 +275,13 @@ const weeklyPay = () => Math.round(90000 * REG().pay * (1 + 0.08 * Math.floor(S.
 const hustleBoost = () => S.trait === 'hustler' ? 1.25 : 1;
 const japaReady = () => S.passport && S.ielts >= 6.5 && S.offer && S.usd >= POF_USD;
 // Year 2 (abroad) helpers: abroad, cash is in dollars; the naira account stays at home
-const lastWeek = () => (S.abroad || S.build) ? 104 : LAST_WEEK;
+const lastWeek = () => (S.abroad || S.build || S.japaY2) ? 104 : LAST_WEEK;
+const japaProgress = () => [S.passport, S.ielts >= 6.5, S.offer].filter(Boolean).length;
+// Year 2 for players still chasing the visa: Year 1 rules continue up to week 104, so a late refusal is not a dead end
+function startJapaY2() {
+  S.japaY2 = true; S.ending = null; S.recorded = false; S.newUnlock = false; S.newBests = [];
+  log('<b>Year 2:</b> Still chasing the visa. The papers are not finished, but neither are you.');
+}
 const wallet = () => S.abroad ? S.usd : S.money;
 const spend = n => { if (S.abroad) S.usd -= n; else S.money -= n; };
 const cur = n => S.abroad ? usd(n) : naira(n);
@@ -750,16 +756,19 @@ const EV = {
 /* ----- more everyday events, regional events and extra abroad/build events ----- */
 Object.assign(EV, {
   y_okada: {
+    cond: () => timesThisYear('y_okada') < 2,
     make: () => ({ clinic: price(18000) }),
     view: p => ({ who: 'On the road', title: 'Okada wahala', text: 'Your okada skidded on a wet road. You scraped your arm and twisted your ankle.',
       choices: [{ l: `Go to the clinic (${naira(p.clinic)})`, h: 'Your health recovers' }, { l: 'Agbo, rest and pray', h: '−15 health, −5 mood' }] }),
     pick: (p, i) => { if (i === 0) { S.money -= p.clinic; S.health -= 3; return 'Cleaned, bandaged and sent home. You will take the bus for a while.'; } S.health -= 15; S.mood -= 5; return 'It is swelling. You limp through the week.'; } },
   y_phone: {
+    cond: () => timesThisYear('y_phone') < 2,
     make: () => ({ newp: price(120000), used: price(45000) }),
     view: p => ({ who: 'Bus stop', title: 'Phone snatched', text: 'Someone snatched your phone at the bus stop. Your bank apps, your contacts, everything.',
       choices: [{ l: `Buy a new phone (${naira(p.newp)})`, h: 'Back to normal' }, { l: `Buy a fairly used one (${naira(p.used)})`, h: '−4 mood' }, { l: 'Manage your old small phone', h: '−10 mood, fewer fans' }] }),
     pick: (p, i) => { if (i === 0) { S.money -= p.newp; return 'New phone, new case, and you now hold it with two hands.'; } if (i === 1) { S.money -= p.used; S.mood -= 4; return 'The screen has a crack, but it works.'; } S.mood -= 10; S.clout = Math.round(S.clout * 0.9); return 'No camera, no apps. Your followers think you have disappeared.'; } },
   y_bank: {
+    cond: () => timesThisYear('y_bank') < 2,
     make: () => ({ agent: price(5000) }),
     view: p => ({ who: 'Your bank', title: 'Account restricted', text: 'Your bank has frozen your account until you link your NIN. The queue at the branch is long.',
       choices: [{ l: 'Queue at the branch', h: '−12 energy' }, { l: `Pay a "helper" to jump the queue (${naira(p.agent)})`, h: 'Quick, a bit shady' }] }),
@@ -780,11 +789,13 @@ Object.assign(EV, {
       choices: [{ l: `Prepare well and buy an outfit (${naira(p.cost)})`, h: '~60% chance of a job' }, { l: 'Go as you are', h: '~30% chance of a job' }] }),
     pick: (p, i) => { if (i === 0) S.money -= p.cost; if (chance(i === 0 ? 0.6 : 0.3)) { S.job = true; S.mood += 10; return `You got the job! Starting pay ${naira(weeklyPay())} a week.`; } S.mood -= 6; return '"We will get back to you." They did not.'; } },
   y_guests: {
+    cond: () => timesThisYear('y_guests') < 2,
     make: () => ({ amt: price(15000) }),
     view: p => ({ who: 'Mama', title: 'Relatives are coming to stay', text: `Your aunty and her two children are coming to stay with you for a week. Feeding them will cost about ${naira(p.amt)}.`,
       choices: [{ l: 'Welcome them', h: '+8 family, money down' }, { l: 'Say your place is too small', h: '−8 family' }] }),
     pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.family += 8; S.energy -= 5; return 'Full house. The children finished your cornflakes, but Mama is proud.'; } S.family -= 8; return 'Your aunty said she understands. Her voice said otherwise.'; } },
   y_bill: {
+    cond: () => timesThisYear('y_bill') < 2,
     make: () => ({ amt: price(25000) }),
     view: p => ({ who: 'Electricity company', title: 'Estimated bill', text: `A ${naira(p.amt)} electricity bill arrived, for light you mostly did not get.`,
       choices: [{ l: 'Pay it', h: 'Money down' }, { l: 'Go to the office and dispute it', h: '−10 energy, ~50% cancelled' }] }),
@@ -868,7 +879,12 @@ const HOME_EXTRA = ['y_okada', 'y_phone', 'y_bank', 'y_landlord', 'y_guests', 'y
 const RANDOM_POOL = ['blacktax', 'blacktax', 'owambe', 'owambe', 'ajo', 'fuel', 'nepa', 'nepa', 'ponzi', 'sponsor', 'agent', 'tunde', 'tunde', 'y_interview', ...HOME_EXTRA];
 const BUILD_POOL = ['blacktax', 'blacktax', 'owambe', 'nepa', 'fuel', 'b_levy', 'b_supplier', 'b_contract', 'b_theft', 'b_rival', 'b_japalate', 'sponsor', 'ponzi', 'devalue', 'b_park', 'b_alert', ...HOME_EXTRA];
 const ABROAD_POOL =['a_blacktax', 'a_blacktax', 'a_winter', 'a_winter', 'a_hours', 'a_rude', 'a_owambe', 'a_owambe', 'a_tunde', 'a_scam', 'a_homesick', 'devalue', 'a_snow', 'a_council', 'a_afroshop'];
-function queueEvent(id) { S.queue.push({ id, p: EV[id].make() }); }
+function queueEvent(id) {
+  S.queue.push({ id, p: EV[id].make() });
+  S.evCount = S.evCount || {}; const key = id + '@' + Math.ceil(S.week / 52); S.evCount[key] = (S.evCount[key] || 0) + 1;
+}
+// how many times an event has happened this in-game year (used to cap repeat misfortunes)
+const timesThisYear = id => (S.evCount || {})[id + '@' + Math.ceil(S.week / 52)] || 0;
 
 /* ---------- Pidgin event stories (shown when the language is set to Pidgin) ---------- */
 const PGW = {
@@ -1822,8 +1838,9 @@ function endView() {
     </table>
     ${S.abroad ? `<table class="ledger"><tr><td>Weeks abroad</td><td>${weeksAbroad()}</td></tr><tr><td>Sent home</td><td>${usd(S.abroad.remitted)}</td></tr><tr><td>Plots of land at home</td><td>${S.abroad.land}</td></tr><tr><td>Senior carer</td><td>${S.abroad.promoted ? 'Yes' : 'No'}</td></tr></table>` : ''}
     ${S.build ? `<table class="ledger"><tr><td>Business level</td><td>${S.biz}</td></tr><tr><td>Branches</td><td>${S.build.branches}</td></tr><tr><td>Staff</td><td>${S.build.staff}</td></tr><tr><td>Hometown house</td><td>${S.build.house}/8</td></tr></table>` : ''}
-    <p class="note" style="margin:0">${S.abroad ? 'That is the end of the Abroad chapter in this prototype.' : S.build ? 'That is the end of the Build chapter in this prototype.' : 'Year 1 is over. Keep building at home in Year 2, or start a new run and board the flight to play the Abroad chapter.'}</p>
-    ${!S.abroad && !S.build && S.ending === 'year' ? `<button class="btn" data-act="build">Keep building at home: play Year 2</button>` : ''}
+    <p class="note" style="margin:0">${S.abroad ? 'That is the end of the Abroad chapter in this prototype.' : S.build ? 'That is the end of the Build chapter in this prototype.' : S.japaY2 ? 'Two years of chasing papers. Start a new life to try again.' : japaProgress() >= 2 ? 'Year 1 is over. Keep trying for the visa in Year 2, or settle down and build at home.' : 'Year 1 is over. Keep building at home in Year 2, or start a new run and go for the visa.'}</p>
+    ${!S.abroad && !S.build && !S.japaY2 && S.ending === 'year' && japaProgress() >= 2 ? `<button class="btn" data-act="japa2">Keep trying for the visa: play Year 2</button>` : ''}
+    ${!S.abroad && !S.build && !S.japaY2 && S.ending === 'year' ? `<button class="btn ${japaProgress() >= 2 ? 'ghost' : ''}" data-act="build">Keep building at home: play Year 2</button>` : ''}
     <button class="btn" data-act="restart">${t('newGame')}</button></section>`;
 }
 // Paste a feedback form link here (for example a Google Form) to show "Send feedback" in the footer.
@@ -1866,7 +1883,7 @@ function logView() {
   return `<section class="panel"><span class="label">${t('log')}</span><div class="log">${S.log.slice(0, 14).map(l => `<div>W${l.w} · ${l.m}</div>`).join('')}</div></section>`;
 }
 function render() {
-  document.getElementById('tagline').textContent = S && S.abroad ? 'Year 2 · The Abroad chapter' : S && S.build ? 'Year 2 · The Build chapter' : 'Weekly-loop prototype · Year 1';
+  document.getElementById('tagline').textContent = S && S.abroad ? 'Year 2 · The Abroad chapter' : S && S.build ? 'Year 2 · The Build chapter' : S && S.japaY2 ? 'Year 2 · Still chasing the visa' : 'Weekly-loop prototype · Year 1';
   document.getElementById('lang-en').setAttribute('aria-pressed', LANG === 'en');
   document.getElementById('lang-pg').setAttribute('aria-pressed', LANG === 'pg');
   document.getElementById('feedback').innerHTML = FEEDBACK_URL ? `· <a href="${esc(FEEDBACK_URL)}" target="_blank" rel="noopener">Send feedback</a>` : '';
@@ -2044,6 +2061,7 @@ document.addEventListener('click', e => {
       if (short > 0) toast(t('loanToast'));
       S.picked.push(k); Sound.play('tap'); } save(); }
   if (a === 'build') { startBuild(false); dealHand(); S.phase = 'plan'; save(); Sound.play('choose'); }
+  if (a === 'japa2') { startJapaY2(); dealHand(); S.phase = 'plan'; save(); Sound.play('choose'); }
   if (a === 'start') Sound.play('choose');
   if (a === 'intro-ok' || a === 'start') { introSeen = true; try { localStorage.setItem('jos-intro', '1'); } catch (er) {} }
   if (a === 'end') { endWeek(); Sound.play('drum'); }
