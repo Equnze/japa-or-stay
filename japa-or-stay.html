@@ -477,7 +477,7 @@ const CARDS = {
   b_campaign: { bd: true, name: 'Campaign for councillor', blocks: 5, cost: () => price(150000), can: () => S.community >= 70 && S.build.leader >= 6 && S.build.campaign < 8,
     tags: () => [`campaign ${S.build.campaign}/8`, 'Stay'],
     run: () => { S.build.campaign += 1; S.energy -= 12; S.clout += 150; return `Rallies, posters, market visits. Campaign progress ${S.build.campaign} of 8.`; } },
-  b_house: { bd: true, name: 'Build a house in your hometown', blocks: 3, cost: () => price(900000), can: () => S.build.house < 8 && S.week >= (S.build.houseNext || 0),
+  b_house: { bd: true, name: 'Build a house in your hometown', blocks: 3, cost: () => price(200000), can: () => S.build.house < 8 && S.week >= (S.build.houseNext || 0),
     tags: () => [`stage ${S.build.house}/8`, '+family', 'Stay'],
     run: () => { S.build.house += 1; S.build.houseNext = S.week + 3; S.family += 6; S.resolve -= 3;
       return ['Land cleared and foundation laid.', 'Blocks up to window level.', 'Lintels and pillars cast.', 'Roofing done.', 'Windows and doors fitted.', 'Plastering and wiring done.', 'Tiles and plumbing done.', 'Painting done. The house is ready!'][S.build.house - 1] + (S.build.house < 8 ? ' The builders need 3 weeks before the next stage.' : ''); } }
@@ -496,6 +496,7 @@ function dealHand() {
   if (S.build) {
     const always = ['rest', 'b_shop'];
     if (S.debt > 0) always.push('repay');
+    if (CARDS.b_house.can()) always.push('b_house'); // the hometown house is always on offer when the builders are ready
     // one growth goal is always dealt
     const goals = ['b_restock', 'b_cac', 'b_hire', 'b_branch', 'b_campaign', 'b_house'].filter(k => CARDS[k].can());
     if (goals.length) always.push(pick(goals));
