@@ -363,8 +363,9 @@ const CARDS = {
   audition: { name: 'Nollywood audition', blocks: 3, cost: () => price(4000), can: () => true,
     tags: () => [S.region === 'enugu' ? '~35% role' : '~20% role', '+clout'],
     run: () => { S.energy -= 6; if (chance(S.region === 'enugu' ? 0.35 : 0.2)) { const f = price(70000); S.money += f; S.clout += 600; return `You got a supporting role! Paid ${naira(f)}, +600 fans.`; } return 'They said you are "not the look" this time.'; } },
-  stock: { name: 'Buy stock for your business', blocks: 4, cost: () => price(60000), can: () => true,
-    tags: () => ['business level +1', 'weekly profit', 'Stay'],
+  // Year 1 business: each level costs more than the last, and it tops out at level 8 (the Build chapter takes it further)
+  stock: { name: 'Buy stock for your business', blocks: 4, cost: () => price(60000 * (1 + 0.5 * S.biz)), can: () => S.biz < 8,
+    tags: () => [`level ${S.biz} → ${S.biz + 1}`, 'weekly profit', 'Stay'],
     run: () => { S.biz += 1; S.resolve -= 6; S.energy -= 6; return `Business is now level ${S.biz}. Profit comes at settle-up.`; } },
   repay: { name: 'Repay the loan app', blocks: 1, cost: () => 0, can: () => S.debt > 0 && S.money > 0,
     tags: () => [`owe ${naira(S.debt)}`],
@@ -485,7 +486,7 @@ function dealHand() {
   if (CARDS.convert.can()) always.push('convert');
   // the next step on the path you lean toward is always dealt
   if (S.resolve > 10) { const nextJapa = ['passport', 'test', 'study', 'apply'].find(k => CARDS[k].can()); if (nextJapa) always.push(nextJapa); }
-  if (S.resolve < -10) always.push('stock');
+  if (S.resolve < -10 && CARDS.stock.can()) always.push('stock');
   return fillHand(always, k => !CARDS[k].ab && !CARDS[k].bd);
 }
 function fillHand(always, ok) {
@@ -515,7 +516,7 @@ const EV = {
     pick: (p, i) => {
       const mult = S.trait === 'owambe' ? 2 : 1;
       if (i === 0) { S.money -= p.aso + p.spray; S.community += 10 * mult; S.clout += 80; S.mood += 10; S.resolve -= 3;
-        if (chance(0.3)) { if (!S.job) { S.job = true; return 'You sprayed well, and the celebrant\'s uncle offered you a job on the spot!'; } S.biz += 1; return 'You sprayed well, and a guest became a big customer. Business +1.'; }
+        if (chance(0.3)) { if (!S.job) { S.job = true; return 'You sprayed well, and the celebrant\'s uncle offered you a job on the spot!'; } S.biz = S.build ? S.biz + 1 : Math.min(8, S.biz + 1); return 'You sprayed well, and a guest became a big customer. Business +1.'; }
         return 'You danced, you sprayed, everybody saw you.'; }
       if (i === 1) { S.money -= p.aso; S.community += 4 * mult; S.mood += 5; return 'You showed face. Jollof was correct.'; }
       S.community -= 6; return '"Where were you?" Three people asked.';
