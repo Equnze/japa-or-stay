@@ -349,7 +349,7 @@ const CARDS = {
   pos: { name: 'Run a POS stand', blocks: 6, cost: () => 0, can: () => true,
     tags: () => ['+₦15k–40k', '−15 energy', 'Stay'],
     run: () => { const g = Math.round(rnd(15000, 40000) * S.idx * hustleBoost() * bodyMult() / 100) * 100; S.money += g; S.energy -= 15; S.resolve -= 2; return `POS hustle made ${naira(g)}.`; } },
-  study: { name: 'Study for the English test', blocks: 4, cost: () => price(5000), can: () => S.ielts < 6.5,
+  study: { name: 'Study for the English test', blocks: 4, cost: () => price(5000), can: () => S.ielts < 6.5 && S.skills.english < 7,
     tags: () => ['English skill +', '−8 energy', 'Japa'],
     run: () => { S.skills.english += 0.8 * (S.trait === 'book' ? 1.5 : 1); S.energy -= 8; S.resolve += 3; return `Study session done. English skill ${S.skills.english.toFixed(1)}.`; } },
   test: { name: 'Sit the English test', blocks: 2, cost: () => S.usd >= TEST_USD ? 0 : Math.round(TEST_USD * S.fx), can: () => S.skills.english >= 3 && S.ielts < 6.5,
@@ -552,6 +552,7 @@ const EV = {
       S.family -= 12; S.mood -= 6; return 'You said no. The family WhatsApp group went quiet.';
     } },
   owambe: {
+    cond: () => timesThisYear('owambe') < 5,
     make: () => ({ aso: fun(15000), spray: fun(20000), whose: pick(['cousin\'s wedding', 'Chief\'s 60th birthday', 'friend\'s naming ceremony']) }),
     view: p => ({ who: REG().friend, av: REG().friend[0], cls: 'g', title: 'Owambe this Saturday', text: `You're invited to a ${p.whose}. Aso-ebi costs ${naira(p.aso)}.`,
       choices: [{ l: `Attend and spray ${naira(p.spray)}`, h: 'Big community, clout and network boost' }, { l: 'Attend, no spraying', h: 'Pay aso-ebi only' }, { l: 'Skip it', h: 'Save money, community falls' }] }),
@@ -564,18 +565,19 @@ const EV = {
       S.community -= 6; return '"Where were you?" Three people asked.';
     } },
   ajo: {
-    cond: () => !S.ajo,
+    cond: () => !S.ajo && timesThisYear('ajo') < 3,
     make: () => ({ amt: price(10000) }),
     view: p => ({ who: 'Iya Ajo', av: 'I', cls: '', title: 'Join the Ajo circle?', text: `Eight members, ${naira(p.amt)} each week. When your turn comes you collect ${naira(p.amt * 8)} at once.`,
       choices: [{ l: 'Join the circle', h: 'Weekly payment, big payout later' }, { l: 'Not now', h: 'Nothing changes' }] }),
     pick: (p, i) => { if (i === 0) { S.ajo = { amt: p.amt, start: S.week, payout: S.week + 2 + Math.floor(rnd(0, 6)), paid: false }; S.community += 5; return `You're in. Your turn to collect is week ${S.ajo.payout}.`; } return 'You passed. Iya Ajo said "your loss."'; } },
   fuel: {
-    cond: () => S.fuel === 0,
+    cond: () => S.fuel === 0 && timesThisYear('fuel') < 3,
     make: () => ({ bm: price(8000) }),
     view: p => ({ who: 'News', av: '!', cls: 'b', title: 'Fuel scarcity', text: 'Petrol stations are dry. Transport fares have doubled for the next 3 weeks.',
       choices: [{ l: 'Queue for hours', h: '−15 energy' }, { l: `Buy black-market fuel (${naira(p.bm)})`, h: 'Money down' }] }),
     pick: (p, i) => { S.fuel = 3; if (i === 0) { S.energy -= 15; return 'Six hours in the queue. You got 10 litres.'; } S.money -= p.bm; return 'The jerrycan boy smiled. Your wallet did not.'; } },
   nepa: {
+    cond: () => timesThisYear('nepa') < 8,
     make: () => ({ gen: price(7000) * (S.fuel ? 2 : 1), solar: price(180000) }),
     view: p => ({ who: 'NEPA', av: 'N', cls: 'b', title: 'No light all week', text: S.solar ? 'Light is gone again, but your solar is working.' : 'Light has been gone for five days. Food in the freezer is suffering.',
       choices: S.solar ? [{ l: 'Smile and charge your phone', h: 'Solar pays off' }] : [{ l: `Run the generator (${naira(p.gen)})`, h: 'Money down' }, { l: 'Sweat it out', h: '−8 mood, −8 energy' }, { l: `Install small solar (${naira(p.solar)})`, h: 'Big cost now, no NEPA wahala later' }] }),
@@ -607,6 +609,7 @@ const EV = {
     pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.mood -= 15; S.scammedAgent = true; return 'He collected the money and switched off his phone. It was a scam. Real visas never come "guaranteed".'; }
       S.streetSmart = true; return 'He had no registration. You reported him. Street Smart badge earned.'; } },
   tunde: {
+    cond: () => timesThisYear('tunde') < 4,
     make: () => ({ good: chance(0.5) }),
     view: p => ({ who: 'Cousin Tunde (Northland)', av: 'T', cls: 'j', title: 'A message from abroad', text: p.good ? '"Bro, I just paid my rent and still sent money home. Light dey 24/7. Come, e get as e be."' : '"Honestly? I work night shifts in the cold and I miss pepper soup. Some days I wonder why I came."',
       choices: [{ l: 'Reply and gist', h: 'See how life is over there' }] }),
@@ -833,11 +836,11 @@ Object.assign(EV, {
       choices: [{ l: 'Queue at the branch', h: '−12 energy' }, { l: `Pay a "helper" to jump the queue (${naira(p.agent)})`, h: 'Quick, a bit shady' }] }),
     pick: (p, i) => { if (i === 0) { S.energy -= 12; return 'Four hours later, your account is working again.'; } S.money -= p.agent; return 'The "helper" knew the security man. Done in 20 minutes.'; } },
   y_landlord: {
-    cond: () => (S.rentMult || 1) < 1.5,
+    cond: () => (S.rentMult || 1) < 1.5 && timesThisYear('y_landlord') < 2 && S.week - (S.rentHikeWeek || -99) >= 15,
     make: () => ({ move: price(90000) }),
     view: p => ({ who: 'Landlord', title: 'Rent is going up', text: 'Your landlord says rent goes up by 20% from next week. "Everything is expensive now."',
       choices: [{ l: 'Accept the new rent', h: 'Weekly rent +20%' }, { l: 'Negotiate', h: 'Smooth Talker does better' }, { l: `Move to a cheaper place (${naira(p.move)})`, h: 'One-off cost, −5 community' }] }),
-    pick: (p, i) => { const m = S.rentMult || 1;
+    pick: (p, i) => { const m = S.rentMult || 1; S.rentHikeWeek = S.week;
       if (i === 0) { S.rentMult = m * 1.2; return 'You accepted. Your landlord smiled for the first time.'; }
       if (i === 1) { if (S.trait === 'smooth' || chance(0.4)) { S.rentMult = m * 1.08; return 'You talked it down to 8%. Respect.'; } S.rentMult = m * 1.2; S.mood -= 3; return 'He did not move. "Take it or leave it."'; }
       S.money -= p.move; S.community -= 5; S.rentMult = m * 0.9; return 'New area, cheaper rent, and a new set of neighbours to learn.'; } },
@@ -901,6 +904,22 @@ Object.assign(EV, {
     view: p => ({ who: 'Port Harcourt air', title: 'Black soot again', text: 'Black soot from illegal refining is settling on everything. Your nose and your white shirts are suffering.',
       choices: [{ l: `Buy an air purifier and masks (${naira(p.amt)})`, h: 'Protect your health' }, { l: 'Endure it', h: '−10 health' }] }),
     pick: (p, i) => { if (i === 0) { S.money -= p.amt; return 'The purifier hums all night. Your room is the cleanest in the compound.'; } S.health -= 10; return 'Black specks in your nose every morning.'; } },
+  ph_bole: {
+    cond: () => S.region === 'ph' && timesThisYear('ph_bole') < 2,
+    make: () => ({ amt: price(5000) }),
+    view: p => ({ who: REG().friend, title: 'Bole and fish', text: `${REG().friend} is calling you to the bole spot by the roundabout: roasted plantain, grilled fish and pepper sauce, ${naira(p.amt)} a head.`,
+      choices: [{ l: `Go and eat (${naira(p.amt)})`, h: '+10 mood, +4 community' }, { l: 'Not this time', h: 'Nothing changes' }] }),
+    pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.mood += 10; S.community += 4; return 'Bole, fish and gist till the mosquitoes chased everyone home.'; } return 'Tari sent you a picture of the fish. Wicked.'; } },
+  ph_carnival: {
+    cond: () => S.region === 'ph' && ['Nov', 'Dec'].includes(month()) && timesThisYear('ph_carnival') < 1,
+    make: () => ({ amt: fun(15000) }),
+    view: p => ({ who: REG().friend, title: 'Garden City carnival', text: `The Rivers carnival is on: costumes, masquerades and music all down the road. Costume and food: ${naira(p.amt)}.`,
+      choices: [{ l: `Join the carnival (${naira(p.amt)})`, h: '+12 mood, +6 community, fans' }, { l: 'Watch from the roadside', h: '+4 mood' }] }),
+    pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.mood += 12; S.community += 6; S.clout += 80; return 'You danced the whole route. Your costume video is doing numbers.'; } S.mood += 4; return 'You watched the floats go by with a cold drink.'; } },
+  y_quiet: {
+    make: () => { const n = QUIET.length; let v = Math.floor(rnd(0, n)); if (v === S.lastQuiet) v = (v + 1) % n; S.lastQuiet = v; return { v, amt: price(2000) }; },
+    view: p => { const q = QUIET[p.v]; return { who: q.who, title: q.title, text: q.text(p), choices: [{ l: q.l, h: q.h }] }; },
+    pick: p => QUIET[p.v].fx(p) },
   ph_flood: {
     cond: () => (S.region === 'ph' || S.region === 'lagos') && ['Jun', 'Jul', 'Sep'].includes(month()) && timesThisYear('ph_flood') < 1,
     make: () => ({ amt: price(40000) }),
@@ -978,7 +997,16 @@ EV.loanshame = {
   pick: (p, i) => { if (i === 0) { if (p.pay > 0) { S.money -= p.pay; S.debt -= p.pay; } S.family -= 5; S.mood -= 5; return p.pay > 0 ? 'You paid what you could. The messages slowed down, but everyone knows now.' : 'Mama forgave you, but your aunties are still talking.'; }
     S.family -= 15; S.mood -= 10; S.community -= 5; return 'They messaged your boss too. Everyone knows now.'; }
 };
-const HOME_EXTRA = ['y_okada', 'y_phone', 'y_bank', 'y_landlord', 'y_guests', 'y_bill', 'y_giving', 'kano_harmattan', 'kano_durbar', 'enugu_august', 'enugu_newyam', 'lagos_traffic', 'ph_soot', 'ph_flood'];
+// small slice-of-life moments for quiet weeks (no big costs)
+const QUIET = [
+  { who: 'Viewing centre', title: 'Big match on Sunday', text: () => 'The viewing centre was packed for the big match. Everybody was a coach.', l: 'Shout at the TV', h: '+6 mood', fx: () => { S.mood += 6; return 'Your team won. You are hoarse but happy.'; } },
+  { who: 'Mama', title: 'A voice note from Mama', text: () => 'Mama sent a four-minute voice note: prayers, gist about the neighbours, and a reminder to eat.', l: 'Listen to all of it', h: '+4 family', fx: () => { S.family += 4; return 'You played it twice. Then you called her back.'; } },
+  { who: 'Mallam at the junction', title: 'Suya night', text: p => `The suya spot at the junction is smoking. ${naira(p.amt)} for a wrap with extra yaji.`, l: 'Buy a wrap', h: '+4 mood, small cost', fx: p => { S.money -= p.amt; S.mood += 4; return 'Pepper, onions, newspaper wrap. Perfect.'; } },
+  { who: 'Your street', title: 'Canopy on the road', text: () => 'A neighbour blocked the street with canopies for a party. Music until 4am.', l: 'Join them for small', h: '+3 community, −3 energy', fx: () => { S.community += 3; S.energy -= 3; return 'You ate jollof and danced one song. Neighbourly duty done.'; } },
+  { who: 'NEPA', title: '"Up NEPA!"', text: () => 'Light came back in the middle of the evening and the whole street shouted together.', l: 'Charge everything', h: '+5 mood', fx: () => { S.mood += 5; return 'Phone, power bank, rechargeable fan. All full.'; } },
+  { who: 'Old classmate', title: 'A post from an old classmate', text: () => 'Your old classmate posted a photo from the airport: "New chapter." The comments are full of congratulations.', l: 'Drop a comment', h: 'Makes you think', fx: () => { S.resolve += 2; return 'You typed "Congrats!!" and stared at the photo for a while.'; } }
+];
+const HOME_EXTRA = ['y_okada', 'y_phone', 'y_bank', 'y_landlord', 'y_guests', 'y_bill', 'y_giving', 'kano_harmattan', 'kano_durbar', 'enugu_august', 'enugu_newyam', 'lagos_traffic', 'ph_soot', 'ph_flood', 'ph_bole', 'ph_carnival'];
 const RANDOM_POOL = ['blacktax', 'blacktax', 'owambe', 'owambe', 'ajo', 'fuel', 'nepa', 'nepa', 'ponzi', 'sponsor', 'agent', 'tunde', 'tunde', 'y_interview', ...HOME_EXTRA];
 const BUILD_POOL = ['blacktax', 'blacktax', 'owambe', 'nepa', 'fuel', 'b_levy', 'b_supplier', 'b_contract', 'b_theft', 'b_rival', 'b_japalate', 'sponsor', 'ponzi', 'devalue', 'b_park', 'b_alert', ...HOME_EXTRA];
 const ABROAD_POOL =['a_blacktax', 'a_blacktax', 'a_winter', 'a_winter', 'a_hours', 'a_rude', 'a_owambe', 'a_owambe', 'a_tunde', 'a_scam', 'a_homesick', 'devalue', 'a_snow', 'a_council', 'a_afroshop',
@@ -997,6 +1025,14 @@ const PGW = {
   'generator repair': 'generator repair', 'Papa\'s hospital bill': 'Papa hospital bill', 'your cousin\'s school fees': 'your cousin school fees', 'church harvest levy': 'church harvest levy', 'roof for the village house': 'roof for village house'
 };
 const pw = s => PGW[s] || s;
+const QUIET_PG = [
+  () => ({ title: 'Big match for Sunday', text: 'Viewing centre full for the big match. Everybody na coach.', choices: [{ l: 'Shout for TV', h: '+6 happiness' }] }),
+  () => ({ title: 'Voice note from Mama', text: 'Mama send four-minute voice note: prayer, gist about neighbours, and make you remember to chop.', choices: [{ l: 'Listen everything', h: '+4 family' }] }),
+  p => ({ title: 'Suya night', text: `Suya spot for junction dey smoke. ${naira(p.amt)} for one wrap with extra yaji.`, choices: [{ l: 'Buy one wrap', h: '+4 happiness, small money' }] }),
+  () => ({ title: 'Canopy for road', text: 'One neighbour block the street with canopy for party. Music till 4am.', choices: [{ l: 'Join dem small', h: '+3 your people, −3 strength' }] }),
+  () => ({ title: '"Up NEPA!"', text: 'Light come back for evening and the whole street shout together.', choices: [{ l: 'Charge everything', h: '+5 happiness' }] }),
+  () => ({ title: 'Post from old classmate', text: 'Your old classmate post photo from airport: "New chapter." Comment section full of congratulations.', choices: [{ l: 'Drop comment', h: 'E go make you think' }] })
+];
 const PGV = {
   blacktax: p => ({ title: 'Family wahala', text: p.elder ? `Dem dey gather money for ${pw(p.what)}, dem hope say you fit give ${naira(p.amt)}.` : `${p.open === undefined ? REG().open + ' ' : p.open}the ${pw(p.what)} money na ${naira(p.amt)}. Abeg, help us.`,
     choices: [{ l: `Pay am all (${naira(p.amt)})`, h: 'Family go happy, your pocket go cry' }, { l: 'Price am: pay half', h: 'Smooth Talker go do am better' }, { l: 'Say no this time', h: 'Family go vex, guilt go catch you' }] }),
@@ -1150,6 +1186,16 @@ const PGR = {
   'You left with your savings and a hard lesson about visa rules.': 'You comot with your savings and hard lesson about visa rules.',
   'Pepper soup, rest and Nollywood. You are back on your feet.': 'Pepper soup, rest and Nollywood. You don stand up again.',
   'Cold medicine and willpower.': 'Cold medicine and strong head.',
+  'Your team won. You are hoarse but happy.': 'Your team win. Your voice don go but you happy.',
+  'You played it twice. Then you called her back.': 'You play am two times. Then you call her back.',
+  'Pepper, onions, newspaper wrap. Perfect.': 'Pepper, onions, newspaper wrap. E correct.',
+  'You ate jollof and danced one song. Neighbourly duty done.': 'You chop jollof and dance one song. Neighbour duty done.',
+  'Phone, power bank, rechargeable fan. All full.': 'Phone, power bank, rechargeable fan. Everything full.',
+  'You typed "Congrats!!" and stared at the photo for a while.': 'You type "Congrats!!" and look the photo for long.',
+  'Bole, fish and gist till the mosquitoes chased everyone home.': 'Bole, fish and gist until mosquito pursue everybody go house.',
+  'Tari sent you a picture of the fish. Wicked.': 'Tari send you picture of the fish. Wicked person.',
+  'You danced the whole route. Your costume video is doing numbers.': 'You dance the whole road. Your costume video dey do numbers.',
+  'You watched the floats go by with a cold drink.': 'You watch the floats dey pass with cold drink for hand.',
   'Agbo and tablets again. The chemist said, "This one needs proper rest, not more drugs."': 'Agbo and tablet again. Chemist talk say, "This one need proper rest, no be more drugs."',
   'Mama travelled down to sit with you. "Money no be everything, my child."': 'Mama travel come sit with you. "Money no be everything, my pikin."',
   'Mama cried on the video call. "Money no be everything, my child."': 'Mama cry for video call. "Money no be everything, my pikin."',
@@ -1210,6 +1256,11 @@ Object.assign(PGV, {
     choices: [{ l: 'Comot house 5am every day', h: '−12 strength' }, { l: `Take okada pass side road (${naira(p.amt)})`, h: 'Money go comot, small risk' }, { l: 'Reach late, beg', h: '−6 happiness' }] }),
   ph_soot: p => ({ title: 'Black soot again', text: 'Black soot from illegal refinery dey settle on everything. Your nose and your white shirt dey suffer.',
     choices: [{ l: `Buy air purifier and mask (${naira(p.amt)})`, h: 'Protect your body' }, { l: 'Endure am', h: '−10 body' }] }),
+  y_quiet: p => QUIET_PG[p.v](p),
+  ph_bole: p => ({ title: 'Bole and fish', text: `${REG().friend} dey call you go bole spot near roundabout: roasted plantain, grilled fish and pepper sauce, ${naira(p.amt)} per head.`,
+    choices: [{ l: `Go chop (${naira(p.amt)})`, h: '+10 happiness, +4 your people' }, { l: 'No be this time', h: 'Nothing go change' }] }),
+  ph_carnival: p => ({ title: 'Garden City carnival', text: `Rivers carnival don start: costume, masquerade and music full road. Costume and food: ${naira(p.amt)}.`,
+    choices: [{ l: `Join the carnival (${naira(p.amt)})`, h: '+12 happiness, +6 your people, fans' }, { l: 'Watch from roadside', h: '+4 happiness' }] }),
   ph_flood: p => ({ title: 'Flood don enter your street', text: `Heavy rain flood your street overnight. Water enter your room. Repair and new things: ${naira(p.amt)}.`,
     choices: [{ l: `Fix everything (${naira(p.amt)})`, h: 'Money go comot' }, { l: 'Dry wetin you fit', h: '−8 happiness, −5 body' }] }),
   a_snow: () => ({ title: 'Your first snow', text: 'You wake up and everything white. Snow, real snow, like for film.',
@@ -1365,6 +1416,7 @@ function endWeek() {
   let pool = (ab ? ABROAD_POOL : S.build ? BUILD_POOL : RANDOM_POOL).filter(id => !EV[id].cond || EV[id].cond());
   const fresh = pool.filter(id => !recent.includes(id) && !S.queue.some(q => q.id === id));
   if (fresh.length) pool = fresh;
+  else if (!ab) pool = ['y_quiet'];
   queueEvent(pick(pool));
   if (chance(0.35)) { const second = pick(pool); if (!S.queue.some(q => q.id === second)) queueEvent(second); }
   S.recent = [...S.queue.map(q => q.id), ...recent].slice(0, 6);
@@ -1693,7 +1745,7 @@ const EV_ART = { blacktax: 'mama', school: 'mama', owambe: 'friend', detty: 'fri
   a_homesick: 'mama', a_promo: 'manager', a_pr: 'embassy', a_return: 'plane', a_deport: 'embassy', a_sick: 'sick', collapse: 'sick', a_collapse: 'sick',
   b_levy: 'areaboy', b_supplier: 'trader', b_contract: 'alhaji', b_theft: 'shop', b_rival: 'shop', b_japalate: 'tunde', b_election: 'ballot', b_empire: 'odogwu', b_housewarm: 'mama',
   loanshame: 'news', y_okada: 'sick', y_phone: 'news', y_bank: 'news', y_landlord: 'landlord', y_interview: 'banker', y_guests: 'mama', y_bill: 'nepa', y_giving: 'iya',
-  kano_harmattan: 'cold', kano_durbar: 'friend', enugu_august: 'iya', enugu_newyam: 'mama', lagos_traffic: 'news', ph_soot: 'sick', ph_flood: 'news',
+  kano_harmattan: 'cold', kano_durbar: 'friend', enugu_august: 'iya', enugu_newyam: 'mama', lagos_traffic: 'news', ph_soot: 'sick', ph_flood: 'news', ph_bole: 'friend', ph_carnival: 'friend', y_quiet: 'friend',
   a_snow: 'cold', a_council: 'embassy', a_afroshop: 'shop',
   a_flatmate: 'friend', a_strike: 'news', a_committee: 'iya', a_cousin: 'tunde', a_mamasolar: 'mama', b_park: 'areaboy', b_alert: 'fixit' };
 function eventArt(id, who, p) {
