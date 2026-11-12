@@ -166,6 +166,34 @@ table.ledger tr.total td { border-bottom: 0; font-weight: 700; padding-top: 8px;
 .help .track ul { padding-left: 0; }
 .help .track .note { margin: 6px 0 0; }
 .help > .btn:last-child { align-self: flex-start; }
+.helptabs { align-self: flex-start; }
+.helptabs button { font-size: 13px; padding: 8px 16px; }
+.eg-intro { margin: 0; font-size: 16px; }
+.eg { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.eg > summary { cursor: pointer; list-style: none; padding: 12px 14px; display: flex; align-items: center; gap: 10px; font: 600 17px/1.25 var(--font-display); min-height: 48px; }
+.eg > summary::-webkit-details-marker { display: none; }
+.eg > summary::before { content: "+"; flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--chip); color: var(--stay); font: 800 18px/26px var(--font-body); text-align: center; }
+.eg[open] > summary::before { content: "–"; }
+.eg > summary:focus-visible { outline: 2px solid var(--japa); outline-offset: 2px; border-radius: 12px; }
+.eg-body { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 10px; font-size: 15px; line-height: 1.55; }
+.eg-body p { margin: 0; }
+.eg-body ul, .eg-body ol { gap: 5px; }
+.eg-dl { display: grid; grid-template-columns: minmax(0, 9.5rem) minmax(0, 1fr); gap: 6px 12px; margin: 0; }
+.eg-dl dt { font-weight: 700; } .eg-dl dd { margin: 0; }
+.eg-fix { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 12px; }
+.eg-fix span:nth-child(odd) { color: var(--muted); } .eg-fix span:nth-child(even) { font-weight: 700; color: var(--stay); }
+.eg-tbl { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.eg-tbl td { padding: 6px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.eg-tbl td:first-child { font-weight: 700; width: 40%; padding-right: 10px; }
+.eg-h { font: 700 13px var(--font-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 4px 0 0; }
+.eg-warn { background: color-mix(in srgb, var(--bad) 10%, var(--surface)); border-radius: 10px; padding: 10px 12px; }
+.eg-tip { background: color-mix(in srgb, var(--gold) 14%, var(--surface)); border-radius: 10px; padding: 10px 12px; }
+.eg-pill { display: inline-block; border: 1.5px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 0 9px; font-weight: 600; font-size: 13.5px; white-space: nowrap; }
+.eg-blocks { display: flex; flex-wrap: wrap; gap: 3px; max-width: 260px; }
+.eg-blocks i { width: 12px; height: 12px; border-radius: 3px; background: var(--gold); } .eg-blocks i.u { background: var(--line); }
+.eg-card { border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; max-width: 300px; display: flex; flex-direction: column; gap: 4px; background: var(--surface-2); }
+.eg-card .tg { display: flex; flex-wrap: wrap; gap: 5px; } .eg-card .tg span { background: var(--chip); border-radius: 6px; padding: 0 7px; font-size: 13px; font-weight: 600; }
+@media (max-width: 480px) { .eg-dl { grid-template-columns: 1fr; gap: 0; } .eg-dl dd { margin-bottom: 6px; } }
 .endings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .end { border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 10px; display: flex; flex-direction: column; gap: 4px; background: var(--surface-2); min-width: 0; }
 .end b { font-size: 13.5px; }
@@ -2029,11 +2057,100 @@ function hallView() {
     ${back}
   </section>`;
 }
+
+// Easy guide: simple words, one tap-to-open topic at a time (the "Full rules" tab keeps the detailed version)
+let helpMode = 'easy';
+function easyGuide() {
+  const sec = (title, body, open) => `<details class="eg"${open ? ' open' : ''}><summary>${title}</summary><div class="eg-body">${body}</div></details>`;
+  const pill = x => `<span class="eg-pill">${x}</span>`;
+  const rows = list => `<table class="eg-tbl"><tbody>${list.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</tbody></table>`;
+  const blocks = '<div class="eg-blocks" aria-hidden="true">' + '<i class="u"></i>'.repeat(10) + '<i></i>'.repeat(11) + '</div>';
+  return `
+  <p class="eg-intro">You just finished school in Nigeria. Will you <b style="color:var(--japa)">japa</b> (fly away to work in another country) or <b style="color:var(--stay)">stay</b> (build a good life at home)? There is no wrong answer. Tap a topic to open it.</p>
+  ${sec('1. The game in one minute', `
+    <p>You start with ₦200,000 and two years to live your life.</p>
+    <p>Every week you <b>plan</b> what to do, something <b>happens</b> to you, then you <b>count your money</b>. Do that again and again.</p>
+    <p>Pick a path, follow its checklist, and keep your bars long. That is the whole game.</p>`, true)}
+  ${sec('2. Words to know', `<dl class="eg-dl">
+    <dt>Japa</dt><dd>Leaving Nigeria to live and work abroad.</dd>
+    <dt>Northland</dt><dd>The pretend country you can fly to. It is cold there.</dd>
+    <dt>Naira (₦)</dt><dd>Nigerian money. You use it at home.</dd>
+    <dt>Dollar ($)</dt><dd>Money for abroad. You need dollars to japa.</dd>
+    <dt>Owambe</dt><dd>A big Nigerian party, like a wedding.</dd>
+    <dt>NEPA</dt><dd>When the light (electricity) goes off.</dd>
+    <dt>Ajo</dt><dd>A group that saves together. Everyone pays a little each week, and you collect a big pile on your turn.</dd>
+    <dt>Odogwu</dt><dd>A big boss. Someone very successful.</dd>
+    <dt>Wahala</dt><dd>Trouble. Things going wrong.</dd></dl>`)}
+  ${sec('3. The buttons at the top', `<dl class="eg-dl">
+    <dt>✓ Works offline</dt><dd>The game still works with no data, after your first visit.</dd>
+    <dt>⬇ Install app</dt><dd>Puts the game on your phone like a normal app.</dd>
+    <dt>♪ Sound</dt><dd>Music and sounds, only sounds, or no sound.</dd>
+    <dt>Lives lived</dt><dd>Your trophy room: every ending you have reached, clues for the rest, and your best scores.</dd>
+    <dt>How to play</dt><dd>This guide.</dd>
+    <dt>New game</dt><dd>Start a brand new life. Your trophies stay.</dd>
+    <dt>English / Pidgin</dt><dd>The language for the stories.</dd></dl>`)}
+  ${sec('4. Your life screen', `
+    <dl class="eg-dl">
+      <dt>Week 1 of 52</dt><dd>One year has 52 weeks. The game can go to week 104.</dd>
+      <dt>Cash</dt><dd>Your naira. You spend it on cards and bills.</dd>
+      <dt>Dollar account</dt><dd>Your dollar savings, for japa.</dd>
+      <dt>₦ per $</dt><dd>How much one dollar costs in naira. It moves up and down.</dd>
+      <dt>The five bars</dt><dd>Energy, Mood, Health, Family bond and Community. <b>Long bar = good. Short bar = trouble.</b></dd>
+      <dt>Clout</dt><dd>Your fans online. Many fans can bring brand deals (money).</dd>
+      <dt>The meter</dt><dd>Shows if your heart leans to Stay or to Japa. The cards you get each week follow it.</dd>
+      <dt>The checklist</dt><dd>The steps for each path. A green dot means done. Finish a list and something big happens.</dd></dl>`)}
+  ${sec('5. One week, three steps', `
+    <ol>
+      <li><b>${t('plan')}.</b> You have <b>21 time blocks</b> (gold squares). Tap cards to use your time. Tap again to take one back. Then press ${pill(t('endWeek'))}.</li>
+      <li><b>${t('life')}.</b> One or two things happen to you. Read it and tap one answer. <b>The small grey words under each answer tell you what will happen.</b> Then press ${pill(t('cont'))}.</li>
+      <li><b>${t('settle')}.</b> Pay comes in. Rent, food and transport go out. Press ${pill(t('cont'))} for the next week.</li>
+    </ol>
+    ${blocks}
+    <p class="eg-h">How to read a card</p>
+    <div class="eg-card" aria-label="Example card"><b>Work the full week</b><span class="note">10 blocks · free</span><div class="tg"><span>+₦92,000 payday</span><span>−25 energy</span></div></div>
+    <p>The name says what you do. Blocks is how much of your week it takes. The price is what it costs. Plus (+) is what you get, minus (−) is what it costs you.</p>
+    <p class="eg-tip">You will not see every card every week. A new set comes each week, so a missing card will come back soon.</p>`, true)}
+  ${sec('6. What the cards are for', `
+    <p class="eg-h">At home</p>
+    ${rows([['Job hunt', 'Find a job. Free. Keep trying.'], ['Work the full week', 'Your main pay, once you have a job.'], ['Run a POS stand', 'A little extra cash.'], ['Buy stock for your business', 'Grows your business. It pays you every week.'], ['Rest at home', 'Energy and health back.'], ['Chill with friends', 'Mood up.'], ['Call family', 'Family bond up. Only 1 block!'], ['Church or mosque', 'Mood and community up.'], ['Passport office', 'Get your passport.'], ['Study / Sit the English test', 'You need 6.5 to japa. The card shows your likely score.'], ['Apply for jobs abroad', 'Try for a job offer in Northland.'], ['Move ₦ to dollar account', 'Save dollars for japa.'], ['Skit / Studio / Audition', 'Get famous. Fans can bring money.'], ['Repay the loan app', 'Pay back what you borrowed. Do it fast.']])}
+    <p class="eg-h">Abroad</p>
+    ${rows([['Care home shifts', 'Your main job abroad, paid in dollars.'], ['Extra night shift', 'More money, a little less health.'], ['Cash-in-hand side gig', 'Breaks visa rules. Three warnings and you are sent home!'], ['Senior carer course', 'Finish it for a promotion and more pay.'], ['Life in Northland test', 'Pass it to stay in Northland for good.'], ['Send money home / Video call', 'Help and talk to your family.'], ['Church, cooking, exploring', 'Stop feeling lonely.'], ['Buy a plot back home', 'Land, so you can go home and build one day.']])}
+    <p class="eg-h">Building at home</p>
+    ${rows([['Run the shop yourself', 'Your main money.'], ['Restock in bulk', 'Grows the business.'], ['Hire help / Apprentice', 'The shop sells even when you rest.'], ['Register (CAC)', 'Makes it official. Needed for loans, big orders and branches.'], ['Open a new branch', 'More shops. Needed for an empire.'], ['Town union / Campaign', 'Become a leader and run for councillor.'], ['Build a house', 'Eight steps to a family house.']])}`)}
+  ${sec('7. Keep your bars happy', `
+    <p>When a bar gets short, use the card that fills it.</p>
+    <div class="eg-fix"><span>Energy is low</span><span>Rest at home</span><span>Health is low</span><span>Rest (not just medicine)</span><span>Mood is low</span><span>Chill with friends</span><span>Family bond is low</span><span>Call family</span><span>Community is low</span><span>Church, mosque or an owambe</span></div>
+    <div class="eg-warn"><b>If you never rest:</b> you get sick, then your body gets weak and you earn half. At 0 health you faint and lose a whole week in hospital.</div>`)}
+  ${sec('8. Money rules', `<ul>
+    <li><b>Bills come every week.</b> Keep some money for rent, food and transport.</li>
+    <li><b>Prices go up a little every week.</b> The naira can suddenly fall.</li>
+    <li><b>Family will ask for help.</b> Pay all, pay half, or say no. Saying no hurts your family bond.</li>
+    <li><b>If your money runs out, a loan app pays.</b> They add more every week and take part of your cash. Pay them back fast.</li></ul>`)}
+  ${sec('9. Spot the tricks', `
+    <p>If something sounds too good, it is a trick. Pick the answer that <b>checks first</b>:</p>
+    <ul><li>"Double your money!" → <b>Ask for documents first</b></li><li>"Visa guaranteed!" → <b>Ask for his registration</b></li><li>"I have sent the money" → <b>Check your bank app first</b></li><li>"Better sponsor, quick quick" → <b>Check the official sponsor register</b></li></ul>
+    <p>Catch a trick and you win the <b>Street Smart</b> badge.</p>`)}
+  ${sec('10. How to japa', `<ol>
+    <li>Get a job.</li><li>Get your passport.</li><li>Study English, then sit the test. You need 6.5.</li><li>Apply for jobs abroad until you get an offer.</li><li>Save $2,000 in your dollar account.</li><li>The visa interview comes by itself. Answer honestly. If they say no, try again in 10 weeks.</li><li>At the airport, choose <b>Board the flight</b>.</li></ol>
+    <p class="eg-tip">Not ready by week 52? Press <b>Keep trying for the visa</b> to get another year.</p>`)}
+  ${sec('11. How to stay and build', `<ol>
+    <li>Get a job.</li><li>Buy stock for your business until it is level 6.</li><li>Save money for a big shop (about ₦1.2 million).</li><li>Sign the five-year shop lease when the landlord offers it.</li></ol>
+    <p class="eg-tip">Pick one path early. A bit of both usually gets you neither.</p>`)}
+  ${sec('12. Year 2: the big goals', `
+    <p><b style="color:var(--japa)">Abroad:</b> finish the carer course, pass the Life in Northland test, live there 40 weeks and save $4,000 to stay for good. Or buy land back home and save $5,000 to fly home and build.</p>
+    <p><b style="color:var(--stay)">At home:</b> grow a business empire (3 branches), become councillor, or build your family house in 8 steps.</p>`)}
+  ${sec('13. Endings', `<p>Every life ends with a life card, like <i>Settled Abroad</i>, <i>Odogwu</i> or <i>Changemaker</i>. There are ${ENDINGS.length} to collect. Open <b>Lives lived</b> to see clues, then press <b>New game</b> and try a different life.</p>`)}
+  ${sec('14. 10 golden tips', `<ol>
+    <li>Get a job in your first few weeks. Job hunt is free.</li><li>Pick one path and follow its checklist.</li><li>Rest when your energy bar is short.</li><li>Call family often. It is only 1 block.</li><li>Read the small grey words before you tap an answer.</li><li>Keep some money for bills.</li><li>Too good to be true? It is a trick. Check first.</li><li>Pay back the loan app fast.</li><li>Use all 21 blocks every week.</li><li>There is no wrong ending. Play again!</li></ol>`)}`;
+}
 function helpView() {
   const back = `<button class="btn" data-act="help-close">${S ? 'Back to my game' : 'Back to setup'}</button>`;
+  const tabs = `<div class="lang helptabs" role="group" aria-label="Guide type"><button data-act="helpmode" data-v="easy" aria-pressed="${helpMode === 'easy'}">Easy guide</button><button data-act="helpmode" data-v="full" aria-pressed="${helpMode === 'full'}">Full rules</button></div>`;
+  if (helpMode === 'easy') return `<section class="panel help">
+    <div class="row between"><h2>How to play</h2>${back}</div>${tabs}${easyGuide()}${back}</section>`;
   return `<section class="panel help">
-    <div class="row between"><h2>How to play</h2>${back}</div>
-    <p style="margin:0">You are a fresh graduate with ₦150,000. Over two in-game years you decide: <b style="color:var(--japa)">japa</b> (leave Nigeria) or <b style="color:var(--stay)">stay</b> and build at home. Neither is the right answer.</p>
+    <div class="row between"><h2>How to play</h2>${back}</div>${tabs}
+    <p style="margin:0">You are a fresh graduate with ₦200,000. Over two in-game years you decide: <b style="color:var(--japa)">japa</b> (leave Nigeria) or <b style="color:var(--stay)">stay</b> and build at home. Neither is the right answer.</p>
     <p class="note" style="margin:0">Press <b>♪ Sound</b> at the top to switch between music and sound effects, sound effects only, or no sound.</p>
     <p class="note" style="margin:0">Play offline: on the website, tap <b>⬇ Install app</b> (or your browser's <b>Add to Home Screen</b>). After your first visit the game opens and plays without data, and updates arrive the next time you are online.</p>
 
@@ -2249,7 +2366,7 @@ function introView() {
     </ol>
     <p class="note" style="margin:0">Your goal: by the end of Year 1, japa (leave) or stay and build. Neither is wrong.</p>
     ${offlineCapable ? `<p class="note" style="margin:0"><b>Works offline:</b> after this first visit, the game opens and plays without data. Look for <b>✓ Works offline</b> at the top.</p>` : ''}
-    <div class="row"><button class="btn" data-act="intro-ok">Got it</button><button class="btn ghost" data-act="help">Read the full guide</button></div>
+    <div class="row"><button class="btn" data-act="intro-ok">Got it</button><button class="btn ghost" data-act="help">Read the easy guide</button></div>
   </section>`;
 }
 function setupView() {
@@ -2440,6 +2557,7 @@ document.addEventListener('click', e => {
     return;
   }
   if (a === 'install-close') { showInstall = false; render(); window.scrollTo({ top: 0 }); return; }
+  if (a === 'helpmode') { helpMode = b.dataset.v; render(); return; }
   if (a === 'lang') { LANG = b.dataset.v; try { localStorage.setItem('jos-lang', LANG); } catch (er) {} render(); return; }
   if (a === 'region') { setup.name = document.getElementById('nm').value || setup.name; setup.region = b.dataset.v; render(); return; }
   if (a === 'trait') { setup.name = document.getElementById('nm').value || setup.name; setup.trait = b.dataset.v; render(); return; }
