@@ -630,11 +630,13 @@ const EV = {
       choices: [{ l: `Buy the heater (${usd(p.amt)})`, h: 'Stay warm' }, { l: 'Wear three jumpers and a wrapper', h: '−8 mood, −5 health' }] }),
     pick: (p, i) => { if (i === 0) { S.usd -= p.amt; return 'Warm again. You finally understand why Tunde complains.'; } S.mood -= 8; S.health -= 5; return 'You slept in your coat. The heat back home feels like a dream.'; } },
   a_hours: {
+    cond: () => timesThisYear('a_hours') < 2,
     make: () => ({}),
     view: () => ({ who: 'Care home manager', title: 'Your hours are being cut', text: 'The manager says the home is "restructuring". Your shifts drop for the next two weeks.',
       choices: [{ l: 'Ask politely to keep your hours', h: 'Smooth Talker does better' }, { l: 'Accept it and look for extra shifts', h: 'Pay down 30% for 2 weeks' }] }),
     pick: (p, i) => { if (i === 0 && (S.trait === 'smooth' || chance(0.45))) return 'She checked your record and kept your shifts. Good work pays.'; S.abroad.cut = 2; S.mood -= 5; return 'Pay drops 30% for two weeks. Rent does not.'; } },
   a_rude: {
+    cond: () => timesThisYear('a_rude') < 2,
     make: () => ({}),
     view: () => ({ who: 'At work', title: '"Can I speak to someone else?"', text: 'A resident\'s relative keeps refusing your help and asking for "someone else", even when you are the one on shift.',
       choices: [{ l: 'Report it to the manager', h: 'Your workplace should back you' }, { l: 'Stay calm and keep doing your job', h: 'Smooth Talker does better' }, { l: 'Let it slide', h: '−8 mood' }] }),
@@ -650,12 +652,13 @@ const EV = {
       if (i === 1) { S.usd -= p.aso; S.community += 4 * mult; S.mood += 6; return 'You showed face. It felt like home for one night.'; }
       S.community -= 5; return 'You saw the pictures on Instagram after your shift.'; } },
   a_tunde: {
+    cond: () => timesThisYear('a_tunde') < 2,
     make: () => ({}),
     view: () => ({ who: 'Cousin Tunde', title: 'Sunday rice at Tunde\'s', text: '"Come and chop. I go show you which bus pass is cheaper and which landlord no dey return deposit."',
       choices: [{ l: 'Go to Tunde\'s', h: '+mood, saves you money' }] }),
     pick: () => { S.mood += 8; S.community += 4; S.usd += 40; return 'Tunde\'s tips saved you $40 this month. Family is family.'; } },
   a_scam: {
-    cond: () => !S.abroad.promoted,
+    cond: () => !S.abroad.promoted && timesThisYear('a_scam') < 1,
     make: () => ({ amt: 1500 }),
     view: p => ({ who: 'Mr Fix-It (Northland branch)', title: '"Better sponsor, quick quick"', text: `"Pay ${usd(p.amt)} and I will switch your visa to a hospital sponsor. Double pay. No exam needed."`,
       choices: [{ l: `Pay ${usd(p.amt)}`, h: 'Shortcut to better pay?' }, { l: 'Check the official sponsor register', h: 'Check before you pay' }] }),
@@ -854,15 +857,50 @@ Object.assign(EV, {
       choices: [{ l: 'Run outside and film it', h: '+8 mood, +fans' }] }),
     pick: () => { S.abroad.snowSeen = true; S.mood += 8; S.clout += 80; return '"Naija pikin first snow" got more views than anything you have ever posted.'; } },
   a_council: {
+    cond: () => timesThisYear('a_council') < 1,
     make: () => ({ amt: 120 }),
     view: p => ({ who: 'City council', title: 'Council tax letter', text: `A letter says you owe ${usd(p.amt)} in council tax for the year so far.`,
       choices: [{ l: `Pay it all (${usd(p.amt)})`, h: 'Done with it' }, { l: 'Set up monthly instalments', h: '$40 now, −2 mood' }] }),
     pick: (p, i) => { if (i === 0) { S.usd -= p.amt; return 'Paid. Tunde says nobody back home will believe how many bills there are.'; } S.usd -= 40; S.mood -= 2; return 'Instalments set. Another standing order on your account.'; } },
   a_afroshop: {
+    cond: () => !S.abroad.shopSeen,
     make: () => ({ amt: 35 }),
     view: p => ({ who: 'Your neighbourhood', title: 'An African shop has opened', text: `A new African food shop opened two streets away: garri, egusi, ogbono and Indomie. A big shop costs ${usd(p.amt)}.`,
       choices: [{ l: `Stock up (${usd(p.amt)})`, h: '+10 mood' }, { l: 'Just say hello', h: '+3 community' }] }),
-    pick: (p, i) => { if (i === 0) { S.usd -= p.amt; S.mood += 10; return 'You carried two bags home like treasure.'; } S.community += 3; return 'The owner is from Abeokuta. You will be back.'; } },
+    pick: (p, i) => { S.abroad.shopSeen = true; if (i === 0) { S.usd -= p.amt; S.mood += 10; return 'You carried two bags home like treasure.'; } S.community += 3; return 'The owner is from Abeokuta. You will be back.'; } },
+  a_flatmate: {
+    cond: () => timesThisYear('a_flatmate') < 2,
+    make: () => ({}),
+    view: () => ({ who: 'Your flat', title: 'Music at 2am', text: 'Your flatmate plays drill music at 2am, three nights in a row. You have an early shift.',
+      choices: [{ l: 'Talk to them calmly', h: 'Smooth Talker does better' }, { l: `Buy earplugs (${usd(10)})`, h: 'Sleep, at least' }, { l: 'Say nothing', h: '−8 energy, −4 mood' }] }),
+    pick: (p, i) => { if (i === 0) { if (S.trait === 'smooth' || chance(0.5)) { S.mood += 3; return 'They apologised and bought you a drink. Peace in the flat.'; } S.mood -= 3; return '"It\'s my flat too." The music continued.'; }
+      if (i === 1) { S.usd -= 10; return 'Earplugs in. You slept like a baby.'; } S.energy -= 8; S.mood -= 4; return 'You yawned through your whole shift.'; } },
+  a_strike: {
+    cond: () => timesThisYear('a_strike') < 1,
+    make: () => ({ amt: 25 }),
+    view: p => ({ who: 'Northland transport', title: 'Bus drivers on strike', text: 'No buses this week. Your care home is 40 minutes away on foot.',
+      choices: [{ l: 'Walk every day', h: '−10 energy, +2 health' }, { l: `Share taxis with a colleague (${usd(p.amt)})`, h: 'Money down, +3 community' }] }),
+    pick: (p, i) => { if (i === 0) { S.energy -= 10; S.health += 2; return 'You now know every street between home and work.'; } S.usd -= p.amt; S.community += 3; return 'Your colleague from Ghana became your best friend at work.'; } },
+  a_committee: {
+    cond: () => !S.abroad.committee,
+    make: () => ({}),
+    view: () => ({ who: 'Naija church or mosque', title: 'They want you on the committee', text: 'The diaspora congregation needs volunteers for its welfare committee. It means Saturday meetings.',
+      choices: [{ l: 'Join the committee', h: '+12 community, −8 energy' }, { l: 'Not now', h: 'Nothing changes' }] }),
+    pick: (p, i) => { S.abroad.committee = true; if (i === 0) { S.community += 12; S.energy -= 8; S.resolve += 3; return 'You now know half the Nigerians in town.'; } return 'They said the door is always open.'; } },
+  a_cousin: {
+    cond: () => timesThisYear('a_cousin') < 1,
+    make: () => ({ amt: 300 }),
+    view: p => ({ who: 'Your cousin back home', title: '"Bring me come"', text: `Your cousin wants you to help him japa too. He asks for ${usd(p.amt)} for his English test and an "agent".`,
+      choices: [{ l: `Send ${usd(p.amt)}`, h: 'Family up, money down' }, { l: 'Send him the official visa website and guide him', h: 'Street Smart move' }, { l: 'Say you cannot right now', h: '−6 family' }] }),
+    pick: (p, i) => { if (i === 0) { S.usd -= p.amt; S.family += 8; return 'He thanked you. Two weeks later, the "agent" stopped picking his calls.'; }
+      if (i === 1) { S.family += 3; S.streetSmart = true; return 'You spent an evening on video call walking him through the real process.'; } S.family -= 6; return '"So you don forget us," he typed.'; } },
+  a_mamasolar: {
+    cond: () => timesThisYear('a_mamasolar') < 1,
+    make: () => ({ amt: 250, fuel: 40 }),
+    view: p => ({ who: 'Mama', title: 'NEPA wahala at home', text: `${REG().open} the light has been gone for two weeks. A small solar setup for the house is ${usd(p.amt)}.`,
+      choices: [{ l: `Buy Mama solar (${usd(p.amt)})`, h: '+15 family' }, { l: `Send fuel money (${usd(p.fuel)})`, h: '+4 family' }, { l: 'Not this month', h: '−5 family' }] }),
+    pick: (p, i) => { if (i === 0) { S.usd -= p.amt; S.abroad.remitted += p.amt; S.family += 15; return 'Mama sent a video of the fan spinning. "My child has brought light!"'; }
+      if (i === 1) { S.usd -= p.fuel; S.abroad.remitted += p.fuel; S.family += 4; return 'Generator fuel for two weeks.'; } S.family -= 5; return 'Mama said she understands. She is sitting in the dark.'; } },
   b_park: {
     cond: () => S.build && !S.build.disrupted,
     make: () => ({ amt: price(80000) }),
@@ -878,7 +916,8 @@ Object.assign(EV, {
 const HOME_EXTRA = ['y_okada', 'y_phone', 'y_bank', 'y_landlord', 'y_guests', 'y_bill', 'y_giving', 'kano_harmattan', 'kano_durbar', 'enugu_august', 'enugu_newyam', 'lagos_traffic', 'ph_soot', 'ph_flood'];
 const RANDOM_POOL = ['blacktax', 'blacktax', 'owambe', 'owambe', 'ajo', 'fuel', 'nepa', 'nepa', 'ponzi', 'sponsor', 'agent', 'tunde', 'tunde', 'y_interview', ...HOME_EXTRA];
 const BUILD_POOL = ['blacktax', 'blacktax', 'owambe', 'nepa', 'fuel', 'b_levy', 'b_supplier', 'b_contract', 'b_theft', 'b_rival', 'b_japalate', 'sponsor', 'ponzi', 'devalue', 'b_park', 'b_alert', ...HOME_EXTRA];
-const ABROAD_POOL =['a_blacktax', 'a_blacktax', 'a_winter', 'a_winter', 'a_hours', 'a_rude', 'a_owambe', 'a_owambe', 'a_tunde', 'a_scam', 'a_homesick', 'devalue', 'a_snow', 'a_council', 'a_afroshop'];
+const ABROAD_POOL =['a_blacktax', 'a_blacktax', 'a_winter', 'a_winter', 'a_hours', 'a_rude', 'a_owambe', 'a_owambe', 'a_tunde', 'a_scam', 'a_homesick', 'devalue', 'a_snow', 'a_council', 'a_afroshop',
+  'a_flatmate', 'a_strike', 'a_committee', 'a_cousin', 'a_mamasolar'];
 function queueEvent(id) {
   S.queue.push({ id, p: EV[id].make() });
   S.evCount = S.evCount || {}; const key = id + '@' + Math.ceil(S.week / 52); S.evCount[key] = (S.evCount[key] || 0) + 1;
@@ -1159,6 +1198,34 @@ Object.assign(PGR, {
   'The alert was fake. The goods are gone.': 'Fake alert. Goods don go.'
 });
 PGRX.push([/^You got the job! Starting pay (.+) a week\.$/, m => `You get the work! Starting pay na ${m[1]} every week.`]);
+Object.assign(PGV, {
+  a_flatmate: () => ({ title: 'Music for 2am', text: 'Your flatmate dey play drill music for 2am, three nights straight. You get early shift.',
+    choices: [{ l: 'Talk to am calm calm', h: 'Smooth Talker go do am better' }, { l: `Buy earplugs (${usd(10)})`, h: 'At least, you go sleep' }, { l: 'Keep quiet', h: '−8 strength, −4 happiness' }] }),
+  a_strike: p => ({ title: 'Bus drivers don strike', text: 'No bus this week. Your care home na 40 minutes waka.',
+    choices: [{ l: 'Waka every day', h: '−10 strength, +2 body' }, { l: `Share taxi with colleague (${usd(p.amt)})`, h: 'Money go comot, +3 your people' }] }),
+  a_committee: () => ({ title: 'Dem want you for committee', text: 'The diaspora congregation need volunteers for their welfare committee. Na Saturday meetings.',
+    choices: [{ l: 'Join the committee', h: '+12 your people, −8 strength' }, { l: 'Not now', h: 'Nothing go change' }] }),
+  a_cousin: p => ({ title: '"Carry me come"', text: `Your cousin wan make you help am japa too. E dey ask ${usd(p.amt)} for English test and "agent".`,
+    choices: [{ l: `Send ${usd(p.amt)}`, h: 'Family go happy, money go comot' }, { l: 'Send am the official visa website, guide am', h: 'Street Smart move' }, { l: 'Talk say you no fit now', h: '−6 family' }] }),
+  a_mamasolar: p => ({ title: 'NEPA wahala for house', text: `${REG().open} light don go for two weeks. Small solar for the house na ${usd(p.amt)}.`,
+    choices: [{ l: `Buy Mama solar (${usd(p.amt)})`, h: '+15 family' }, { l: `Send fuel money (${usd(p.fuel)})`, h: '+4 family' }, { l: 'No be this month', h: '−5 family' }] })
+});
+Object.assign(PGR, {
+  'They apologised and bought you a drink. Peace in the flat.': 'Dem beg you, buy you drink. Peace don return for flat.',
+  '"It\'s my flat too." The music continued.': '"Na my flat too." The music continue.',
+  'Earplugs in. You slept like a baby.': 'Earplugs don enter. You sleep like baby.',
+  'You yawned through your whole shift.': 'You dey yawn the whole shift.',
+  'You now know every street between home and work.': 'You don sabi every street from house reach work.',
+  'Your colleague from Ghana became your best friend at work.': 'Your Ghana colleague don turn your best friend for work.',
+  'You now know half the Nigerians in town.': 'You don know half of the Naija people for town.',
+  'They said the door is always open.': 'Dem talk say door dey always open.',
+  'He thanked you. Two weeks later, the "agent" stopped picking his calls.': 'E thank you. Two weeks after, the "agent" no dey pick him call again.',
+  'You spent an evening on video call walking him through the real process.': 'You spend one evening for video call dey show am the real process.',
+  '"So you don forget us," he typed.': '"So you don forget us," na wetin e type.',
+  'Mama sent a video of the fan spinning. "My child has brought light!"': 'Mama send video of fan dey turn. "My pikin don bring light!"',
+  'Generator fuel for two weeks.': 'Generator fuel for two weeks.',
+  'Mama said she understands. She is sitting in the dark.': 'Mama talk say she understand. She dey sit for dark.'
+});
 function pgResult(s) {
   if (PGR[s]) return PGR[s];
   for (const [rx, f] of PGRX) { const m = s.match(rx); if (m) return f(m); }
@@ -1520,7 +1587,8 @@ const EV_ART = { blacktax: 'mama', school: 'mama', owambe: 'friend', detty: 'fri
   b_levy: 'areaboy', b_supplier: 'trader', b_contract: 'alhaji', b_theft: 'shop', b_rival: 'shop', b_japalate: 'tunde', b_election: 'ballot', b_empire: 'odogwu', b_housewarm: 'mama',
   y_okada: 'sick', y_phone: 'news', y_bank: 'news', y_landlord: 'landlord', y_interview: 'banker', y_guests: 'mama', y_bill: 'nepa', y_giving: 'iya',
   kano_harmattan: 'cold', kano_durbar: 'friend', enugu_august: 'iya', enugu_newyam: 'mama', lagos_traffic: 'news', ph_soot: 'sick', ph_flood: 'news',
-  a_snow: 'cold', a_council: 'embassy', a_afroshop: 'shop', b_park: 'areaboy', b_alert: 'fixit' };
+  a_snow: 'cold', a_council: 'embassy', a_afroshop: 'shop',
+  a_flatmate: 'friend', a_strike: 'news', a_committee: 'iya', a_cousin: 'tunde', a_mamasolar: 'mama', b_park: 'areaboy', b_alert: 'fixit' };
 function eventArt(id, who) {
   const k = EV_ART[id];
   if (ICONS[k]) return iconArt(k, who);
