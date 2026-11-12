@@ -333,7 +333,7 @@ const CARDS = {
     run: () => { S.pendingPay += weeklyPay(); S.energy -= 25; S.skills.work += 0.3; S.resolve -= 1; return 'You worked the week. Pay comes at settle-up.'; } },
   jobhunt: { name: 'Job hunt', blocks: 5, cost: () => 0, can: () => !S.job,
     tags: () => ['~30% chance of a job', 'walk-in, free', '−10 energy'],
-    run: () => { S.energy -= 10; if (chance(0.3 + 0.04 * S.skills.work)) { S.job = true; return `You got a job at a ${REG().name} firm. Starting pay ${naira(weeklyPay())} a week.`; } S.mood -= 4; return 'No call back this week. "We will get back to you."'; } },
+    run: () => { S.energy -= 10; if (chance(0.3 + 0.04 * S.skills.work)) { S.job = true; return `You got a job at ${/^[AEIOU]/.test(REG().name) ? 'an' : 'a'} ${REG().name} firm. Starting pay ${naira(weeklyPay())} a week.`; } S.mood -= 4; return 'No call back this week. "We will get back to you."'; } },
   pos: { name: 'Run a POS stand', blocks: 6, cost: () => 0, can: () => true,
     tags: () => ['+₦15k–40k', '−15 energy', 'Stay'],
     run: () => { const g = Math.round(rnd(15000, 40000) * S.idx * hustleBoost() / 100) * 100; S.money += g; S.energy -= 15; S.resolve -= 2; return `POS hustle made ${naira(g)}.`; } },
