@@ -159,6 +159,14 @@ table.ledger tr.total td { border-bottom: 0; font-weight: 700; padding-top: 8px;
 .intro ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
 .foot { max-width: 540px; margin: 0 auto; padding-block: 8px 28px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); font-size: 12px; color: var(--muted); }
 .foot a { color: inherit; }
+.soc { display: flex; flex-wrap: wrap; gap: 8px; }
+.soc a { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 6px 12px 6px 9px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600; }
+.soc a:hover, .soc a:focus-visible { border-color: var(--stay); }
+.soc svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.soc.icons { gap: 5px; margin: 0 0 10px; }
+.soc.icons a { width: 37px; min-height: 37px; padding: 0; justify-content: center; }
+.follow { display: flex; flex-direction: column; gap: 8px; }
+.follow .note { margin: 0; }
 .offchip { display: inline-block; margin-top: 6px; font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; color: var(--good); background: color-mix(in srgb, var(--good) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--good) 35%, transparent); }
 .offchip.now { color: var(--gold); background: color-mix(in srgb, var(--gold) 14%, var(--surface)); border-color: color-mix(in srgb, var(--gold) 45%, transparent); }
 .help h3 { font-family: var(--font-display); font-weight: 600; font-size: 16px; margin: 6px 0 0; }
@@ -243,6 +251,7 @@ small.first { display: block; font-size: 11.5px; color: var(--muted); }
   <main id="app" class="wrap" style="padding:0"></main>
 </div>
 <footer class="foot" id="about">
+  <div id="social"></div>
   <b>About:</b> Japa or Stay is a game. Northland and every character, company and agent in it are fictional.
   Nothing in the game is immigration, legal or financial advice. Real visas are never "guaranteed": always use official government websites.
   <span id="feedback"></span>
@@ -2370,7 +2379,7 @@ function lifeHighlights() {
 }
 function shareText() {
   const e = endingInfo();
-  return `I lived ${Math.min(S.week, 104)} weeks in Japa or Stay and got "${e.name}": "${e.pg}"\n${lifeHighlights().slice(0, 2).join('. ')}.\nJapa or stay? Play free and see your own ending: ${SHARE_URL}`;
+  return `I lived ${Math.min(S.week, 104)} weeks in Japa or Stay and got "${e.name}": "${e.pg}"\n${lifeHighlights().slice(0, 2).join('. ')}.\nJapa or stay? Play free and see your own ending: ${SHARE_URL}\nFollow ${SOCIAL_HANDLE}`;
 }
 // turn one of the game's SVG drawings into a standalone picture with real colours (no page styles)
 function svgForCanvas(html, w, h) {
@@ -2426,6 +2435,7 @@ async function makeLifeCard() {
   x.fillStyle = '#FFFFFF'; x.font = `800 52px ${disp}`; x.fillText('Japa', 70, H - 95);
   const jw = x.measureText('Japa ').width; x.fillStyle = '#E8A317'; x.fillText('or', 70 + jw, H - 95);
   const ow = x.measureText('or ').width; x.fillStyle = '#FFFFFF'; x.fillText('Stay', 70 + jw + ow, H - 95);
+  x.textAlign = 'right'; x.font = `700 32px ${body}`; x.fillStyle = '#E8A317'; x.fillText(SOCIAL_HANDLE, W - 70, H - 95); x.textAlign = 'left';
   x.font = `600 32px ${body}`; x.fillStyle = '#CFE6D8'; x.fillText('What would you choose? Play free:', 70, H - 48);
   x.textAlign = 'right'; x.fillStyle = '#FFFFFF'; x.font = `700 32px ${body}`; x.fillText('japa-or-stay.pages.dev', W - 70, H - 48); x.textAlign = 'left';
   return new Promise(ok => c.toBlob(b => ok(b), 'image/png'));
@@ -2467,6 +2477,7 @@ function endView() {
       ${S.newBests && S.newBests.length ? `<span>New personal best: ${esc(S.newBests.join(', '))}</span>` : ''}
     </div>` : ''}
     <button class="btn" data-act="share">Share my life</button>
+    <div class="follow"><p class="note">Follow <b>Japa or Stay</b> (${SOCIAL_HANDLE}) for new endings and updates:</p>${socialLinks()}</div>
     <button class="btn ghost" data-act="hall">See all endings (${ENDINGS.filter(x => loadHall().endings[x.n]).length} of ${ENDINGS.length})</button>
     ${FEEDBACK_URL ? `<a class="btn ghost" style="text-align:center;text-decoration:none" href="${esc(FEEDBACK_URL)}" target="_blank" rel="noopener">Tell us what you think (2 minutes)</a>` : ''}
     <table class="ledger">
@@ -2481,6 +2492,19 @@ function endView() {
     ${!S.abroad && !S.build && !S.japaY2 && S.ending === 'year' ? `<button class="btn ${japaProgress() >= 2 ? 'ghost' : ''}" data-act="build">Keep building at home: play Year 2</button>` : ''}
     <button class="btn" data-act="restart">${t('newGame')}</button></section>`;
 }
+// Japa or Stay on social media (shown in the footer and on the end screen)
+const SOCIAL_HANDLE = '@japaor_stay';
+const SOCIAL = [
+  ['WhatsApp', 'https://whatsapp.com/channel/0029Vb9ffuJIHphQBjoiJ225', '<path d="M4.5 19.5l1.2-3.6A7.8 7.8 0 1 1 8.4 18.6z"/><path d="M9.3 9.2c.2 2 2.2 4.1 4.6 4.8l1-1.1 1.6.8"/>'],
+  ['Instagram', 'https://www.instagram.com/japaor_stay/', '<rect x="4" y="4" width="16" height="16" rx="4.5"/><circle cx="12" cy="12" r="3.6"/><path d="M16.6 7.4h.01"/>'],
+  ['TikTok', 'https://www.tiktok.com/@japaor_stay', '<path d="M14 4v10.6a3.4 3.4 0 1 1-3.4-3.4"/><path d="M14 4c.4 2.4 2.2 4 4.6 4.2"/>'],
+  ['X', 'https://x.com/JapaOr_Stay', '<path d="M5 4.5l14 15M19 4.5l-14 15"/>'],
+  ['YouTube', 'https://www.youtube.com/@japaor_stay', '<rect x="3" y="6" width="18" height="12" rx="3.5"/><path d="M10.5 9.6v4.8l4-2.4z"/>'],
+  ['Facebook', 'https://www.facebook.com/profile.php?id=61596134627116', '<path d="M14.5 4.5h-1.7a3 3 0 0 0-3 3v12M8 11.5h6"/>'],
+  ['LinkedIn', 'https://www.linkedin.com/company/146968565/', '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 10.5v5M8.5 7.8h.01M12 15.5v-5M12 13c0-1.6 1-2.5 2.2-2.5s1.8.9 1.8 2.3v2.7"/>'],
+  ['Telegram', 'https://t.me/JapaOrStay', '<path d="M20 5L3.8 11.3l5.1 1.8 1.9 5.6 2.8-3.6 4.1 3z"/><path d="M8.9 13.1L20 5"/>']
+];
+const socialLinks = (iconsOnly = false) => `<div class="soc${iconsOnly ? ' icons' : ''}">${SOCIAL.map(([n, u, ic]) => `<a href="${u}" target="_blank" rel="noopener" aria-label="Japa or Stay on ${n}" title="${n}"><svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg>${iconsOnly ? '' : n}</a>`).join('')}</div>`;
 // Paste a feedback form link here (for example a Google Form) to show "Send feedback" in the footer.
 const FEEDBACK_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSe4LPWrDo7fnTCTAgyEsTUFhm3Pu3-UGSOVPp7VxPJzHST8zA/viewform';
 let introSeen = false, returning = false;
@@ -2530,6 +2554,7 @@ function render() {
   document.getElementById('tagline').textContent = S && S.abroad ? `${yr} · The Abroad chapter` : S && S.build ? `${yr} · The Build chapter` : S && S.japaY2 ? 'Year 2 · Still chasing the visa' : 'Weekly-loop prototype · Year 1';
   document.getElementById('lang-en').setAttribute('aria-pressed', LANG === 'en');
   document.getElementById('lang-pg').setAttribute('aria-pressed', LANG === 'pg');
+  const so = document.getElementById('social'); if (so && !so.innerHTML) so.innerHTML = socialLinks(true);
   document.getElementById('feedback').innerHTML = FEEDBACK_URL ? `· <a href="${esc(FEEDBACK_URL)}" target="_blank" rel="noopener">Send feedback</a>` : '';
   updateOffline();
   const sb = document.getElementById('soundbtn'); sb.textContent = Sound.label(); sb.setAttribute('aria-pressed', Sound.mode !== 'off');
