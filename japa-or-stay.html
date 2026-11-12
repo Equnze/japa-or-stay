@@ -84,6 +84,7 @@ h2 { font-family: var(--font-display); font-weight: 600; font-size: 20px; margin
 .track li { display: flex; gap: 6px; align-items: baseline; }
 .track li::before { content: ""; flex: none; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--muted); transform: translateY(1px); }
 .track li.ok::before { background: var(--good); border-color: var(--good); }
+.track li.note::before { content: none; }
 .phase-tabs { display: flex; gap: 4px; font-size: 11.5px; font-weight: 600; color: var(--muted); flex-wrap: wrap; }
 .phase-tabs span { padding: 3px 8px; border-radius: 999px; background: var(--chip); }
 .phase-tabs span.on { background: var(--ink); color: var(--bg); }
@@ -1664,7 +1665,7 @@ function nextWeek() {
     if (A.strikes >= 3) queueEvent('a_deport');
     else if (A.course >= 5 && !A.promoted) queueEvent('a_promo');
     else if (weeksAbroad() >= SETTLE_WEEKS && A.lifeTest && A.strikes < 2 && S.usd >= SETTLE_USD && S.week >= A.prWait) queueEvent('a_pr');
-    else if (A.land >= 1 && S.usd >= RETURN_USD && S.resolve <= 0 && S.week >= A.returnWait) queueEvent('a_return');
+    else if (A.land >= 1 && S.usd >= RETURN_USD && S.week >= A.returnWait) queueEvent('a_return');
   } else if (S.build) {
     const B = S.build;
     if (B.campaign >= 8) queueEvent('b_election');
@@ -2032,7 +2033,7 @@ function helpView() {
 
     <h3>Year 2 (weeks 53–104)</h3>
     <ul>
-      <li><b style="color:var(--japa)">Abroad chapter:</b> work care home shifts, finish the senior carer course, pass the Life in Northland test, live there 40 weeks and save $4,000 to settle. Or buy land at home and save $5,000 to return and build. Avoid cash-in-hand gigs: 3 visa warnings and you are sent home.</li>
+      <li><b style="color:var(--japa)">Abroad chapter:</b> work care home shifts, finish the senior carer course, pass the Life in Northland test, live there 40 weeks and save $4,000 to settle. Or buy a plot of land at home and save $5,000: you will be offered the trip home to build (say "Not yet" if you want to stay longer). Avoid cash-in-hand gigs: 3 visa warnings and you are sent home.</li>
       <li><b style="color:var(--stay)">Build chapter:</b> run and restock the shop, hire staff, register with CAC and open branches for an empire. Or attend town union meetings and run for councillor. Or build your hometown house in 8 stages.</li>
     </ul>
 
@@ -2090,10 +2091,10 @@ function board() {
         <li class="${S.abroad.strikes < 2 ? 'ok' : ''}">Fewer than 2 visa warnings</li>
       </ul></div>
       <div class="track s"><h3>${t('rtrack')}</h3><ul>
-        <li class="${S.family >= 60 ? 'ok' : ''}">Family bond 60+</li>
         <li class="${S.abroad.land >= 1 ? 'ok' : ''}">A plot of land back home (${S.abroad.land})</li>
-        <li class="${S.abroad.remitted >= 3000 ? 'ok' : ''}">Sent home ${usd(S.abroad.remitted)} of $3,000</li>
-        <li class="${S.usd >= RETURN_USD ? 'ok' : ''}">${usd(RETURN_USD)} to return and build</li>
+        <li class="${S.usd >= RETURN_USD ? 'ok' : ''}">${usd(RETURN_USD)} saved to return and build</li>
+        <li class="note">Then the trip home is offered. Say "Not yet" to stay longer.</li>
+        <li class="${S.abroad.remitted >= 3000 ? 'ok' : ''}">Remittance Hero: sent home ${usd(S.abroad.remitted)} of $3,000</li>
       </ul></div>
     </div>` : S.build ? buildTracks() : `<div class="tracks">
       <div class="track j"><h3>${t('jtrack')}</h3><ul>
