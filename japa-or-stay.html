@@ -190,6 +190,7 @@ small.first { display: block; font-size: 11.5px; color: var(--muted); }
       <div class="sub" id="tagline">Weekly-loop prototype · Year 1</div>
     </div>
     <div class="row">
+    <button class="lookbtn" id="installbtn" data-act="install" hidden>⬇ Install app</button>
     <button class="lookbtn" id="soundbtn" data-act="sound" title="Switch between music and sound effects, sound effects only, and no sound">♪ Sound off</button>
     <button class="lookbtn" id="hallbtn" data-act="hall">Lives lived</button>
     <button class="lookbtn" id="helpbtn" data-act="help">How to play</button>
@@ -1616,6 +1617,7 @@ function helpView() {
     <div class="row between"><h2>How to play</h2>${back}</div>
     <p style="margin:0">You are a fresh graduate with ₦150,000. Over two in-game years you decide: <b style="color:var(--japa)">japa</b> (leave Nigeria) or <b style="color:var(--stay)">stay</b> and build at home. Neither is the right answer.</p>
     <p class="note" style="margin:0">Press <b>♪ Sound</b> at the top to switch between music and sound effects, sound effects only, or no sound.</p>
+    <p class="note" style="margin:0">Play offline: on the website, tap <b>⬇ Install app</b> (or your browser's <b>Add to Home Screen</b>). After your first visit the game opens and plays without data, and updates arrive the next time you are online.</p>
 
     <h3>Each week has 3 steps</h3>
     <ol>
@@ -1954,6 +1956,11 @@ const Sound = (() => {
 })();
 document.addEventListener('visibilitychange', () => Sound.pause(document.hidden));
 
+/* ---------- install as an app (only offered on the website, where the browser supports it) ---------- */
+let installPrompt = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; document.getElementById('installbtn').hidden = false; });
+addEventListener('appinstalled', () => { installPrompt = null; document.getElementById('installbtn').hidden = true; toast('Installed. You can now play from your home screen, even offline.'); });
+
 function toast(m) { const el = document.getElementById('toast'); el.textContent = m; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800); }
 
 document.addEventListener('click', e => {
@@ -1961,6 +1968,7 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act, before = S && S.phase;
   if (a === 'sound') { Sound.cycle(); render(); Sound.play('tap'); return; }
+  if (a === 'install') { if (installPrompt) { installPrompt.prompt(); installPrompt.userChoice.finally(() => { installPrompt = null; b.hidden = true; }); } return; }
   if (a === 'lang') { LANG = b.dataset.v; try { localStorage.setItem('jos-lang', LANG); } catch (er) {} render(); return; }
   if (a === 'region') { setup.name = document.getElementById('nm').value || setup.name; setup.region = b.dataset.v; render(); return; }
   if (a === 'trait') { setup.name = document.getElementById('nm').value || setup.name; setup.trait = b.dataset.v; render(); return; }
