@@ -559,7 +559,7 @@ const EV = {
     pick: (p, i) => {
       const mult = S.trait === 'owambe' ? 2 : 1;
       if (i === 0) { S.money -= p.aso + p.spray; S.community += 10 * mult; S.clout += 80; S.mood += 10; S.resolve -= 3;
-        if (chance(0.3)) { if (!S.job) { S.job = true; return 'You sprayed well, and the celebrant\'s uncle offered you a job on the spot!'; } S.biz = S.build ? S.biz + 1 : Math.min(8, S.biz + 1); return 'You sprayed well, and a guest became a big customer. Business +1.'; }
+        if (chance(0.3)) { if (!S.job) { S.job = true; return 'You sprayed well, and the celebrant\'s uncle offered you a job on the spot!'; } S.biz = Math.min(S.build ? 15 : 8, S.biz + 1); return 'You sprayed well, and a guest became a big customer. Business +1.'; }
         return 'You danced, you sprayed, everybody saw you.'; }
       if (i === 1) { S.money -= p.aso; S.community += 4 * mult; S.mood += 5; return 'You showed face. Jollof was correct.'; }
       S.community -= 6; return '"Where were you?" Three people asked.';
@@ -765,6 +765,7 @@ const EV = {
 
   /* ----- Year 2: Build chapter events (stay; money in naira) ----- */
   b_levy: {
+    cond: () => timesThisYear('b_levy') < 3,
     make: () => ({ amt: price(20000) }),
     view: p => ({ who: 'Area boys', title: '"Owner, settle us"', text: `Some boys say they "control" this street and want ${naira(p.amt)} for "security".`,
       choices: [{ l: `Pay them (${naira(p.amt)})`, h: 'Peace for now' }, { l: 'Report to the market association', h: 'Works best if your community is strong' }, { l: 'Refuse', h: 'Risk of trouble at the shop' }] }),
@@ -772,7 +773,7 @@ const EV = {
       if (i === 1) { if (S.community >= 50 || chance(0.4)) { S.community += 4; return 'The market chairman called them. They have not come back.'; } S.build.disrupted = 2; return 'The association was slow. Your shop was blocked for two days.'; }
       S.build.disrupted = 2; S.mood -= 6; return 'They blocked your shop entrance. Sales will suffer for two weeks.'; } },
   b_supplier: {
-    cond: () => !S.build.supplier,
+    cond: () => !S.build.supplier && timesThisYear('b_supplier') < 3,
     make: () => ({ amt: price(200000) }),
     view: p => ({ who: 'Your supplier', title: 'Goods on credit?', text: `Your supplier offers ${naira(p.amt)} of goods on credit. Pay back in 4 weeks.`,
       choices: [{ l: 'Take the goods', h: 'Business level +1, pay later' }, { l: 'No thanks', h: 'Stay debt-free' }] }),
@@ -784,13 +785,13 @@ const EV = {
       choices: [{ l: 'Take the contract', h: '−25 energy, big payday' }, { l: 'Too much this week', h: 'Nothing changes' }] }),
     pick: (p, i) => { if (i === 0) { S.money += p.amt; S.energy -= 25; S.build.rep += 8; return 'Delivered on time. They want to work with you again.'; } return 'They found another supplier.'; } },
   b_theft: {
-    cond: () => S.build.staff > 0,
+    cond: () => S.build.staff > 0 && timesThisYear('b_theft') < 3,
     make: () => ({ amt: price(60000) }),
     view: p => ({ who: 'Your shop', title: 'Stock is missing', text: `Goods worth ${naira(p.amt)} have disappeared, and one of your staff cannot explain it.`,
       choices: [{ l: 'Let the staff member go', h: 'Staff −1' }, { l: `Final warning, and install CCTV (${naira(price(40000))})`, h: '+reputation' }] }),
     pick: (p, i) => { S.money -= p.amt; if (i === 0) { S.build.staff = Math.max(0, S.build.staff - 1); if (S.build.staff === 0) S.build.apprentice = false; return 'You let them go. Trust is expensive.'; } S.money -= price(40000); S.build.rep += 2; return 'The camera is up. Nothing has gone missing since.'; } },
   b_rival: {
-    cond: () => S.build.priceWar === 0,
+    cond: () => S.build.priceWar === 0 && timesThisYear('b_rival') < 3,
     make: () => ({ amt: price(30000) }),
     view: p => ({ who: 'Next door', title: 'A rival shop has opened', text: 'A bigger shop opened next door and is cutting prices.',
       choices: [{ l: 'Cut your prices too', h: 'Sales −20% for 4 weeks' }, { l: `Win on service: free delivery for regulars (${naira(p.amt)})`, h: '+reputation' }] }),
@@ -805,7 +806,7 @@ const EV = {
     make: () => ({}),
     view: () => ({ who: 'Election day', title: 'Councillor election', text: `Your campaign is done. Community: ${S.community}. Clout: ${S.clout.toLocaleString()} fans. The votes are being counted.`,
       choices: [{ l: 'Wait for the result', h: 'Your chance depends on community and clout' }] }),
-    pick: () => { const c = 0.15 + S.community / 250 + Math.min(0.15, S.clout / 20000); if (chance(c)) { S.ending = 'changemaker'; return 'You won! The road will finally be fixed.'; } S.build.campaign = 0; S.build.leader = 1; S.mood -= 15; return 'You lost by 312 votes. You can campaign again.'; } },
+    pick: () => { const c = 0.15 + S.community / 250 + Math.min(0.15, S.clout / 20000); if (chance(c)) { S.ending = 'changemaker'; return 'You won! The road will finally be fixed.'; } S.build.campaign = 4; S.mood -= 15; return 'You lost by 312 votes. Your supporters are still with you: campaign again and you start halfway.'; } },
   b_empire: {
     make: () => ({}),
     view: () => ({ who: 'Your business', title: 'An empire is born', text: `Three branches, business level ${S.biz}, and your name on signboards across town. A magazine wants to profile you.`,
@@ -1040,12 +1041,13 @@ Object.assign(EV, {
     pick: (p, i) => { if (i === 0) { S.usd -= p.amt; S.abroad.remitted += p.amt; S.family += 15; S.abroad.mamaSolar = true; return 'Mama sent a video of the fan spinning. "My child has brought light!"'; }
       if (i === 1) { S.usd -= p.fuel; S.abroad.remitted += p.fuel; S.family += 4; return 'Generator fuel for two weeks.'; } S.family -= 5; return 'Mama said she understands. She is sitting in the dark.'; } },
   b_park: {
-    cond: () => S.build && !S.build.disrupted,
+    cond: () => S.build && !S.build.disrupted && timesThisYear('b_park') < 3,
     make: () => ({ amt: price(80000) }),
     view: p => ({ who: 'Motor park', title: 'Your goods are held up', text: `Your goods are stuck at the park. Officials want ${naira(p.amt)} for "clearing" before they release them.`,
       choices: [{ l: `Pay the "clearing" (${naira(p.amt)})`, h: 'Goods released now' }, { l: 'Wait and argue with receipts', h: 'Shop disrupted for 2 weeks' }] }),
     pick: (p, i) => { if (i === 0) { S.money -= p.amt; return 'Goods released. Nobody gave you a receipt.'; } S.build.disrupted = 2; S.mood -= 4; return 'After two weeks and many phone calls, your goods arrived.'; } },
   b_alert: {
+    cond: () => timesThisYear('b_alert') < 2,
     make: () => ({ amt: price(60000) }),
     view: p => ({ who: 'A new customer', title: '"I have sent the money"', text: `A smartly dressed customer shows you a transfer alert for ${naira(p.amt)} on their phone and wants to leave with the goods.`,
       choices: [{ l: 'Check your bank app first', h: 'Street Smart move' }, { l: 'Release the goods, they look serious', h: 'Risky' }] }),
@@ -1323,7 +1325,7 @@ const PGR = {
   'You sold the shop to your apprentice and booked a flight.': 'You sell the shop give your apprentice, book flight.',
   'Tunde laughed: "Odogwu of your street!"': 'Tunde laugh: "Odogwu of your street!"',
   'You won! The road will finally be fixed.': 'You win! That road go finally get repair.',
-  'You lost by 312 votes. You can campaign again.': 'You lose with 312 votes. You fit campaign again.',
+  'You lost by 312 votes. Your supporters are still with you: campaign again and you start halfway.': 'You lose with 312 votes. Your supporters still dey with you: campaign again and you go start from halfway.',
   '"From POS stand to empire," the headline says.': 'Headline talk say: "From POS stand to empire."',
   'Quiet money. You keep building.': 'Quiet money. You dey build.',
   'Canopies, jollof and a live band. The elders gave you a chieftaincy title.': 'Canopy, jollof and live band. Elders give you chieftaincy title.',
@@ -1713,6 +1715,7 @@ function endingInfo() {
     if (S.ending === 'empire') return rich >= price(20000000)
       ? { name: 'Billionaire Baller', pg: 'Odogwu! Na you dem go dey spray for owambe now.', side: 'stay' }
       : { name: 'Odogwu', pg: 'From small shop to empire. Na you be the main character.', side: 'stay' };
+    if (S.family < 25) return { name: 'Busy, But Alone', pg: 'You build for everybody, but your own people no see you.', side: 'stay' };
     if (S.health < 30) return { name: 'Burnout', pg: 'Shop no go run if you collapse. Rest small.', side: 'none' };
     if (rich >= price(10000000)) return { name: 'Odogwu in the Making', pg: 'The money don dey enter. Keep am steady.', side: 'stay' };
     return { name: 'Steady Life', pg: 'No noise, no wahala. You dey build small small.', side: 'stay' };
@@ -1754,6 +1757,7 @@ const ENDINGS = [
   { n: 'Changemaker', g: 'Build chapter', h: 'Campaign and win the councillor election.' },
   { n: 'Community Pillar', g: 'Build chapter', h: 'Finish your hometown house and throw the party.' },
   { n: 'Odogwu in the Making', g: 'Build chapter', h: 'Reach week 104 rich, but without an empire.' },
+  { n: 'Busy, But Alone', g: 'Build chapter', h: 'Finish the Build chapter with your family bond worn down.' },
   { n: 'Japa Late', g: 'Build chapter', h: 'Sell the shop and japa when Tunde asks.' },
   { n: 'Steady Life', g: 'Any path', h: 'Reach the end of a year leaning firmly towards staying.' },
   { n: 'Burnout', g: 'Any path', h: 'Reach the end with your health worn down.' },
