@@ -1663,6 +1663,7 @@ function helpView() {
 
     <h3>About this game</h3>
     <p style="margin:0">Northland and every character, company and agent in the game are fictional. Nothing here is immigration, legal or financial advice. In real life, visas are never "guaranteed": always check official government websites and never pay an agent who promises one.</p>
+    ${FEEDBACK_URL ? `<p style="margin:0">Got ideas, found a bug, or something felt off? <a href="${esc(FEEDBACK_URL)}" target="_blank" rel="noopener">Send us feedback</a>. It is anonymous and takes about 2 minutes.</p>` : ''}
     ${back}
   </section>`;
 }
@@ -1805,6 +1806,7 @@ function endView() {
       ${S.newBests && S.newBests.length ? `<span>New personal best: ${esc(S.newBests.join(', '))}</span>` : ''}
     </div>` : ''}
     <button class="btn ghost" data-act="hall">See all endings (${ENDINGS.filter(x => loadHall().endings[x.n]).length} of ${ENDINGS.length})</button>
+    ${FEEDBACK_URL ? `<a class="btn ghost" style="text-align:center;text-decoration:none" href="${esc(FEEDBACK_URL)}" target="_blank" rel="noopener">Tell us what you think (2 minutes)</a>` : ''}
     <table class="ledger">
       <tr><td>Cash</td><td>${naira(S.money)}</td></tr><tr><td>Dollar savings</td><td>${usd(S.usd)}</td></tr>
       <tr><td>Family bond</td><td>${S.family}</td></tr><tr><td>Community</td><td>${S.community}</td></tr>
@@ -1817,7 +1819,7 @@ function endView() {
     <button class="btn" data-act="restart">${t('newGame')}</button></section>`;
 }
 // Paste a feedback form link here (for example a Google Form) to show "Send feedback" in the footer.
-const FEEDBACK_URL = '';
+const FEEDBACK_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSe4LPWrDo7fnTCTAgyEsTUFhm3Pu3-UGSOVPp7VxPJzHST8zA/viewform';
 let introSeen = false;
 try { introSeen = localStorage.getItem('jos-intro') === '1'; } catch (e) {}
 function introView() {
