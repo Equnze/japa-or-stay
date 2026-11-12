@@ -1865,6 +1865,8 @@ function render() {
   document.getElementById('newgame').hidden = !S || showHelp || showHall;
   document.getElementById('helpbtn').hidden = showHelp || showHall;
   document.getElementById('hallbtn').hidden = showHelp || showHall;
+  document.getElementById('installbtn').hidden = !canOfferInstall() || showInstall;
+  if (showInstall) { app.innerHTML = installView(); return; }
   if (showHelp) { app.innerHTML = helpView(); return; }
   if (showHall) { app.innerHTML = hallView(); return; }
   if (!S) { app.innerHTML = setupView(); return; }
@@ -1983,9 +1985,28 @@ addEventListener('online', updateOffline);
 addEventListener('offline', updateOffline);
 
 /* ---------- install as an app (only offered on the website, where the browser supports it) ---------- */
-let installPrompt = null;
-addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; document.getElementById('installbtn').hidden = false; });
-addEventListener('appinstalled', () => { installPrompt = null; document.getElementById('installbtn').hidden = true; toast('Installed. You can now play from your home screen, even offline.'); });
+let installPrompt = null, installed = false, showInstall = false;
+const isStandalone = () => { try { return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; } catch (e) { return false; } };
+const canOfferInstall = () => offlineCapable && !installed && !isStandalone();
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; render(); });
+addEventListener('appinstalled', () => { installPrompt = null; installed = true; showInstall = false; render(); toast('Installed. You can now play from your home screen, even offline.'); });
+function installSteps() {
+  const ua = navigator.userAgent || '';
+  const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  const android = /Android/.test(ua);
+  if (ios && !/Safari/.test(ua.replace(/CriOS|FxiOS|EdgiOS/g, 'X'))) return ['Open this page in <b>Safari</b> (installing works best there).', 'Tap the <b>Share</b> button (the square with an arrow pointing up).', 'Scroll down and tap <b>Add to Home Screen</b>, then <b>Add</b>.'];
+  if (ios) return ['Tap the <b>Share</b> button (the square with an arrow pointing up) at the bottom of Safari.', 'Scroll down and tap <b>Add to Home Screen</b>.', 'Tap <b>Add</b>. Japa or Stay now has its own icon.'];
+  if (android) return ['Tap the browser menu (<b>⋮</b> in Chrome, <b>≡</b> in Samsung Internet).', 'Tap <b>Install app</b> or <b>Add to Home screen</b>.', 'Tap <b>Install</b> or <b>Add</b>. Japa or Stay now has its own icon.'];
+  return ['In Chrome or Edge, click the <b>install icon</b> at the right of the address bar (a screen with a down arrow).', 'Or open the browser menu and choose <b>Install Japa or Stay</b> (Edge: <b>Apps → Install this site as an app</b>).', 'Click <b>Install</b>. It opens in its own window and works offline.'];
+}
+function installView() {
+  return `<section class="panel help">
+    <div class="row between"><h2>Install Japa or Stay</h2><button class="btn" data-act="install-close">${S ? 'Back to my game' : 'Back'}</button></div>
+    <p style="margin:0">Put the game on your home screen. It opens full-screen like an app and plays without data after your first visit.</p>
+    <ol>${installSteps().map(s => `<li>${s}</li>`).join('')}</ol>
+    <p class="note" style="margin:0">Your saved game and endings stay the same after installing.</p>
+  </section>`;
+}
 
 function toast(m) { const el = document.getElementById('toast'); el.textContent = m; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800); }
 
@@ -1994,7 +2015,12 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act, before = S && S.phase;
   if (a === 'sound') { Sound.cycle(); render(); Sound.play('tap'); return; }
-  if (a === 'install') { if (installPrompt) { installPrompt.prompt(); installPrompt.userChoice.finally(() => { installPrompt = null; b.hidden = true; }); } return; }
+  if (a === 'install') {
+    if (installPrompt) { const p = installPrompt; installPrompt = null; p.prompt(); p.userChoice.then(c => { if (c && c.outcome === 'accepted') installed = true; render(); }).catch(() => {}); }
+    else { showInstall = true; showHelp = false; showHall = false; render(); window.scrollTo({ top: 0 }); }
+    return;
+  }
+  if (a === 'install-close') { showInstall = false; render(); window.scrollTo({ top: 0 }); return; }
   if (a === 'lang') { LANG = b.dataset.v; try { localStorage.setItem('jos-lang', LANG); } catch (er) {} render(); return; }
   if (a === 'region') { setup.name = document.getElementById('nm').value || setup.name; setup.region = b.dataset.v; render(); return; }
   if (a === 'trait') { setup.name = document.getElementById('nm').value || setup.name; setup.trait = b.dataset.v; render(); return; }
