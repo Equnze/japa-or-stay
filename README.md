@@ -1,0 +1,32 @@
+# Japa or Stay
+
+A Naija life-sim game: a fresh graduate has two years to decide whether to **japa** (leave Nigeria) or **stay** and build at home. Plays in the browser, in English or Pidgin. All art and music are generated in code.
+
+- `japa-or-stay.html`: the whole game (also published as a claude.ai artifact)
+- `site/`: tab icon, app icons and the link-preview image
+- `build.js`: builds the website into `dist/` for Cloudflare Pages
+
+## Run it locally
+
+Open `japa-or-stay.html` in a browser, or build the website version:
+
+```bash
+node build.js
+```
+
+## Deploy on Cloudflare Pages
+
+1. Cloudflare dashboard > **Workers & Pages** > **Create** > **Pages** > **Connect to Git**, and pick this repository.
+2. Build command: `node build.js`. Build output directory: `dist`. Production branch: `main`.
+3. If the site address is not `https://japa-or-stay.pages.dev`, add an environment variable `SITE_URL` with the real address (it is used for the link-preview image).
+4. Optional: turn on **Web Analytics** for the project (free, cookie-free visit counts).
+
+Every push to `main` then redeploys automatically.
+
+## Feedback link
+
+Set `FEEDBACK_URL` near the top of `setupView` in `japa-or-stay.html` to a form link (for example a Google Form) to show **Send feedback** in the footer.
+
+## Disclaimer
+
+Northland and every character, company and agent in the game are fictional. Nothing in the game is immigration, legal or financial advice.
