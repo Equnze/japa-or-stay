@@ -627,10 +627,11 @@ const EV = {
       choices: [{ l: 'Enjoy Detty December', h: '+20 mood, clout up, money down' }, { l: 'Stay low-key and save', h: '−5 mood' }] }),
     pick: (p, i) => { if (i === 0) { S.money -= p.amt; S.mood += 20; S.clout += 150; S.resolve += 4; return 'Concerts, beach, owambe. Your IJGB friend asked, "When are you coming over?"'; } S.mood -= 5; return 'You watched it all on Instagram stories.'; } },
   devalue: {
+    cond: () => timesThisYear('devalue') < 2 && S.week - (S.lastDevalue || -99) >= 10,
     view: () => ({ who: 'News', av: '₦', cls: 'b', title: 'The naira has fallen', text: 'The exchange rate jumped about 20% overnight. Dollar savings are worth more in naira, but japa costs just got heavier.',
       choices: [{ l: 'Okay…', h: '' }] }),
     make: () => ({}),
-    pick: () => { S.fx *= 1.2; return `₦${Math.round(S.fx).toLocaleString('en-NG')} to $1 now.`; } },
+    pick: () => { S.fx *= 1.2; S.lastDevalue = S.week; return `₦${Math.round(S.fx).toLocaleString('en-NG')} to $1 now.`; } },
   sick: {
     cond: () => S.health < 35,
     make: () => ({ hosp: price(60000), chem: price(8000) }),
@@ -647,9 +648,9 @@ const EV = {
     view: () => ({ who: 'Northland Embassy', av: 'E', cls: 'j', title: 'Visa interview', text: `Your passport, test score (${S.ielts}), job offer and ${usd(S.usd)} proof of funds are all in. Fee: ${usd(VISA_USD)}. The officer asks: "Why do you want to come?"`,
       choices: [{ l: 'Answer honestly about the job and your plans', h: 'Best chance' }, { l: 'Give a rehearsed "agent" answer', h: 'Risky' }] }),
     pick: (p, i) => { S.usd -= VISA_USD; S.visaDone = true;
-      const c = (i === 0 ? 0.55 : 0.3) + (S.ielts - 6.5) * 0.1 + (S.usd >= POF_USD + 1000 ? 0.1 : 0) + (S.streetSmart ? 0.05 : 0);
+      const c = (i === 0 ? 0.55 : 0.3) + (S.ielts - 6.5) * 0.1 + (S.usd >= POF_USD + 1000 ? 0.1 : 0) + (S.streetSmart ? 0.05 : 0) + 0.1 * Math.min(2, S.visaRefusals || 0);
       if (chance(c)) { S.queue.splice(1, 0, { id: 'ponr', p: {} }); return 'APPROVED. Your passport came back with a visa inside.'; }
-      S.visaWait = S.week + 10; S.visaDone = false; S.mood -= 15; return 'Refused. Fee gone. You can reapply in 10 weeks.'; } },
+      S.visaWait = S.week + 10; S.visaDone = false; S.mood -= 15; S.visaRefusals = (S.visaRefusals || 0) + 1; return 'Refused. Fee gone. You can reapply in 10 weeks, and the officer has your file now, so your next try will be stronger.'; } },
   ponr: {
     make: () => ({}),
     view: () => ({ who: 'Point of No Return', av: '✈', cls: 'j', title: 'The flight is booked', text: 'Mama is crying at the airport. Your friends are taking last pictures. This is it.',
@@ -664,7 +665,7 @@ const EV = {
   /* ----- Year 2: abroad events (money in dollars) ----- */
   // black tax abroad: different people ask for different things, about once a month at most
   a_blacktax: {
-    cond: () => S.week - (S.abroad.lastAsk || 0) >= 4,
+    cond: () => S.week - (S.abroad.lastAsk || 0) >= 4 && weeksAbroad() >= 4,
     make: () => {
       const r = pick(ABROAD_ASKERS);
       S.abroad.lastAsk = S.week;
@@ -964,14 +965,14 @@ Object.assign(EV, {
       choices: [{ l: 'Join the committee', h: '+12 community, −8 energy' }, { l: 'Not now', h: 'Nothing changes' }] }),
     pick: (p, i) => { S.abroad.committee = true; if (i === 0) { S.community += 12; S.energy -= 8; S.resolve += 3; return 'You now know half the Nigerians in town.'; } return 'They said the door is always open.'; } },
   a_cousin: {
-    cond: () => timesThisYear('a_cousin') < 1,
+    cond: () => timesThisYear('a_cousin') < 1 && weeksAbroad() >= 4,
     make: () => ({ amt: 300 }),
     view: p => ({ who: 'Your cousin back home', title: '"Bring me come"', text: `Your cousin wants you to help him japa too. He asks for ${usd(p.amt)} for his English test and an "agent".`,
       choices: [{ l: `Send ${usd(p.amt)}`, h: 'Family up, money down' }, { l: 'Send him the official visa website and guide him', h: 'Street Smart move' }, { l: 'Say you cannot right now', h: '−6 family' }] }),
     pick: (p, i) => { if (i === 0) { S.usd -= p.amt; S.family += 8; return 'He thanked you. Two weeks later, the "agent" stopped picking his calls.'; }
       if (i === 1) { S.family += 3; S.streetSmart = true; return 'You spent an evening on video call walking him through the real process.'; } S.family -= 6; return '"So you don forget us," he typed.'; } },
   a_mamasolar: {
-    cond: () => timesThisYear('a_mamasolar') < 1,
+    cond: () => timesThisYear('a_mamasolar') < 1 && weeksAbroad() >= 4,
     make: () => ({ amt: 250, fuel: 40 }),
     view: p => ({ who: 'Mama', title: 'NEPA wahala at home', text: `${REG().open} the light has been gone for two weeks. A small solar setup for the house is ${usd(p.amt)}.`,
       choices: [{ l: `Buy Mama solar (${usd(p.amt)})`, h: '+15 family' }, { l: `Send fuel money (${usd(p.fuel)})`, h: '+4 family' }, { l: 'Not this month', h: '−5 family' }] }),
@@ -1152,7 +1153,7 @@ const PGR = {
   'Drip, injection, rest. You feel human again.': 'Drip, injection, rest. You don feel like human again.',
   'Agbo and tablets. Somehow, you survived.': 'Agbo and tablet. Somehow, you survive.',
   'APPROVED. Your passport came back with a visa inside.': 'APPROVED! Your passport come back with visa inside.',
-  'Refused. Fee gone. You can reapply in 10 weeks.': 'Dem refuse am. Fee don go. You fit apply again after 10 weeks.',
+  'Refused. Fee gone. You can reapply in 10 weeks, and the officer has your file now, so your next try will be stronger.': 'Dem refuse am. Fee don go. You fit apply again after 10 weeks, and the officer don get your file now, so next time go better.',
   'Wheels up. The lights of home fade under the clouds. Next stop: Northland.': 'Plane don fly. Light of home don disappear under cloud. Next stop: Northland.',
   'You walked out of the airport. Mama hugged you twice.': 'You waka comot from airport. Mama hug you two times.',
   'Signed. Your name is going up on the signboard. Year 2, the Build chapter, begins.': 'You don sign. Your name dey go up for signboard. Year 2, the Build chapter, don start.',
@@ -1406,8 +1407,8 @@ function endWeek() {
   const ab = !!S.abroad;
   if (!ab && [2, 19, 37, 54, 71, 89].includes(S.week)) queueEvent('school');
   if (!ab && (S.week === 49 || S.week === 101)) queueEvent('detty');
-  if (ab && S.week === 101) queueEvent('a_detty');
-  if (chance(0.02)) queueEvent('devalue');
+  if (ab && S.week === 101 && weeksAbroad() >= 12) queueEvent('a_detty');
+  if (chance(0.02) && EV.devalue.cond()) queueEvent('devalue');
   // illness: not two weeks running, so it never becomes an every-week event
   if (S.health < 35 && S.sickWeek !== S.week - 1) { queueEvent(ab ? 'a_sick' : 'sick'); S.sickWeek = S.week; }
   if (!ab && S.debt > price(300000) && timesThisYear('loanshame') < 2 && chance(0.4)) queueEvent('loanshame');
@@ -1930,7 +1931,7 @@ function board() {
   <section class="panel" aria-label="Status">
     ${scene(S.abroad ? 'north' : S.region)}
     <div class="row between">
-      <div class="me">${playerFace()}<div><span class="label">${t('week')} ${S.week} of ${lastWeek()} · ${month()}${S.abroad ? ` · ${weeksAbroad()} weeks abroad` : ''}</span><h2>${esc(S.name)} in ${S.abroad ? 'Northland' : REG().name}</h2></div></div>
+      <div class="me">${playerFace()}<div><span class="label">${t('week')} ${Math.min(S.week, lastWeek())} of ${lastWeek()} · ${month()}${S.abroad ? ` · ${weeksAbroad()} weeks abroad` : ''}</span><h2>${esc(S.name)} in ${S.abroad ? 'Northland' : REG().name}</h2></div></div>
       <span class="tag">${TRAITS[S.trait].name}${S.job ? ' · employed' : ''}${S.streetSmart ? ' · Street Smart' : ''}</span>
     </div>
     <div class="money">
