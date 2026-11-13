@@ -241,6 +241,7 @@ small.first { display: block; font-size: 11.5px; color: var(--muted); }
     <button class="lookbtn" id="soundbtn" data-act="sound" title="Switch between music and sound effects, sound effects only, and no sound">♪ Sound off</button>
     <button class="lookbtn" id="hallbtn" data-act="hall">Lives lived</button>
     <button class="lookbtn" id="helpbtn" data-act="help">How to play</button>
+    <button class="lookbtn" id="sharegamebtn" data-act="sharegame">↗ Share</button>
     <button class="lookbtn" id="newgame" data-act="newgame" hidden>New game</button>
     <div class="lang" role="group" aria-label="Language">
       <button id="lang-en" data-act="lang" data-v="en" aria-pressed="true">English</button>
@@ -2543,7 +2544,8 @@ function setupView() {
     <div class="opts">${Object.entries(REGIONS).map(([k, r]) => `<button class="opt" data-act="region" data-v="${k}" aria-pressed="${setup.region === k}">${scene(k)}<b>${r.name}</b><small>${r.note}</small></button>`).join('')}</div>
     <span class="label">Trait</span>
     <div class="opts">${Object.entries(TRAITS).map(([k, r]) => `<button class="opt" data-act="trait" data-v="${k}" aria-pressed="${setup.trait === k}"><b>${r.name}</b><small>${r.d}</small></button>`).join('')}</div>
-    <button class="btn" data-act="start">${t('start')}</button></section>`;
+    <button class="btn" data-act="start">${t('start')}</button>
+    <button class="btn ghost" data-act="sharegame">↗ Share Japa or Stay with a friend</button></section>`;
 }
 function logView() {
   if (!S.log.length) return '';
@@ -2562,6 +2564,8 @@ function render() {
   document.getElementById('helpbtn').hidden = showHelp || showHall;
   document.getElementById('hallbtn').hidden = showHelp || showHall;
   document.getElementById('installbtn').hidden = !canOfferInstall() || showInstall;
+  document.getElementById('sharegamebtn').hidden = showShareGame || showHelp || showHall;
+  if (showShareGame) { app.innerHTML = shareGameView(); return; }
   if (showInstall) { app.innerHTML = installView(); return; }
   if (showHelp) { app.innerHTML = helpView(); return; }
   if (showShare && S) { app.innerHTML = shareView(); return; }
@@ -2696,6 +2700,30 @@ function installSteps() {
   if (android) return ['Tap the browser menu (<b>⋮</b> in Chrome, <b>≡</b> in Samsung Internet).', 'Tap <b>Install app</b> or <b>Add to Home screen</b>.', 'Tap <b>Install</b> or <b>Add</b>. Japa or Stay now has its own icon.'];
   return ['In Chrome or Edge, click the <b>install icon</b> at the right of the address bar (a screen with a down arrow).', 'Or open the browser menu and choose <b>Install Japa or Stay</b> (Edge: <b>Apps → Install this site as an app</b>).', 'Click <b>Install</b>. It opens in its own window and works offline.'];
 }
+// Share the game itself (any time), as opposed to "Share my life" at the end of a life
+let showShareGame = false;
+const gameShareText = () => `Japa or stay? 🇳🇬 I'm playing a free Naija life-sim game: two years, one choice, 22 endings. In English or Pidgin, and it works offline. Play free: ${SHARE_URL} (follow ${SOCIAL_HANDLE})`;
+function shareGameView() {
+  const t = encodeURIComponent(gameShareText()), u = encodeURIComponent(SHARE_URL), short = encodeURIComponent("Japa or stay? 🇳🇬 A free Naija life-sim game with 22 endings, in English or Pidgin. Play free:");
+  const links = [
+    ['WhatsApp', `https://wa.me/?text=${t}`],
+    ['X', `https://x.com/intent/post?text=${short}&url=${u}`],
+    ['Facebook', `https://www.facebook.com/sharer/sharer.php?u=${u}`],
+    ['Telegram', `https://t.me/share/url?url=${u}&text=${short}`],
+    ['LinkedIn', `https://www.linkedin.com/sharing/share-offsite/?url=${u}`]
+  ];
+  const icon = n => (SOCIAL.find(x => x[0] === n) || [])[2] || '';
+  return `<section class="panel share">
+    <div class="row between"><h2>Share Japa or Stay</h2><button class="btn ghost" data-act="sharegame-close">Back</button></div>
+    <p style="margin:0">Know someone who's thinking about japa, or about staying to build? Send them the game.</p>
+    ${navigator.share ? '<button class="btn" data-act="sharegame-native">Share…</button>' : ''}
+    <div class="soc">${links.map(([n, l]) => `<a href="${l}" target="_blank" rel="noopener" aria-label="Share on ${n}"><svg viewBox="0 0 24 24" aria-hidden="true">${icon(n)}</svg>${n}</a>`).join('')}
+      <a href="#" data-act="sharegame-copy" aria-label="Copy the game link"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Copy link</a></div>
+    <p class="note" style="margin:0">The message that goes with it:</p>
+    <p class="msg">${esc(gameShareText())}</p>
+    ${S && S.phase === 'end' ? '<p class="note" style="margin:0">Finished a life? <b>Share my life</b> on the end screen sends a picture of your ending.</p>' : ''}
+  </section>`;
+}
 function installView() {
   return `<section class="panel help">
     <div class="row between"><h2>Install Japa or Stay</h2><button class="btn" data-act="install-close">${S ? 'Back to my game' : 'Back'}</button></div>
@@ -2714,9 +2742,13 @@ document.addEventListener('click', e => {
   if (a === 'sound') { Sound.cycle(); render(); Sound.play('tap'); return; }
   if (a === 'install') {
     if (installPrompt) { const p = installPrompt; installPrompt = null; p.prompt(); p.userChoice.then(c => { if (c && c.outcome === 'accepted') installed = true; render(); }).catch(() => {}); }
-    else { showInstall = true; showHelp = false; showHall = false; render(); window.scrollTo({ top: 0 }); }
+    else { showInstall = true; showHelp = false; showHall = false; showShareGame = false; render(); window.scrollTo({ top: 0 }); }
     return;
   }
+  if (a === 'sharegame') { if (!S) setup.name = (document.getElementById('nm') || {}).value || setup.name; showShareGame = true; showHelp = false; showHall = false; showShare = false; render(); window.scrollTo({ top: 0 }); return; }
+  if (a === 'sharegame-close') { showShareGame = false; render(); window.scrollTo({ top: 0 }); return; }
+  if (a === 'sharegame-native') { navigator.share({ title: 'Japa or Stay', text: gameShareText(), url: SHARE_URL }).catch(() => {}); return; }
+  if (a === 'sharegame-copy') { e.preventDefault(); const tx = gameShareText(); (navigator.clipboard ? navigator.clipboard.writeText(tx) : Promise.reject()).then(() => toast('Link copied'), () => toast('Could not copy. Select the message and copy it.')); return; }
   if (a === 'install-close') { showInstall = false; render(); window.scrollTo({ top: 0 }); return; }
   if (a === 'share') { openShare(); return; }
   if (a === 'share-close') { showShare = false; render(); return; }
@@ -2749,6 +2781,7 @@ document.addEventListener('click', e => {
   if (a === 'choose') { choose(Number(b.dataset.i)); Sound.play('choose'); }
   if (a === 'next') nextEvent();
   if (a === 'nextweek') nextWeek();
+  if (['help', 'hall', 'install', 'newgame'].includes(a)) showShareGame = false;
   if (a === 'help') { if (!S) setup.name = (document.getElementById('nm') || {}).value || setup.name; showHelp = true; showHall = false; render(); window.scrollTo({ top: 0 }); return; }
   if (a === 'hall') { if (!S) setup.name = (document.getElementById('nm') || {}).value || setup.name; showHall = true; showHelp = false; render(); window.scrollTo({ top: 0 }); return; }
   if (a === 'hall-close') { showHall = false; render(); window.scrollTo({ top: 0 }); return; }
