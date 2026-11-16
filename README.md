@@ -27,6 +27,14 @@ Every push to `main` then redeploys automatically.
 
 Set `FEEDBACK_URL` near the top of `setupView` in `japa-or-stay.html` to a form link (for example a Google Form) to show **Send feedback** in the footer.
 
+## Contributing
+
+Contributions are welcome: bug reports, ideas, new life events, better Pidgin and code fixes. Read [CONTRIBUTING.md](CONTRIBUTING.md) to get started, and please follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## License
+
+[MIT](LICENSE). You are free to use, change and share the code, as long as you keep the copyright notice.
+
 ## Disclaimer
 
 Northland and every character, company and agent in the game are fictional. Nothing in the game is immigration, legal or financial advice.
