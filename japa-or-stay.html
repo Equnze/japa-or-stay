@@ -304,7 +304,8 @@ const T = {
     cashAb: 'Cash', homeAcct: 'Home account', goHome: 'Go home', settleAb: 'Settle abroad', atrack: 'Settle in Northland', rtrack: 'Roots at home',
     yourWeek: 'Your week so far', alsoWeek: 'Over the week', leaning: 'leaning', debtWord: 'debt',
     offReady: 'Works offline', offNow: 'Playing offline',
-    loanTag: 'borrowed', loanToast: 'Not enough cash. The loan app will cover it, with interest.' },
+    loanTag: 'borrowed', loanToast: 'Not enough cash. The loan app will cover it, with interest.',
+    backSetup: 'Back to setup', backCard: 'Back to my life card', backGame: 'Back to my game' },
   pg: { money: 'Kudi for hand', savings: 'Dollar account', fx: '₦ for $1', energy: 'Strength', mood: 'Happiness', health: 'Body', family: 'Family matter', community: 'Your people', clout: 'Clout',
     plan: 'Plan', life: 'Wahala', settle: 'Count money', progress: 'Progress',
     planTitle: 'How you go run this week?', blocksLeft: 'time remain', endWeek: 'Close this week', cont: 'Make we continue', notEnough: 'You no get enough kudi',
@@ -313,7 +314,8 @@ const T = {
     cashAb: 'Dollar for hand', homeAcct: 'Naija account', goHome: 'Go back home', settleAb: 'Settle for abroad', atrack: 'Papers for abroad', rtrack: 'Root for house',
     yourWeek: 'Your week so far', alsoWeek: 'For this week', leaning: 'mind dey go', debtWord: 'debt',
     offReady: 'E dey work without data', offNow: 'You dey play offline',
-    loanTag: 'on loan', loanToast: 'Kudi no reach. Loan app go cover am, with interest.' }
+    loanTag: 'on loan', loanToast: 'Kudi no reach. Loan app go cover am, with interest.',
+    backSetup: 'Go back to setup', backCard: 'Go back to my life card', backGame: 'Go back to my game' }
 };
 let LANG = 'en';
 try { LANG = localStorage.getItem('jos-lang') || 'en'; } catch (e) {}
@@ -2249,7 +2251,7 @@ function load() { try { const r = localStorage.getItem('jos-save'); if (r) S = J
 let confirmReset = false, showHelp = false, showHall = false;
 function hallView() {
   const h = loadHall(), got = ENDINGS.filter(x => h.endings[x.n]).length;
-  const back = `<button class="btn" data-act="hall-close">${!S ? 'Back to setup' : S.phase === 'end' ? 'Back to my life card' : 'Back to my game'}</button>`;
+  const back = `<button class="btn" data-act="hall-close">${!S ? t('backSetup') : S.phase === 'end' ? t('backCard') : t('backGame')}</button>`;
   const tile = x => {
     const r = h.endings[x.n];
     return r
@@ -2364,7 +2366,7 @@ function easyGuide() {
     <li>Get a job in your first few weeks. Job hunt is free.</li><li>Pick one path and follow its checklist.</li><li>Rest when your energy bar is short.</li><li>Call family often. It is only 1 block.</li><li>Read the small grey words before you tap an answer.</li><li>Keep some money for bills.</li><li>Too good to be true? It is a trick. Check first.</li><li>Pay back the loan app fast.</li><li>Use all 21 blocks every week.</li><li>There is no wrong ending. Play again!</li></ol>`)}`;
 }
 function helpView() {
-  const back = `<button class="btn" data-act="help-close">${S ? 'Back to my game' : 'Back to setup'}</button>`;
+  const back = `<button class="btn" data-act="help-close">${S ? t('backGame') : t('backSetup')}</button>`;
   const tabs = `<div class="lang helptabs" role="group" aria-label="Guide type"><button data-act="helpmode" data-v="easy" aria-pressed="${helpMode === 'easy'}">Easy guide</button><button data-act="helpmode" data-v="full" aria-pressed="${helpMode === 'full'}">Full rules</button></div>`;
   if (helpMode === 'easy') return `<section class="panel help">
     <div class="row between"><h2>How to play</h2>${back}</div>${tabs}${easyGuide()}${back}</section>`;
