@@ -2115,9 +2115,11 @@ function easyGuide() {
     <dt>✓ Works offline</dt><dd>The game still works with no data, after your first visit.</dd>
     <dt>⬇ Install app</dt><dd>Puts the game on your phone like a normal app.</dd>
     <dt>♪ Sound</dt><dd>Music and sounds, only sounds, or no sound.</dd>
+    <dt>🔥 Daily wahala</dt><dd>One quick problem every day. The number is your streak. It glows gold when today's one is waiting.</dd>
     <dt>Lives lived</dt><dd>Your trophy room: every ending you have reached, clues for the rest, and your best scores.</dd>
     <dt>How to play</dt><dd>This guide.</dd>
     <dt>New game</dt><dd>Start a brand new life. Your trophies stay.</dd>
+    <dt>↗ Share</dt><dd>Send the game to your friends.</dd>
     <dt>English / Pidgin</dt><dd>The language for the stories.</dd></dl>`)}
   ${sec('4. Your life screen', `
     <dl class="eg-dl">
@@ -2170,7 +2172,15 @@ function easyGuide() {
     <p><b style="color:var(--japa)">Abroad:</b> finish the carer course, pass the Life in Northland test, live there 40 weeks and save $4,000 to stay for good. Or buy land back home and save $5,000 to fly home and build.</p>
     <p><b style="color:var(--stay)">At home:</b> grow a business empire (3 branches), become councillor, or build your family house in 8 steps.</p>`)}
   ${sec('13. Endings', `<p>Every life ends with a life card, like <i>Settled Abroad</i>, <i>Odogwu</i> or <i>Changemaker</i>. There are ${ENDINGS.length} to collect. Open <b>Lives lived</b> to see clues, then press <b>New game</b> and try a different life.</p>`)}
-  ${sec('14. 10 golden tips', `<ol>
+  ${sec('14. Daily Naija Wahala', `
+    <p>A small extra game. Every day there is <b>one new problem</b>, the same one for everybody. Tap <b>🔥 Daily wahala</b> at the top.</p>
+    <ol><li>Read the problem.</li><li>Pick one of three answers. You only get one try a day!</li><li>See what happened, then share your result with friends.</li></ol>
+    <dl class="eg-dl">
+      <dt>Streak</dt><dd>How many days in a row you played. Miss a day and it starts again from 1.</dd>
+      <dt>Street rank</dt><dd>Goes up the more days you play: JJC, Street Learner, Sharp Guy, Street Smart, Wahala Expert, then Agba Survivor.</dd>
+      <dt>Coloured squares</dt><dd>Your last 14 days. Green went well, yellow was so-so, red went badly.</dd></dl>
+    <p class="eg-tip">It does not touch your main game. A new wahala comes at midnight.</p>`)}
+  ${sec('15. 10 golden tips', `<ol>
     <li>Get a job in your first few weeks. Job hunt is free.</li><li>Pick one path and follow its checklist.</li><li>Rest when your energy bar is short.</li><li>Call family often. It is only 1 block.</li><li>Read the small grey words before you tap an answer.</li><li>Keep some money for bills.</li><li>Too good to be true? It is a trick. Check first.</li><li>Pay back the loan app fast.</li><li>Use all 21 blocks every week.</li><li>There is no wrong ending. Play again!</li></ol>`)}`;
 }
 function helpView() {
@@ -2216,6 +2226,9 @@ function helpView() {
       <li><b style="color:var(--japa)">Abroad chapter:</b> work care home shifts, finish the senior carer course, pass the Life in Northland test, live there 40 weeks and save $4,000 to settle. Or buy a plot of land at home and save $5,000: you will be offered the trip home to build (say "Not yet" if you want to stay longer). Avoid cash-in-hand gigs: 3 visa warnings and you are sent home.</li>
       <li><b style="color:var(--stay)">Build chapter:</b> run and restock the shop, hire staff, register with CAC and open branches for an empire. Or attend town union meetings and run for councillor. Or build your hometown house in 8 stages.</li>
     </ul>
+
+    <h3>Daily Naija Wahala</h3>
+    <p style="margin:0">Press <b>🔥 Daily wahala</b> at the top for one dilemma a day, the same for every player. You get one choice per day, and it does not affect your main game. Playing on back-to-back days builds your <b>streak</b>; every day you play counts toward your street rank (JJC at the start, then Street Learner at 3 days, Sharp Guy at 7, Street Smart at 14, Wahala Expert at 30 and Agba Survivor at 60). Share your result with the button under it. A new wahala arrives at midnight.</p>
 
     <h3>Endings</h3>
     <p style="margin:0">Each run ends with a life card and a Pidgin verdict, like <i>Settled Abroad</i>, <i>Back to Base</i>, <i>Odogwu</i> or <i>Changemaker</i>. Press <b>${t('newGame')}</b> to try the other path.</p>
