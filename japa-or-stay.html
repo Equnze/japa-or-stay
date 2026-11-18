@@ -331,7 +331,8 @@ const TRAITS = {
   book: { name: 'Book Sense', d: 'English study counts 50% more' },
   smooth: { name: 'Smooth Talker', d: 'Better at negotiating' },
   family: { name: 'Family First', d: 'Family bond rises faster' },
-  owambe: { name: 'Owambe Spirit', d: 'Parties give double community' }
+  owambe: { name: 'Owambe Spirit', d: 'Parties give double community' },
+  cruise: { name: 'Cruise Master', d: 'Skits, songs, auditions and vlogs win 50% more fans' }
 };
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const POF_USD = 2000, TEST_USD = 250, VISA_USD = 600, LAST_WEEK = 52, BLOCKS = 21;
@@ -342,8 +343,13 @@ const month = () => MONTHS[Math.min(11, Math.floor(((S.week - 1) % 52) / 4.34))]
 const detty = () => ((S.week - 1) % 52) + 1 >= 48;
 const price = b => Math.round(b * S.idx * REG().R / 100) * 100;
 const fun = b => Math.round(price(b) * (detty() ? 1.4 : 1) / 100) * 100;
-const weeklyPay = () => Math.round(90000 * REG().pay * (1 + 0.08 * Math.floor(S.skills.work)) / 1000) * 1000;
+const weeklyPay = () => Math.round(90000 * REG().pay * (1 + 0.08 * Math.floor(S.skills.work)) * (techReady() ? 1.15 : 1) / 1000) * 1000;
 const hustleBoost = () => S.trait === 'hustler' ? 1.25 : 1;
+const fanBoost = () => S.trait === 'cruise' ? 1.5 : 1; // Cruise Master: content wins more fans
+// Learn a tech skill: at level 3 your job pays more and job applications abroad do better
+const TECH_GOAL = 3;
+const techLevel = () => (S.skills && S.skills.tech) || 0;
+const techReady = () => techLevel() >= TECH_GOAL;
 // a worn-down body earns half; a low mood shows on camera and at home
 const weak = () => S.health < 30;
 const bodyMult = () => weak() ? 0.5 : 1;
@@ -431,12 +437,17 @@ const CARDS = {
     tags: () => { const base = 4 + S.skills.english * 0.45, r2 = x => Math.max(0, Math.min(9, Math.round(x * 2) / 2)), lo = r2(base - 0.5), hi = r2(base + 0.5);
       return [S.usd >= TEST_USD ? `${usd(TEST_USD)} from dollar account` : `fee ${usd(TEST_USD)}`, `likely score ${lo}–${hi}`, hi < 6.5 ? 'need 6.5: study more first' : lo >= 6.5 ? 'need 6.5: ready' : 'need 6.5: could go either way', 'Japa']; },
     run: () => { if (S.usd >= TEST_USD) S.usd -= TEST_USD; const sc = Math.min(9, Math.round((4 + S.skills.english * 0.45 + rnd(-0.5, 0.5)) * 2) / 2); S.ielts = Math.max(S.ielts, sc); S.resolve += 5; return sc >= 6.5 ? `You scored ${sc}. Test passed!` : `You scored ${sc}. You need 6.5. Study more and try again.`; } },
+  tech: { name: 'Learn a tech skill', blocks: 3, cost: () => price(8000), can: () => techLevel() < TECH_GOAL,
+    tags: () => [`tech skill ${techLevel()} → ${techLevel() + 1}`, techLevel() + 1 >= TECH_GOAL ? 'unlocks +15% pay' : `level ${TECH_GOAL}: +15% pay`, 'better job offers abroad', '−10 energy'],
+    run: () => { S.skills.tech = techLevel() + 1; S.energy -= 10; S.mood += 3;
+      if (techReady()) return `Online course finished: you can build websites now! Your job pays 15% more${S.job ? ` (${naira(weeklyPay())} a week)` : ' once you have one'}, and job offers abroad come easier.`;
+      return `${['You watched coding videos on your data until 2am.', 'You built your first small web page. It works on your phone!'][techLevel() - 1] || 'Another lesson done.'} Tech skill ${techLevel()} of ${TECH_GOAL}.`; } },
   passport: { name: 'Passport office', blocks: 3, cost: () => price(80000), can: () => !S.passport,
     tags: () => [`~${Math.min(95, 50 + 20 * (S.passTries || 0))}% done this week`, 'Japa'],
     run: () => { S.resolve += 4; S.energy -= 8; if (chance(Math.min(0.95, 0.5 + 0.2 * (S.passTries || 0)))) { S.passport = true; return 'Your international passport is ready.'; } S.passTries = (S.passTries || 0) + 1; return '"Booklet no dey. Come back next week." Fee already paid.'; } },
   apply: { name: 'Apply for jobs abroad', blocks: 3, cost: () => 0, can: () => S.ielts >= 6.5 && !S.offer,
-    tags: () => ['~25% chance of offer', 'Japa'],
-    run: () => { S.resolve += 5; if (chance(0.2 + 0.04 * S.skills.work)) { S.offer = true; return 'A care home in Northland sent you a sponsored job offer!'; } return 'Applications sent. Silence for now.'; } },
+    tags: () => [techReady() ? '~35% chance of offer' : '~25% chance of offer', ...(techReady() ? ['tech skill helps'] : []), 'Japa'],
+    run: () => { S.resolve += 5; if (chance(0.2 + 0.04 * S.skills.work + (techReady() ? 0.1 : 0))) { S.offer = true; return 'A care home in Northland sent you a sponsored job offer!'; } return 'Applications sent. Silence for now.'; } },
   convert: { name: 'Move ₦ to dollar account', blocks: 1, cost: () => 0, can: () => S.money > 80000,
     tags: () => [`~${usd((S.money - 50000) * 0.5 / S.fx)}`, '2% fee', 'Japa'],
     run: () => { const n = Math.round((S.money - 50000) * 0.5); if (n <= 0) return 'Nothing to move this week. Your other plans used up the cash first.'; S.money -= n; const d = n * 0.98 / S.fx; S.usd += d; S.resolve += 2; return `Converted ${naira(n)} to ${usd(d)}.`; } },
@@ -455,15 +466,15 @@ const CARDS = {
   skit: { name: 'Make a skit', blocks: 3, cost: () => price(3000), can: () => true,
     tags: () => ['+clout', 'brand deals at 2k'],
     // fan growth slows as you get bigger (square root), so it no longer compounds out of control
-    run: () => { let g = Math.round(rnd(30, 120) + Math.sqrt(S.clout) * 3); let m = ''; if (chance(0.08)) { g = g * 2 + 800; m = ' It went viral!'; } if (moodMult() < 1) { g = Math.round(g * 0.5); m += ' Your low mood showed on camera.'; } S.clout += g; S.mood += 3;
+    run: () => { let g = Math.round(rnd(30, 120) + Math.sqrt(S.clout) * 3); let m = ''; if (chance(0.08)) { g = g * 2 + 800; m = ' It went viral!'; } if (moodMult() < 1) { g = Math.round(g * 0.5); m += ' Your low mood showed on camera.'; } g = Math.round(g * fanBoost()); S.clout += g; S.mood += 3;
       if (S.clout >= 2000 && chance(0.25)) { const d = Math.round(Math.min(400000, S.clout * 25) / 1000) * 1000; S.money += d; m += ` Brand deal: ${naira(d)}.`; }
       return `Skit posted: +${g} fans.${m}`; } },
   studio: { name: 'Studio session', blocks: 4, cost: () => price(25000), can: () => true,
     tags: () => ['song could blow', '+clout'],
-    run: () => { let g = Math.round(rnd(20, 90)); let m = ''; if (chance(Math.min(0.15, 0.07 + S.clout / 100000))) { g += 2500; const b = price(150000); S.money += b; m = ` The song blew! Show bookings paid ${naira(b)}.`; } S.clout += g; S.energy -= 6; return `You recorded a song. +${g} fans.${m}`; } },
+    run: () => { let g = Math.round(rnd(20, 90)); let m = ''; if (chance(Math.min(0.15, 0.07 + S.clout / 100000))) { g += 2500; const b = price(150000); S.money += b; m = ` The song blew! Show bookings paid ${naira(b)}.`; } g = Math.round(g * fanBoost()); S.clout += g; S.energy -= 6; return `You recorded a song. +${g} fans.${m}`; } },
   audition: { name: 'Nollywood audition', blocks: 3, cost: () => price(4000), can: () => true,
     tags: () => [S.region === 'enugu' ? '~35% role' : '~20% role', '+clout'],
-    run: () => { S.energy -= 6; if (chance(S.region === 'enugu' ? 0.35 : 0.2)) { const f = price(70000); S.money += f; S.clout += 600; return `You got a supporting role! Paid ${naira(f)}, +600 fans.`; } return 'They said you are "not the look" this time.'; } },
+    run: () => { S.energy -= 6; if (chance(S.region === 'enugu' ? 0.35 : 0.2)) { const f = price(70000); const g = Math.round(600 * fanBoost()); S.money += f; S.clout += g; return `You got a supporting role! Paid ${naira(f)}, +${g} fans.`; } return 'They said you are "not the look" this time.'; } },
   // Year 1 business: each level costs more than the last, and it tops out at level 8 (the Build chapter takes it further)
   stock: { name: 'Buy stock for your business', blocks: 4, cost: () => price(60000 * (1 + 0.5 * S.biz)), can: () => S.biz < 8,
     tags: () => [`level ${S.biz} → ${S.biz + 1}`, 'weekly profit', 'Stay'],
@@ -510,7 +521,7 @@ const CARDS = {
     run: () => { S.mood += 10; S.resolve += 3; return 'Museum, park, a street market. The city is starting to feel familiar.'; } },
   a_vlog: { ab: true, name: 'Diaspora vlog', blocks: 3, cost: () => 5, can: () => true,
     tags: () => ['+clout', 'brand deals in $'],
-    run: () => { let g = Math.round(rnd(60, 200) + Math.sqrt(S.clout) * 3.5); let m = ''; if (chance(0.1)) { g = g * 2 + 1000; m = ' "A day in my life abroad" went viral!'; } if (moodMult() < 1) { g = Math.round(g * 0.5); m += ' Your low mood showed on camera.'; } S.clout += g; S.mood += 3;
+    run: () => { let g = Math.round(rnd(60, 200) + Math.sqrt(S.clout) * 3.5); let m = ''; if (chance(0.1)) { g = g * 2 + 1000; m = ' "A day in my life abroad" went viral!'; } if (moodMult() < 1) { g = Math.round(g * 0.5); m += ' Your low mood showed on camera.'; } g = Math.round(g * fanBoost()); S.clout += g; S.mood += 3;
       if (S.clout >= 2000 && chance(0.3)) { const d = Math.round(Math.min(1200, S.clout * 0.25)); S.usd += d; m += ` Brand deal: ${usd(d)}.`; }
       return `Vlog posted: +${g} fans.${m}`; } },
   a_land: { ab: true, name: 'Buy a plot back home', blocks: 1, cost: () => Math.round(price(2500000) / S.fx), can: () => S.abroad.land < 3,
@@ -600,7 +611,7 @@ function dealHand() {
 function fillHand(always, ok) {
   const pool = Object.keys(CARDS).filter(k => ok(k) && !always.includes(k) && CARDS[k].can());
   const hand = [...always];
-  while (hand.length < 9 && pool.length) hand.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  while (hand.length < 10 && pool.length) hand.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
   S.hand = hand; S.picked = [];
 }
 const blocksUsed = () => S.picked.reduce((a, k) => a + CARDS[k].blocks, 0);
@@ -2152,6 +2163,7 @@ const CI = {
   jobhunt: '<circle cx="10" cy="10" r="6"/><path d="M15 15l5 5"/>',
   pos: '<rect x="6" y="3" width="12" height="18" rx="2"/><rect x="8.5" y="6" width="7" height="4"/><path d="M9 14h.01M12 14h.01M15 14h.01M9 17h.01M12 17h.01M15 17h.01"/>',
   study: '<path d="M4 5h6a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6z"/>',
+  tech: '<rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19h20M10 9l-2 1.5 2 1.5M14 9l2 1.5-2 1.5"/>',
   test: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>',
   passport: '<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M9 16h6"/>',
   apply: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
@@ -2312,7 +2324,7 @@ function easyGuide() {
     <p class="eg-tip">You will not see every card every week. A new set comes each week, so a missing card will come back soon.</p>`, true)}
   ${sec('6. What the cards are for', `
     <p class="eg-h">At home</p>
-    ${rows([['Job hunt', 'Find a job. Free. Keep trying.'], ['Work the full week', 'Your main pay, once you have a job.'], ['Run a POS stand', 'A little extra cash.'], ['Buy stock for your business', 'Grows your business. It pays you every week.'], ['Rest at home', 'Energy and health back.'], ['Chill with friends', 'Mood up.'], ['Call family', 'Family bond up. Only 1 block!'], ['Church or mosque', 'Mood and community up.'], ['Passport office', 'Get your passport.'], ['Study / Sit the English test', 'You need 6.5 to japa. The card shows your likely score.'], ['Apply for jobs abroad', 'Try for a job offer in Northland.'], ['Move ₦ to dollar account', 'Save dollars for japa.'], ['Skit / Studio / Audition', 'Get famous. Fans can bring money.'], ['Repay the loan app', 'Pay back what you borrowed. Do it fast.']])}
+    ${rows([['Job hunt', 'Find a job. Free. Keep trying.'], ['Work the full week', 'Your main pay, once you have a job.'], ['Run a POS stand', 'A little extra cash.'], ['Buy stock for your business', 'Grows your business. It pays you every week.'], ['Rest at home', 'Energy and health back.'], ['Chill with friends', 'Mood up.'], ['Call family', 'Family bond up. Only 1 block!'], ['Church or mosque', 'Mood and community up.'], ['Passport office', 'Get your passport.'], ['Study / Sit the English test', 'You need 6.5 to japa. The card shows your likely score.'], ['Learn a tech skill', 'Do it 3 times: your job pays more and jobs abroad say yes more often.'], ['Apply for jobs abroad', 'Try for a job offer in Northland.'], ['Move ₦ to dollar account', 'Save dollars for japa.'], ['Skit / Studio / Audition', 'Get famous. Fans can bring money.'], ['Repay the loan app', 'Pay back what you borrowed. Do it fast.']])}
     <p class="eg-h">Abroad</p>
     ${rows([['Care home shifts', 'Your main job abroad, paid in dollars.'], ['Extra night shift', 'More money, a little less health.'], ['Cash-in-hand side gig', 'Breaks visa rules. Three warnings and you are sent home!'], ['Senior carer course', 'Finish it for a promotion and more pay.'], ['Life in Northland test', 'Pass it to stay in Northland for good.'], ['Send money home / Video call', 'Help and talk to your family.'], ['Church, cooking, exploring', 'Stop feeling lonely.'], ['Buy a plot back home', 'Land, so you can go home and build one day.']])}
     <p class="eg-h">Building at home</p>
