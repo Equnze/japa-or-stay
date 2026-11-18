@@ -298,6 +298,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 const T = {
   en: { money: 'Cash', savings: 'Dollar account', fx: '₦ per $', energy: 'Energy', mood: 'Mood', health: 'Health', family: 'Family bond', community: 'Community', clout: 'Clout',
     plan: 'Plan', life: 'Life happens', settle: 'Settle up', progress: 'Progress',
+    weeklyLoop: 'Weekly loop',
     planTitle: 'Plan your week', blocksLeft: 'time blocks left', endWeek: 'End the week', cont: 'Continue', notEnough: 'Not enough money',
     pay: 'Salary', resolve: 'Which way are you leaning?', stay: 'Stay', japa: 'Japa', jtrack: 'Japa checklist', strack: 'Build at home',
     week: 'Week', newGame: 'Start a new life', start: 'Start my life', log: 'What happened', settleTitle: 'Week settled', noCards: 'Pick cards that fit your time and money.',
@@ -307,6 +308,7 @@ const T = {
     loanTag: 'borrowed', loanToast: 'Not enough cash. The loan app will cover it, with interest.' },
   pg: { money: 'Kudi for hand', savings: 'Dollar account', fx: '₦ for $1', energy: 'Strength', mood: 'Happiness', health: 'Body', family: 'Family matter', community: 'Your people', clout: 'Clout',
     plan: 'Plan', life: 'Wahala', settle: 'Count money', progress: 'Progress',
+    weeklyLoop: 'Wetin dey happen every week',
     planTitle: 'How you go run this week?', blocksLeft: 'time remain', endWeek: 'Close this week', cont: 'Make we continue', notEnough: 'You no get enough kudi',
     pay: 'Your money don land', resolve: 'Which side your mind dey?', stay: 'Stay', japa: 'Japa', jtrack: 'Japa papers', strack: 'Build for here',
     week: 'Week', newGame: 'Start new life', start: 'Make we start', log: 'Wetin happen', settleTitle: 'This week don close', noCards: 'Pick wetin your time and kudi fit carry.',
@@ -2504,7 +2506,7 @@ function buildTracks() {
 }
 function tabs(on) {
   const ph = [['plan', t('plan')], ['life', t('life')], ['settle', t('settle')]];
-  return `<div class="phase-tabs" aria-label="Weekly loop">${ph.map(([k, l]) => `<span class="${k === on ? 'on' : ''}">${l}</span>`).join('')}</div>`;
+  return `<div class="phase-tabs" role="list" aria-label="${t('weeklyLoop')}">${ph.map(([k, l]) => `<span role="listitem" class="${k === on ? 'on' : ''}"${k === on ? ' aria-current="step"' : ''}>${l}</span>`).join('')}</div>`;
 }
 function planView() {
   const used = blocksUsed(), left = BLOCKS - used, cash = wallet() - moneyCommitted();
