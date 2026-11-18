@@ -218,6 +218,19 @@ table.ledger tr.total td { border-bottom: 0; font-weight: 700; padding-top: 8px;
 .end.locked { border-style: dashed; background: transparent; }
 .end.locked b { color: var(--muted); }
 small.first { display: block; font-size: 11.5px; color: var(--muted); }
+.dailybtn.todo { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 16%, var(--surface)); }
+.daily-teaser { border: 1.5px solid var(--gold); }
+.daily-teaser .streak, .dstats b { font-family: var(--font-num); font-weight: 700; }
+.daily .you-chose { font-size: 14px; } .daily .you-chose .label { display: block; }
+.daily .grade { font-family: var(--font-display); font-size: 17px; } .daily .grade.g2 { color: var(--good); } .daily .grade.g0 { color: var(--bad); }
+.daily .bonus { margin-top: 6px; font-weight: 600; color: var(--gold); }
+.dstats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center; }
+.dstats div { background: var(--surface-2); border-radius: 8px; padding: 8px 4px; display: flex; flex-direction: column; }
+.dstats b { font-size: 18px; } .dstats small { color: var(--muted); font-size: 11px; }
+.daily .rank { display: flex; flex-direction: column; gap: 2px; } .daily .rank b { font-family: var(--font-display); font-size: 18px; } .daily .rank small { color: var(--muted); }
+.dgrid { display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; margin-top: 4px; max-width: 420px; }
+.dgrid i { aspect-ratio: 1; border-radius: 4px; background: var(--chip); }
+.dgrid i.g2 { background: var(--good); } .dgrid i.g1 { background: var(--gold); } .dgrid i.g0 { background: var(--bad); }
 .unlock { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 8px; background: color-mix(in srgb, var(--gold) 16%, var(--surface)); }
 @media (max-width: 420px) { .endings { grid-template-columns: 1fr; } }
 @media (max-width: 420px) {
@@ -239,6 +252,7 @@ small.first { display: block; font-size: 11.5px; color: var(--muted); }
     <div class="row">
     <button class="lookbtn" id="installbtn" data-act="install" hidden>⬇ Install app</button>
     <button class="lookbtn" id="soundbtn" data-act="sound" title="Switch between music and sound effects, sound effects only, and no sound">♪ Sound off</button>
+    <button class="lookbtn dailybtn" id="dailybtn" data-act="daily">🔥 Daily wahala</button>
     <button class="lookbtn" id="hallbtn" data-act="hall">Lives lived</button>
     <button class="lookbtn" id="helpbtn" data-act="help">How to play</button>
     <button class="lookbtn" id="sharegamebtn" data-act="sharegame">↗ Share</button>
@@ -2478,6 +2492,7 @@ function endView() {
       ${S.newBests && S.newBests.length ? `<span>New personal best: ${esc(S.newBests.join(', '))}</span>` : ''}
     </div>` : ''}
     <button class="btn" data-act="share">Share my life</button>
+    <button class="btn ghost" data-act="daily">${playedToday() ? `🔥 Daily wahala: done today (streak ${liveStreak()})` : "🔥 Face today's Daily Naija Wahala"}</button>
     <div class="follow"><p class="note">Follow <b>Japa or Stay</b> (${SOCIAL_HANDLE}) for new endings and updates:</p>${socialLinks()}</div>
     <button class="btn ghost" data-act="hall">See all endings (${ENDINGS.filter(x => loadHall().endings[x.n]).length} of ${ENDINGS.length})</button>
     ${FEEDBACK_URL ? `<a class="btn ghost" style="text-align:center;text-decoration:none" href="${esc(FEEDBACK_URL)}" target="_blank" rel="noopener">Tell us what you think (2 minutes)</a>` : ''}
@@ -2493,6 +2508,280 @@ function endView() {
     ${!S.abroad && !S.build && !S.japaY2 && S.ending === 'year' ? `<button class="btn ${japaProgress() >= 2 ? 'ghost' : ''}" data-act="build">Keep building at home: play Year 2</button>` : ''}
     <button class="btn" data-act="restart">${t('newGame')}</button></section>`;
 }
+/* ---------- Daily Naija Wahala: one dilemma a day, the same for every player, with a streak to keep ---------- */
+// O(grade, money, family, mood, english, pidgin): grade 2 = handled well, 1 = managed, 0 = e don happen
+const O = (g, m, f, h, en, pg) => ({ g, m, f, h, en, pg });
+// C(english, pidgin, lean, chance of the first outcome, first outcome, second outcome)
+const C = (en, pg, s, p, a, b) => ({ en, pg, s, p, o: b ? [a, b] : [a] });
+const WAHALA = [
+  { art: 'news', who: ['News', 'News'], t: ['Fuel scarcity', 'Fuel no dey'],
+    x: ['Every filling station on your road is dry. You have a job interview across town at 10am.', 'All the filling station for your road don dry. You get job interview for the other side of town by 10am.'],
+    c: [C('Queue from 5am', 'Join queue from 5am', '', 0.6, O(2, -6000, 0, -5, 'You got fuel at 7:40 and made the interview, sweat on your collar.', 'You buy fuel by 7:40 and reach the interview, sweat full your collar.'), O(0, 0, 0, -15, 'The tanker never came. You missed the interview.', 'Tanker no come at all. Interview don pass you.')),
+      C('Buy black-market fuel', 'Buy black-market fuel', '', 1, O(1, -9000, 0, 0, '₦9,000 for 5 litres from a jerrycan boy. You arrived on time, wallet crying.', '₦9,000 for 5 litres from jerrycan boy. You reach on time, but your wallet dey cry.')),
+      C('Ask to do it on Zoom', 'Beg make dem do am for Zoom', 'j', 0.5, O(2, 0, 0, 5, 'HR said yes. You did it from your room: shirt up, shorts down.', 'HR gree. You do am for your room: shirt for top, shorts for down.'), O(0, 0, 0, -10, "HR said \"we'll get back to you.\" They did not.", 'HR talk say "we go get back to you." Dem no get back.'))] },
+  { art: 'nepa', who: ['NEPA', 'NEPA'], t: ['No light for five days', 'Light don go since five days'],
+    x: ['Your phone is on 3% and the meat in your freezer is weeping.', 'Your phone remain 3% and the meat for freezer don dey cry.'],
+    c: [C('Run the generator', 'On the gen', '', 1, O(1, -7000, 0, 0, 'Generator noise all night, but the meat survived.', 'Gen make noise whole night, but the meat survive.')),
+      C('Charge at the barbing salon', 'Go charge for barbing salon', '', 0.7, O(2, 0, 0, 6, 'Free charging, free gist, and a free haircut offer.', 'Free charging, free gist, and dem even offer you free haircut.'), O(0, -4000, 0, -6, "Someone \"mistakenly\" took your charger.", 'Person "mistakenly" carry your charger.')),
+      C('Sweat it out', 'Manage am like that', '', 0.3, O(2, 0, 0, 8, "Light came back at 2am. The whole street shouted \"UP NEPA!\"", 'Light come back by 2am. The whole street shout "UP NEPA!"'), O(0, -8000, 0, -8, 'The meat spoiled. Mama will hear of this.', 'The meat don spoil. Mama go hear this one.'))] },
+  { art: 'mama', who: ['Mama', 'Mama'], t: ['The roof is leaking', 'Roof dey leak'],
+    x: ['Mama calls: rain is coming and the roof is leaking. She needs ₦30,000.', 'Mama call: rain dey come and the roof dey leak. She need ₦30,000.'],
+    c: [C('Send it all', 'Send everything', '', 1, O(2, -30000, 12, 0, 'Mama prayed for you for ten straight minutes.', 'Mama pray for you for ten minutes straight.')),
+      C('Send half, promise the rest', 'Send half, promise the rest', '', 0.6, O(2, -15000, 4, 0, "Mama understood. \"God will provide the rest.\"", 'Mama understand. "God go provide the rest."'), O(0, -15000, -4, 0, 'Your uncle called to ask why you are "stingy".', 'Your uncle call to ask why you dey "stingy".')),
+      C('Say you are broke', 'Talk say you no get', '', 1, O(0, 0, -12, -6, 'The family WhatsApp group went very quiet.', 'Family WhatsApp group don quiet well well.'))] },
+  { art: 'fixit', who: ['Mr Fix-It', 'Mr Fix-It'], t: ['"Visa guaranteed!"', '"Visa na guarantee!"'],
+    x: ['Mr Fix-It says he can get you a Northland visa in two weeks. "Just ₦250,000 processing fee."', 'Mr Fix-It talk say him fit get you Northland visa in two weeks. "Na only ₦250,000 processing fee."'],
+    c: [C('Pay him', 'Pay am', 'j', 1, O(0, -250000, 0, -15, 'He blocked you the next morning. Real visas are never "guaranteed".', 'Him block you the next morning. Real visa no dey "guarantee".')),
+      C('Ask for his office address', 'Ask for him office address', '', 1, O(2, 0, 0, 5, "He said \"my office is mobile.\" You blocked him first.", 'Him talk say "my office dey mobile." You block am first.')),
+      C('Warn the group chat', 'Warn the group chat', '', 0.7, O(2, 0, 3, 8, 'Three people thanked you. One had almost paid.', 'Three people thank you. One of dem don almost pay.'), O(1, 0, 0, -3, 'He replied with 47 voice notes of insults.', 'Him reply with 47 voice notes of insult.'))] },
+  { art: 'sister', who: ['Your cousin', 'Your cousin'], t: ['Owambe this Saturday', 'Owambe this Saturday'],
+    x: ["Your cousin's wedding is on Saturday. Aso-ebi costs ₦25,000.", 'Your cousin wedding na Saturday. Aso-ebi na ₦25,000.'],
+    c: [C('Buy aso-ebi and spray', 'Buy aso-ebi and spray money', 's', 0.3, O(2, -40000, 6, 10, 'An uncle saw you spraying and invited you for a job interview!', 'One uncle see as you dey spray, im invite you for job interview!'), O(1, -40000, 6, 10, 'You danced until your legs filed a complaint.', 'You dance tire, your leg don file complaint.')),
+      C('Go in old clothes', 'Go with old cloth', '', 0.5, O(1, 0, 0, 3, 'Nobody noticed. The jollof was correct.', 'Nobody notice. The jollof correct.'), O(0, 0, -2, -6, "Aunty said \"you no buy aso-ebi?\" very loudly.", 'Aunty shout "you no buy aso-ebi?" for everybody to hear.')),
+      C('Skip it', 'No go', '', 1, O(0, 0, -8, 0, 'Your face is missing from 400 pictures.', 'Your face no dey inside 400 pictures.'))] },
+  { art: 'tunde', who: ['Cousin Tunde', 'Cousin Tunde'], t: ['A message from abroad', 'Message from abroad'],
+    x: ["Tunde in Northland: \"My company needs carers. Send ₦80,000 for a CV upgrade and I'll forward it.\"", 'Tunde for Northland: "My company need carers. Send ₦80,000 for CV upgrade, I go forward am."'],
+    c: [C('Send the money', 'Send the money', 'j', 0.5, O(2, -80000, 3, 6, 'He forwarded it. You got an interview email!', 'Him forward am. Interview email don land!'), O(0, -80000, -4, -8, 'He "forgot". Then he asked for data money.', 'Him "forget". Then him ask for data money.')),
+      C('Ask for the job link instead', 'Ask am for the job link', 'j', 1, O(2, 0, 0, 4, 'He sent it. You applied yourself, for free.', 'Him send am. You apply by yourself, free.')),
+      C("Tell him you're staying", 'Tell am say you dey stay', 's', 1, O(1, 0, 3, 0, "He said \"okay, but the offer stands.\"", 'Him talk say "okay, but the offer still dey."'))] },
+  { art: 'landlord', who: ['Landlord', 'Landlord'], t: ['Rent is going up', 'Rent wan increase'],
+    x: ['Landlord: rent goes up 40% next year. Pay two years now at the old price: ₦600,000.', 'Landlord: rent go increase 40% next year. Pay two years now with old price: ₦600,000.'],
+    c: [C('Pay two years now', 'Pay two years now', 's', 0.7, O(2, -600000, 0, 6, 'Next year your neighbours paid 40% more. You smiled quietly.', 'Next year your neighbours pay 40% more. You just dey smile.'), O(0, -600000, 0, -15, 'He sold the house. The new owner "doesn\'t know about any agreement".', 'Him sell the house. New owner "no know about any agreement".')),
+      C('Negotiate', 'Price am', '', 0.5, O(2, 0, 0, 5, 'He agreed to 20% if you fix the gate. Deal.', 'Him gree 20% if you fix the gate. Deal.'), O(0, 0, 0, -6, "He said \"if you no like am, park comot.\"", 'Him talk say "if you no like am, park comot."')),
+      C('Look for a cheaper place', 'Find cheaper house', '', 1, O(1, 0, 0, -3, 'Found one: cheaper, further, and the road is a river when it rains.', 'You find one: cheaper, far, and the road dey turn river when rain fall.'))] },
+  { art: 'shop', who: ['Your POS stand', 'Your POS stand'], t: ['"The transfer has gone"', '"The transfer don go"'],
+    x: ['A customer wants ₦20,000 cash. He says the transfer "has gone", but your phone shows nothing.', 'Customer want ₦20,000 cash. Im talk say transfer "don go", but nothing show for your phone.'],
+    c: [C('Wait for the alert', 'Wait for alert', '', 0.7, O(2, 500, 0, 3, 'Network delay. The alert came after 12 minutes. He was real.', 'Network delay. Alert land after 12 minutes. Im dey real.'), O(1, 0, 0, -3, 'He got angry and walked away. No alert ever came.', 'Im vex waka. Alert no ever come.')),
+      C('Give him the cash', 'Give am the cash', '', 0.4, O(2, 500, 0, 4, 'The alert landed two minutes later. Customer for life.', 'Alert land two minutes after. Customer for life.'), O(0, -20000, 0, -10, 'Fake alert. The oldest trick in the book.', 'Fake alert. The oldest trick for the book.')),
+      C('Call your bank', 'Call your bank', '', 1, O(1, -3000, 0, -2, 'Forty minutes on hold. You missed six customers.', 'Forty minutes on hold. Six customers don pass you.'))] },
+  { art: 'embassy', who: ['English test centre', 'English test centre'], t: ['English test next week', 'English test next week'],
+    x: ['The test fee is ₦380,000. Your friend says skip the prep: "you speak better than the British."', 'Test fee na ₦380,000. Your friend talk say no need to read: "you sabi speak pass the British."'],
+    c: [C('Book it, no prep', 'Book am, no reading', 'j', 0.4, O(2, -380000, 0, 10, 'Band 7! You really do speak better than the British.', 'Band 7! You really sabi speak pass the British.'), O(0, -380000, 0, -10, 'Band 6. The writing section humbled you.', 'Band 6. Writing section don humble you.')),
+      C('Study one more month', 'Read one more month', 'j', 1, O(1, 0, 0, -4, 'A boring month, but your score will thank you.', 'The month boring, but your score go thank you.')),
+      C('Spend it on business stock', 'Use am buy market', 's', 0.6, O(2, 40000, 0, 5, 'The stock sold out in nine days. Profit landed.', 'Market finish in nine days. Gain don land.'), O(0, 0, 0, -5, 'Sales were slow. The stock is still sitting there.', 'Market slow. The goods still dey there.'))] },
+  { art: 'chairman', who: ['Chairman Money Rain', 'Chairman Money Rain'], t: ['Double your money', 'Double your money'],
+    x: ['"Put in ₦100,000, collect ₦200,000 in 30 days. Guaranteed!"', '"Drop ₦100,000, collect ₦200,000 in 30 days. Na guarantee!"'],
+    c: [C('Invest', 'Put money', '', 0.2, O(1, 20000, 0, 2, 'It paid once. You pulled out fast with a small profit.', 'E pay once. You quick comot with small gain.'), O(0, -100000, 0, -15, 'The app is now "under maintenance". Forever.', 'The app don dey "under maintenance". Forever.')),
+      C('Refuse', 'No gree', '', 1, O(2, 0, 0, 5, 'Two months later, everyone was crying online. Not you.', 'Two months after, everybody dey cry for online. No be you.')),
+      C('Warn Mama not to join', 'Warn Mama make she no join', '', 1, O(2, 0, 6, 3, 'She had already filled the form. You saved her ₦100,000.', 'She don already fill the form. You save her ₦100,000.'))] },
+  { art: 'sick', who: ['Your body', 'Your body'], t: ['Malaria has caught you', 'Malaria don catch you'],
+    x: ['Your body is hot and your joints ache. Work is tomorrow.', 'Your body dey hot and your joint dey pain you. Work na tomorrow.'],
+    c: [C('Go to the clinic', 'Go clinic', '', 1, O(2, -15000, 0, 0, 'Test, drugs, rest. Back on your feet in three days.', 'Test, drugs, rest. You don stand up in three days.')),
+      C('Agbo from the herb seller', 'Drink agbo', '', 0.5, O(1, -1500, 0, 0, 'It worked. Or maybe your body just fought hard.', 'E work. Or maybe na your body fight well.'), O(0, -25000, 0, -12, 'Worse by day three. Clinic anyway, and now it cost more.', 'E worse by day three. You still go clinic, and e cost pass.')),
+      C('Paracetamol and push through', 'Paracetamol and push am', '', 1, O(0, 0, 0, -15, 'You collapsed in the bus. Now everybody is praying for you.', 'You collapse inside bus. Now everybody dey pray for you.'))] },
+  { art: 'banker', who: ['Bank interviewer', 'Bank interviewer'], t: ['Job interview', 'Job interview'],
+    x: ['The panel asks: "Where do you see yourself in five years?"', 'The panel ask: "Where you see yourself in five years?"'],
+    c: [C('"Here, rising in this bank"', '"Here, dey rise for this bank"', 's', 0.6, O(2, 0, 0, 8, 'They liked that. Second interview on Monday!', 'Dem like am. Second interview na Monday!'), O(0, 0, 0, -4, "The man smiled: \"everybody says that.\"", 'The man smile: "everybody dey talk that one."')),
+      C('"Honestly? Maybe abroad"', '"True talk? Maybe abroad"', 'j', 0.3, O(2, 0, 0, 10, "The interviewer laughed: \"me too.\" You got the job.", 'The interviewer laugh: "me too." You get the job.'), O(0, 0, 0, -6, "Awkward silence. \"We'll call you.\"", 'Everywhere quiet. "We go call you."')),
+      C('"Running my own business"', '"Running my own business"', 's', 0.4, O(2, 0, 0, 8, "\"An entrepreneur! We like that.\" You're on the shortlist.", '"Entrepreneur! We like am." You dey the shortlist.'), O(1, 0, 0, 0, "\"So you'll leave us?\" Half marks.", '"So you go leave us?" Half mark.'))] },
+  { art: 'plane', who: ['Your abroad friends', 'Your abroad friends'], t: ['Detty December', 'Detty December'],
+    x: ['Your friends are home from abroad for December. They want to "link up" at a pricey lounge.', 'Your friends wey dey abroad don land for December. Dem wan "link up" for one costly lounge.'],
+    c: [C('Go and order like them', 'Go, order like dem', '', 1, O(1, -80000, 0, 12, 'Best night of the year. The bill was the worst.', 'Best night of the year. The bill na the worst.')),
+      C('Go and drink water', 'Go, drink water', 'j', 0.6, O(2, 0, 0, 6, 'Nobody noticed, and you got all the gist on japa routes.', 'Nobody notice, and you collect all the gist on japa routes.'), O(0, 0, 0, -4, "Your friend said \"bros, you never change.\"", 'Your friend talk say "bros, you never change."')),
+      C('Invite them to your area', 'Invite dem come your area', 's', 0.5, O(2, -10000, 0, 10, 'Suya, cold drinks, and they admitted they miss home.', 'Suya, cold drink, and dem confess say dem miss home.'), O(1, -5000, 0, 3, 'Only one came. Still a good night.', 'Na only one come. E still sweet.'))] },
+  { art: 'news', who: ['News', 'News'], t: ['The naira has fallen', 'Naira don fall'],
+    x: ['The naira fell again overnight. Your ₦500,000 savings buys fewer dollars today.', 'Naira fall again overnight. Your ₦500,000 savings no fit buy dollar like before.'],
+    c: [C('Change it to dollars now', 'Change am to dollar now', 'j', 0.5, O(2, 0, 0, 6, 'It fell again the next week. Good timing!', 'E fall again next week. Correct timing!'), O(0, -40000, 0, -8, 'It bounced back. You bought at the top.', 'E bounce back. You buy am for top.')),
+      C('Buy business stock before prices rise', 'Buy market before price go up', 's', 0.7, O(2, 30000, 0, 5, 'Prices jumped 20% the next week. Your stock is worth more.', 'Price jump 20% next week. Your goods don cost pass.'), O(1, 0, 0, 0, 'Prices stayed the same. At least you have stock.', 'Price no move. At least market dey.')),
+      C('Do nothing', 'No do anything', '', 1, O(1, 0, 0, -2, 'The money is still there. Smaller, but there.', 'The money still dey. E don small, but e dey.'))] },
+  { art: 'news', who: ['Traffic update', 'Traffic update'], t: ['Go-slow on the bridge', 'Go-slow for bridge'],
+    x: ['The bridge is locked. You will be late for work.', 'Bridge don lock. You go late for work.'],
+    c: [C('Okada through the gaps', 'Enter okada', '', 0.6, O(2, -2000, 0, 3, 'You arrived two minutes early. Your soul arrived five minutes late.', 'You reach two minutes early. Your spirit reach five minutes late.'), O(0, -5000, 0, -10, 'The okada fell. Small scratches, big fright.', 'Okada fall. Small wound, big fear.')),
+      C('Wait and text "stuck in traffic"', 'Wait, text "I dey traffic"', '', 1, O(1, 0, 0, 0, "Your boss replied: \"we're all in traffic.\" Relief.", 'Oga reply: "we all dey traffic." Relief.')),
+      C('Get down and trek', 'Come down, trek', '', 0.5, O(2, 0, 0, 3, 'Fitness unlocked. You beat the bus.', 'Fitness don unlock. You beat the bus.'), O(0, 0, 0, -8, 'Rain started halfway.', 'Rain start for halfway.'))] },
+  { art: 'areaboy', who: ['Area boys', 'Area boys'], t: ['"Owner, settle us"', '"Owner, settle us"'],
+    x: ['Area boys at your shop: "₦10,000 for security, owner."', 'Area boys for your shop: "₦10,000 for security, owner."'],
+    c: [C('Pay them', 'Pay dem', '', 1, O(1, -10000, 0, 0, 'They called you "Chairman" and left.', 'Dem call you "Chairman" comot.')),
+      C('₦5,000 and a cold drink', '₦5,000 and cold drink', '', 0.6, O(2, -6000, 0, 3, 'Now they guard the shop like it is theirs.', 'Now dem dey guard the shop like their own.'), O(0, -10000, 0, -4, 'They came back the next day for the other ₦5,000.', 'Dem come back next day for the remaining ₦5,000.')),
+      C('Call the vigilante', 'Call vigilante', '', 0.5, O(2, 0, 0, 3, 'The vigilante came and everyone calmed down.', 'Vigilante come and everywhere calm down.'), O(0, -15000, 0, -5, 'The vigilante also asked for "something".', 'Vigilante sef ask for "something".'))] },
+  { art: 'embassy', who: ['Your email', 'Your email'], t: ['A scholarship email', 'Scholarship email'],
+    x: ['"Congratulations! You have won a full scholarship abroad. Pay ₦50,000 admission processing."', '"Congratulations! You win full scholarship abroad. Pay ₦50,000 admission processing."'],
+    c: [C('Pay quickly', 'Quick pay', 'j', 1, O(0, -50000, 0, -12, 'Real scholarships never ask for fees. Lesson learned.', 'Real scholarship no dey ask for fee. Lesson don enter.')),
+      C("Check the university's website", 'Check the school website', '', 1, O(2, 0, 0, 6, 'No such scholarship exists. You reported the email.', 'That scholarship no exist. You report the email.')),
+      C('Forward it to the family group', 'Forward am to family group', '', 0.5, O(1, 0, 2, 0, 'Your cousin checked and confirmed it is fake.', 'Your cousin check am, e be fake.'), O(0, 0, -5, -5, 'Aunty had already paid. Wahala.', 'Aunty don already pay. Wahala.'))] },
+  { art: 'sister', who: ['Your younger sister', 'Your small sister'], t: ['School fees by Monday', 'School fees before Monday'],
+    x: ['Your younger sister needs ₦60,000 for school fees by Monday.', 'Your small sister need ₦60,000 for school fees before Monday.'],
+    c: [C('Pay it all', 'Pay everything', '', 1, O(2, -60000, 12, 0, "She sent a voice note crying \"thank you\".", 'She send voice note dey cry "thank you".')),
+      C('Pay half, ask Uncle for half', 'Pay half, beg Uncle for half', '', 0.6, O(2, -30000, 6, 0, 'Uncle agreed. Teamwork.', 'Uncle gree. Teamwork.'), O(1, -60000, 6, -4, 'Uncle "didn\'t see your message". You paid it all.', 'Uncle "no see your message". You pay everything.')),
+      C('Help her apply for a bursary', 'Help her apply for bursary', '', 0.4, O(2, 0, 8, 6, "She got it! Fees covered. You're the smart one now.", 'She get am! Fees don cover. You be the sharp one now.'), O(0, 0, -6, -4, 'The bursary closed last week.', 'Bursary don close since last week.'))] },
+  { art: 'alhaji', who: ['Alhaji Sule', 'Alhaji Sule'], t: ['A business sponsor', 'Business sponsor'],
+    x: ['Alhaji Sule likes your hustle: "₦300,000 to start a business. Pay me back with 20% in a year."', 'Alhaji Sule like your hustle: "₦300,000 to start business. Pay me back with 20% in one year."'],
+    c: [C('Accept', 'Collect am', 's', 0.65, O(2, 300000, 0, 8, "The shop is running and you're on track to repay.", 'Shop dey run and you go fit pay back.'), O(0, 0, 0, -10, 'Sales were slow. The money is gone and you still owe Alhaji.', 'Market slow. The money don finish and you still dey owe Alhaji.')),
+      C('Ask for 10% instead', 'Beg for 10%', 's', 0.4, O(2, 300000, 0, 8, "He laughed: \"You're sharp. 12%.\"", 'Him laugh: "You sharp. 12%."'), O(1, 0, 0, -2, "\"20% or nothing.\" You took nothing.", '"20% or nothing." You collect nothing.')),
+      C('Decline politely', 'Decline with respect', '', 1, O(1, 0, 0, 0, "He said \"the door is open.\"", 'Him talk say "the door dey open."'))] },
+  { art: 'manager', who: ['Northland care home', 'Northland care home'], t: ['Interview tomorrow', 'Interview tomorrow'],
+    x: ['A care home abroad emails: video interview tomorrow at 9am your time. But NEPA has taken light.', 'Care home for abroad send email: video interview tomorrow by 9am. But NEPA don take light.'],
+    c: [C('Pay for a café with Wi-Fi', 'Pay for café wey get Wi-Fi', 'j', 0.7, O(2, -5000, 0, 10, 'Smooth call. They will send an offer!', 'The call smooth. Dem go send offer!'), O(0, -5000, 0, -10, "The café's Wi-Fi died mid-answer.", 'Café Wi-Fi die for middle of your answer.')),
+      C('Use your phone hotspot', 'Use your phone hotspot', 'j', 0.5, O(2, -2000, 0, 10, 'Your face froze once, but they loved you anyway.', 'Your face freeze once, but dem still like you.'), O(0, -2000, 0, -8, '"You\'re breaking up..." Then silence.', '"You dey break..." Then silence.')),
+      C('Ask to move it', 'Beg make dem shift am', '', 1, O(1, 0, 0, 2, 'They moved it to next week. Phew.', 'Dem shift am to next week. Phew.'))] },
+  { art: 'iya', who: ['Church', 'Church'], t: ['Harvest Sunday', 'Harvest Sunday'],
+    x: ['The pastor announces a "seed" of ₦20,000 per family for the harvest.', 'Pastor announce "seed" of ₦20,000 for every family for harvest.'],
+    c: [C('Sow the seed', 'Sow the seed', 's', 0.5, O(2, -20000, 5, 6, 'Two days later, a customer paid an old debt.', 'Two days after, one customer pay old debt.'), O(1, -20000, 5, 4, 'You felt blessed. The wallet felt lighter.', 'Blessing full you. Wallet don light.')),
+      C('Give what you can', 'Give wetin you get', '', 1, O(1, -3000, 2, 2, 'God sees the heart.', 'God dey see the heart.')),
+      C('Skip harvest this year', 'Skip harvest this year', '', 1, O(0, 0, -5, 0, 'Mama heard. Mama always hears.', 'Mama hear. Mama dey always hear.'))] },
+  { art: 'news', who: ['Bus stop', 'Bus stop'], t: ['Phone snatched', 'Dem snatch your phone'],
+    x: ['Your phone was snatched at the bus stop. Your bank apps are on it.', 'Dem snatch your phone for bus stop. Your bank apps dey inside.'],
+    c: [C('Call the bank to block it', 'Call bank make dem block am', '', 1, O(2, 0, 0, -5, 'Blocked in ten minutes. Phone gone, money safe.', 'Dem block am in ten minutes. Phone don go, money safe.')),
+      C('Chase the thief', 'Pursue the thief', '', 0.2, O(2, 0, 0, 10, 'Market women caught him! Phone back.', 'Market women catch am! Phone don return.'), O(0, 0, 0, -10, 'You lost him, and your slippers.', 'You lose am, and your slippers.')),
+      C('Post about it online first', 'Post am for online first', '', 1, O(0, -45000, 0, -12, '300 likes. ₦45,000 left your account while you posted.', '300 likes. ₦45,000 comot your account as you dey post.'))] },
+  { art: 'odogwu', who: ['A brand', 'One brand'], t: ['Your skit went viral', 'Your skit don blow'],
+    x: ['50,000 views overnight. A loan app DMs: "Promote us for ₦40,000?"', '50,000 views overnight. Loan app DM you: "Promote us for ₦40,000?"'],
+    c: [C('Take the deal', 'Collect am', '', 0.5, O(2, 40000, 0, 4, 'Paid, and no wahala so far.', 'Dem pay, and no wahala yet.'), O(1, 40000, 0, -6, "Paid. But the comments say \"na dem collect my contacts\".", 'Dem pay. But comments dey talk "na dem collect my contacts".')),
+      C('Wait for a better brand', 'Wait for better brand', '', 0.4, O(2, 70000, 0, 8, 'A drinks brand offered ₦70,000!', 'Drinks brand offer ₦70,000!'), O(1, 0, 0, 0, 'No reply. The views kept rising, though.', 'No reply. But views still dey rise.')),
+      C('Post another skit fast', 'Post another skit sharp sharp', '', 0.5, O(2, 0, 0, 8, "Another 80,000 views! You're trending.", 'Another 80,000 views! You dey trend.'), O(1, 0, 0, -3, 'Only 900 views. The algorithm humbled you.', 'Na only 900 views. Algorithm don humble you.'))] },
+  { art: 'embassy', who: ['Passport office', 'Passport office'], t: ['"Express" passport', '"Express" passport'],
+    x: ['The officer says normal takes three months, but ₦50,000 "express" makes it two weeks.', 'Officer talk say normal go take three months, but ₦50,000 "express" go make am two weeks.'],
+    c: [C('Pay for "express"', 'Pay for "express"', 'j', 0.5, O(1, -50000, 0, 0, 'Two weeks. No receipt.', 'Two weeks. No receipt.'), O(0, -50000, 0, -8, 'Two weeks became two months anyway.', 'Two weeks turn two months anyway.')),
+      C('Apply the official way online', 'Apply the official way for online', 'j', 1, O(2, 0, 0, 4, 'Slow but legit. Tracking number in hand.', 'E slow but e legit. Tracking number dey your hand.')),
+      C('Forget japa for now', 'Forget japa for now', 's', 1, O(1, 0, 2, 0, 'You saved ₦50,000 and some stress.', 'You save ₦50,000 and small stress.'))] },
+  { art: 'trader', who: ['Your supplier', 'Your supplier'], t: ['Goods on credit', 'Goods on credit'],
+    x: ['Your supplier offers goods on credit: pay in 30 days.', 'Your supplier offer goods on credit: pay in 30 days.'],
+    c: [C('Take double stock', 'Collect double', 's', 0.6, O(2, 40000, 0, 6, 'Sold out in three weeks. Paid back early.', 'Everything finish in three weeks. You pay back early.'), O(0, 0, 0, -8, 'Half is still on the shelf, and the supplier keeps calling.', 'Half still dey shelf, and supplier dey call.')),
+      C('Take the normal amount', 'Collect normal', 's', 1, O(1, 10000, 0, 0, 'A steady week. Nothing dramatic.', 'Steady week. No drama.')),
+      C('Pay cash only', 'Pay cash only', '', 1, O(1, 0, 0, 2, 'No debt, no stress, small sales.', 'No debt, no stress, small sales.'))] },
+  { art: 'ballot', who: ['Election day', 'Election day'], t: ['Elections on Saturday', 'Election na Saturday'],
+    x: ["Your friends say \"it's the same people, don't bother voting.\"", 'Your friends talk say "na the same people, no go vote."'],
+    c: [C('Go and vote', 'Go vote', 's', 0.8, O(2, 0, 0, 6, 'You voted. Your finger is purple and proud.', 'You don vote. Your finger purple and proud.'), O(1, 0, 0, 0, 'Long queue, slow card reader, but you voted.', 'Long queue, card reader slow, but you vote.')),
+      C('Stay home', 'Stay house', '', 1, O(1, 0, 0, 0, 'You watched the results online like a football match.', 'You watch results for online like football match.')),
+      C('Volunteer as an observer', 'Volunteer as observer', 's', 0.5, O(2, 0, 3, 8, 'You were there when they counted. History!', 'You dey there when dem count. History!'), O(1, 0, 0, -2, 'Long day, little food, but proud.', 'Long day, small food, but proud.'))] },
+  { art: 'uncle', who: ['Uncle', 'Uncle'], t: ["Grandpa's land", 'Grandpa land'],
+    x: ["Uncle says a distant cousin is \"selling\" your late grandpa's land in the village.", 'Uncle talk say one far cousin dey "sell" your late grandpa land for village.'],
+    c: [C('Travel to the village', 'Travel go village', 's', 0.6, O(2, -20000, 8, 5, 'The elders sided with you. The land is secured.', 'Elders support you. Land don secure.'), O(1, -20000, 3, 0, 'Meetings, kola nut, no answer yet.', 'Meeting, kola nut, no answer yet.')),
+      C('Let Uncle handle it', 'Leave am for Uncle', '', 0.4, O(1, 0, 2, 0, 'Uncle sorted it out. For now.', 'Uncle settle am. For now.'), O(0, 0, -4, -10, 'Uncle "settled" it. The land is now a church.', 'Uncle "settle" am. The land don turn church.')),
+      C('Hire a lawyer', 'Hire lawyer', 's', 1, O(2, -80000, 4, 4, 'Court papers scared the cousin away.', 'Court paper pursue the cousin.'))] },
+  { art: 'cold', who: ['Cousin Tunde', 'Cousin Tunde'], t: ['A call from the cold', 'Call from the cold'],
+    x: ['Tunde video-calls from Northland. It is −5°C. "So, are you still coming?"', 'Tunde video-call from Northland. E be −5°C. "So, you still dey come?"'],
+    c: [C('"Yes, I\'m on my papers"', '"Yes, I dey do my papers"', 'j', 1, O(1, 0, 3, 3, 'He showed you the snow. You felt it in your bones.', 'Him show you snow. You feel am for your bone.')),
+      C('"I\'m staying. Life is here."', '"I dey stay. Life dey here."', 's', 1, O(1, 0, 3, 3, "He went quiet: \"sometimes I wish I stayed too.\"", 'Him quiet: "sometimes I wish say I stay too."')),
+      C('"Send me a winter jacket first"', '"Send me winter jacket first"', '', 0.5, O(2, 0, 4, 8, 'He laughed for two minutes, then said he will send one!', 'Him laugh for two minutes, then talk say him go send one!'), O(1, 0, 0, 0, "\"The jacket is $120. You sure?\"", '"Jacket na $120. You sure?"'))] }
+];
+// a small surprise (about 1 day in 8) so the reward is never fully predictable
+const WAHALA_BONUS = [
+  { m: 5000, en: 'Surprise: an old classmate paid back the ₦5,000 he borrowed in 2019.', pg: 'Surprise: your old classmate pay the ₦5,000 wey im borrow since 2019.' },
+  { h: 5, en: 'Surprise: Mama sent a cooler of jollof. Food for three days.', pg: 'Surprise: Mama send cooler of jollof. Food for three days.' },
+  { h: 5, en: 'Surprise: NEPA brought light all night. Everything is charged.', pg: 'Surprise: NEPA bring light whole night. Everything don charge.' },
+  { m: 1000, en: 'Surprise: you found ₦1,000 in an old pair of jeans.', pg: 'Surprise: you find ₦1,000 inside old jeans.' },
+  { h: 6, en: 'Surprise: the danfo conductor gave you correct change. A miracle.', pg: 'Surprise: danfo conductor give you correct change. Miracle.' },
+  { f: 5, en: 'Surprise: your sister passed her exams and called you first.', pg: 'Surprise: your sister pass her exam and na you she call first.' }
+];
+const WAHALA_RANKS = [[0, 'JJC', 'JJC'], [3, 'Street Learner', 'Street Learner'], [7, 'Sharp Guy', 'Sharp Person'], [14, 'Street Smart', 'Street Smart'], [30, 'Wahala Expert', 'Wahala Expert'], [60, 'Agba Survivor', 'Agba Survivor']];
+const WAHALA_START = Date.UTC(2026, 10, 18); // Daily Naija Wahala #1
+const WAHALA_URL = SHARE_URL + '#wahala';
+const LG = (en, pg) => LANG === 'pg' && pg ? pg : en;
+const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const dayNum = (d = new Date()) => Math.max(1, Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - WAHALA_START) / 864e5) + 1);
+const yesterdayKey = () => { const d = new Date(); d.setDate(d.getDate() - 1); return dayKey(d); };
+// seeded random numbers, so every player gets the same dilemma and the same outcome for the same choice on the same day
+function seeded(str) {
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+  let a = h >>> 0;
+  return () => { a = (a + 0x6D2B79F5) | 0; let t2 = Math.imul(a ^ (a >>> 15), 1 | a); t2 = (t2 + Math.imul(t2 ^ (t2 >>> 7), 61 | t2)) ^ t2; return ((t2 ^ (t2 >>> 14)) >>> 0) / 4294967296; };
+}
+function wahalaFor(n) {
+  const N = WAHALA.length, cycle = Math.floor((n - 1) / N), r = seeded('jos-wahala-' + cycle), order = [...Array(N).keys()];
+  for (let i = N - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+  return WAHALA[order[(n - 1) % N]];
+}
+function wahalaOutcome(n, i) {
+  const c = wahalaFor(n).c[i], r = seeded(`jos-day-${n}-${i}`);
+  const out = c.o.length > 1 && r() >= c.p ? c.o[1] : c.o[0];
+  const bonus = r() < 0.12 ? WAHALA_BONUS[Math.floor(r() * WAHALA_BONUS.length)] : null;
+  return { out, bonus, lean: c.s };
+}
+const emptyDaily = () => ({ last: '', streak: 0, best: 0, days: 0, wins: 0, j: 0, s: 0, hist: {} });
+let dailyMem = null; // fallback when the browser blocks storage (private mode, previews): the result still shows this visit
+function loadDaily() { try { const r = localStorage.getItem('jos-daily'); if (r) return { ...emptyDaily(), ...JSON.parse(r) }; } catch (e) {} return dailyMem ? JSON.parse(dailyMem) : emptyDaily(); }
+function saveDaily(d) { dailyMem = JSON.stringify(d); try { localStorage.setItem('jos-daily', dailyMem); } catch (e) {} }
+const playedToday = (d = loadDaily()) => !!d.hist[dayKey()];
+const liveStreak = (d = loadDaily()) => d.last === dayKey() || d.last === yesterdayKey() ? d.streak : 0;
+const rankOf = days => { let r = WAHALA_RANKS[0]; for (const x of WAHALA_RANKS) if (days >= x[0]) r = x; return r; };
+function playWahala(i) {
+  const d = loadDaily(), today = dayKey(); if (d.hist[today]) return null;
+  const n = dayNum(), res = wahalaOutcome(n, i), oldRank = rankOf(d.days);
+  d.streak = d.last === yesterdayKey() ? d.streak + 1 : 1; d.best = Math.max(d.best, d.streak); d.last = today; d.days++;
+  if (res.out.g === 2) d.wins++;
+  if (res.lean === 'j') d.j++; if (res.lean === 's') d.s++;
+  d.hist[today] = [n, i, res.out.g, res.bonus ? 1 : 0];
+  const keys = Object.keys(d.hist).sort(); keys.slice(0, Math.max(0, keys.length - 60)).forEach(k => delete d.hist[k]);
+  saveDaily(d);
+  return rankOf(d.days) !== oldRank;
+}
+const GRADE_SQ = ['🟥', '🟨', '🟩'];
+const gradeWord = g => [LG('E don happen', 'E don happen'), LG('Managed', 'You manage am'), LG('Wahala handled', 'Wahala don handle')][g];
+function wahalaChips(o, b) {
+  const L = [], add = (v, s) => { if (v) L.push({ v, s }); };
+  const m = (o.m || 0) + ((b && b.m) || 0), f = (o.f || 0) + ((b && b.f) || 0), h = (o.h || 0) + ((b && b.h) || 0);
+  add(m, `${t('money')} ${m > 0 ? '+' : ''}${naira(m)}`); add(f, `${t('family')} ${f > 0 ? '+' : '−'}${Math.abs(f)}`); add(h, `${t('mood')} ${h > 0 ? '+' : '−'}${Math.abs(h)}`);
+  return chipsHtml(L);
+}
+function wahalaShareText() {
+  const d = loadDaily(), rec = d.hist[dayKey()]; if (!rec) return '';
+  const w = wahalaFor(rec[0]), st = liveStreak(d);
+  return `${LG('Daily Naija Wahala', 'Daily Naija Wahala')} #${rec[0]} 🇳🇬\n${LG(w.t[0], w.t[1])}\n${GRADE_SQ[rec[2]]} ${gradeWord(rec[2])}${rec[3] ? ' ✨' : ''}\n🔥 ${st} day streak\n${LG('Can you handle today\'s wahala?', 'You fit handle today wahala?')} ${WAHALA_URL}`;
+}
+function nextWahalaIn() {
+  const now = new Date(), mid = new Date(now); mid.setHours(24, 0, 0, 0);
+  const mins = Math.max(1, Math.ceil((mid - now) / 60000)), h = Math.floor(mins / 60), m = mins % 60;
+  return h ? `${h}h ${m}m` : `${m}m`;
+}
+// the daily teaser on the setup screen
+function wahalaTeaser() {
+  const d = loadDaily(), w = wahalaFor(dayNum()), st = liveStreak(d), done = playedToday(d);
+  return `<section class="panel daily-teaser" aria-label="Daily Naija Wahala">
+    <div class="row between"><span class="label">${LG('Daily Naija Wahala', 'Daily Naija Wahala')} #${dayNum()}</span>${st ? `<span class="streak">🔥 ${st}</span>` : ''}</div>
+    ${done ? `<p style="margin:0">${LG(`Done for today. Next wahala in <b id="wahala-clock">${nextWahalaIn()}</b>.`, `You don do today own. Next wahala go land in <b id="wahala-clock">${nextWahalaIn()}</b>.`)}</p>
+      <button class="btn ghost" data-act="daily">${LG('See my result', 'See my result')}</button>`
+    : `<h2>${esc(LG(w.t[0], w.t[1]))}</h2><p style="margin:0" class="sub">${LG('One wahala, one choice, 30 seconds. Same for everybody today.', 'One wahala, one choice, 30 seconds. Na the same for everybody today.')}${st ? ` ${LG(`Keep your 🔥 ${st}-day streak alive.`, `No let your 🔥 ${st}-day streak die.`)}` : ''}</p>
+      <button class="btn" data-act="daily">${LG("Face today's wahala", 'Face today wahala')}</button>`}
+  </section>`;
+}
+function dailyView() {
+  const d = loadDaily(), n = dayNum(), w = wahalaFor(n), rec = d.hist[dayKey()];
+  const art = ICONS[w.art] ? iconArt(w.art, LG(w.who[0], w.who[1])) : face({ ...NPCS[w.art], label: LG(w.who[0], w.who[1]) });
+  const head = `<div class="row between"><span class="label">${LG('Daily Naija Wahala', 'Daily Naija Wahala')} #${n}</span><button class="btn ghost" data-act="daily-close">${S ? LG('Back to my game', 'Go back to my game') : LG('Back', 'Back')}</button></div>
+    <div class="who">${art}<div><div class="label">${esc(LG(w.who[0], w.who[1]))}</div><h2>${esc(LG(w.t[0], w.t[1]))}</h2></div></div>
+    <p class="quote" style="margin:0">${esc(LG(w.x[0], w.x[1]))}</p>`;
+  if (!rec) {
+    const st = liveStreak(d);
+    return `<section class="panel event daily">${head}
+      <div class="choices">${w.c.map((c, i) => `<button class="choice" data-act="daily-choose" data-i="${i}"><span>${esc(LG(c.en, c.pg))}</span>${c.s ? `<small><span class="tag ${c.s}">${c.s === 'j' ? LG('leans Japa', 'Japa side') : LG('leans Stay', 'Stay side')}</span></small>` : ''}</button>`).join('')}</div>
+      <span class="note">${st ? LG(`🔥 ${st}-day streak. Play today to keep it.`, `🔥 ${st}-day streak. Play today make e no cut.`) : LG('One choice only. Same wahala for every player today.', 'Na one choice. Everybody get the same wahala today.')}</span>
+    </section>`;
+  }
+  const res = wahalaOutcome(n, rec[1]), o = res.out, st = liveStreak(d), rk = rankOf(d.days);
+  const nx = WAHALA_RANKS.find(x => x[0] > d.days);
+  const grid = [...Array(14).keys()].reverse().map(k => { const x = new Date(); x.setDate(x.getDate() - k); const h = d.hist[dayKey(x)]; return `<i class="${h ? 'g' + h[2] : ''}" title="${dayKey(x)}"></i>`; }).join('');
+  const native = !!navigator.share;
+  return `<section class="panel event daily">${head}
+    <div class="you-chose"><span class="label">${LG('You chose', 'You choose')}</span> ${esc(LG(w.c[rec[1]].en, w.c[rec[1]].pg))}</div>
+    <div class="result"><b class="grade g${o.g}">${GRADE_SQ[o.g]} ${gradeWord(o.g)}</b><br>${esc(LG(o.en, o.pg))}${res.bonus ? `<div class="bonus">✨ ${esc(LG(res.bonus.en, res.bonus.pg))}</div>` : ''}${wahalaChips(o, res.bonus)}</div>
+    <div class="dstats">
+      <div><b>🔥 ${st}</b><small>${LG('streak', 'streak')}</small></div>
+      <div><b>${d.best}</b><small>${LG('best streak', 'best streak')}</small></div>
+      <div><b>${d.days}</b><small>${LG('days played', 'days wey you play')}</small></div>
+      <div><b>${d.wins}</b><small>${LG('handled well', 'handle well')}</small></div>
+    </div>
+    <div class="rank"><span class="label">${LG('Your street rank', 'Your street rank')}</span><b>${esc(LG(rk[1], rk[2]))}</b>${nx ? `<small>${LG(`${nx[0] - d.days} more ${nx[0] - d.days === 1 ? 'day' : 'days'} to ${nx[1]}`, `${nx[0] - d.days} more day reach ${nx[2]}`)}</small>` : `<small>${LG('Top rank. Respect.', 'Top rank. Respect.')}</small>`}</div>
+    <div><span class="label">${LG('Last 14 days', 'Last 14 days')}</span><div class="dgrid" aria-label="${LG('Your last 14 days: green handled, yellow managed, red e don happen, grey not played', 'Your last 14 days')}">${grid}</div></div>
+    ${d.j + d.s ? `<p class="note" style="margin:0">${LG(`Your choices lean <b>Japa ${d.j}</b> · <b>Stay ${d.s}</b>`, `Your choices: <b>Japa ${d.j}</b> · <b>Stay ${d.s}</b>`)}</p>` : ''}
+    <div class="row">
+      ${native ? `<button class="btn" data-act="daily-share">${LG('Share my result', 'Share my result')}</button>` : ''}
+      <a class="btn ${native ? 'ghost' : ''}" href="https://wa.me/?text=${encodeURIComponent(wahalaShareText())}" target="_blank" rel="noopener">${LG('Send on WhatsApp', 'Send for WhatsApp')}</a>
+      <button class="btn ghost" data-act="daily-copy">${LG('Copy result', 'Copy result')}</button>
+    </div>
+    <p class="note" style="margin:0">${LG(`Next wahala in <b id="wahala-clock">${nextWahalaIn()}</b>. Come back tomorrow to keep your streak.`, `Next wahala go land in <b id="wahala-clock">${nextWahalaIn()}</b>. Come back tomorrow make your streak no cut.`)}</p>
+    <button class="btn" data-act="daily-play">${S ? (S.phase === 'end' ? LG('Back to my life card', 'Back to my life card') : LG('Continue my life', 'Continue my life')) : LG('Now play a full life', 'Now play full life')}</button>
+  </section>`;
+}
+let showDaily = false, dailyTimer = null;
+function tickWahalaClock() {
+  const el = document.getElementById('wahala-clock');
+  if (!el) { clearInterval(dailyTimer); dailyTimer = null; return; }
+  if (el.dataset.day && el.dataset.day !== dayKey()) { render(); return; } // a new day started while the page was open
+  el.dataset.day = el.dataset.day || dayKey(); el.textContent = nextWahalaIn();
+}
+function startWahalaClock() { if (!dailyTimer && document.getElementById('wahala-clock')) { const el = document.getElementById('wahala-clock'); el.dataset.day = dayKey(); dailyTimer = setInterval(tickWahalaClock, 30000); } }
 // Japa or Stay on social media (shown in the footer and on the end screen)
 const SOCIAL_HANDLE = '@japaor_stay';
 const SOCIAL = [
@@ -2530,7 +2819,7 @@ function introView() {
   </section>`;
 }
 function setupView() {
-  return `${introView()}<section class="panel setup">
+  return `${introView()}${wahalaTeaser()}<section class="panel setup">
     <h2>A fresh graduate. Two years. One question.</h2>
     <p style="margin:0" class="sub">Your degree is ready, NEPA has taken light, and your cousin in Northland says "come." Each round is one week: plan your time, face what life throws at you, then count your money.</p>
     <label for="nm">Your name</label><input id="nm" type="text" maxlength="20" value="${esc(setup.name)}">
@@ -2565,12 +2854,17 @@ function render() {
   document.getElementById('hallbtn').hidden = showHelp || showHall;
   document.getElementById('installbtn').hidden = !canOfferInstall() || showInstall;
   document.getElementById('sharegamebtn').hidden = showShareGame || showHelp || showHall;
+  const db = document.getElementById('dailybtn'), dd = playedToday();
+  db.hidden = showDaily || showHelp || showHall; db.classList.toggle('todo', !dd);
+  db.textContent = `🔥 ${LANG === 'pg' ? 'Daily wahala' : 'Daily wahala'}${liveStreak() ? ' · ' + liveStreak() : ''}`;
+  db.setAttribute('aria-label', dd ? 'Daily Naija Wahala: done today' : 'Daily Naija Wahala: not played today');
   if (showShareGame) { app.innerHTML = shareGameView(); return; }
+  if (showDaily) { app.innerHTML = dailyView(); startWahalaClock(); return; }
   if (showInstall) { app.innerHTML = installView(); return; }
   if (showHelp) { app.innerHTML = helpView(); return; }
   if (showShare && S) { app.innerHTML = shareView(); return; }
   if (showHall) { app.innerHTML = hallView(); return; }
-  if (!S) { app.innerHTML = setupView(); return; }
+  if (!S) { app.innerHTML = setupView(); startWahalaClock(); return; }
   if (confirmReset) {
     app.innerHTML = `<section class="panel"><h2>Start a new game?</h2>
       <p style="margin:0">${esc(S.name)}'s current life (week ${S.week}) will be deleted. This cannot be undone.</p>
@@ -2742,10 +3036,15 @@ document.addEventListener('click', e => {
   if (a === 'sound') { Sound.cycle(); render(); Sound.play('tap'); return; }
   if (a === 'install') {
     if (installPrompt) { const p = installPrompt; installPrompt = null; p.prompt(); p.userChoice.then(c => { if (c && c.outcome === 'accepted') installed = true; render(); }).catch(() => {}); }
-    else { showInstall = true; showHelp = false; showHall = false; showShareGame = false; render(); window.scrollTo({ top: 0 }); }
+    else { showInstall = true; showDaily = false; showHelp = false; showHall = false; showShareGame = false; render(); window.scrollTo({ top: 0 }); }
     return;
   }
-  if (a === 'sharegame') { if (!S) setup.name = (document.getElementById('nm') || {}).value || setup.name; showShareGame = true; showHelp = false; showHall = false; showShare = false; render(); window.scrollTo({ top: 0 }); return; }
+  if (a === 'daily') { if (!S) setup.name = (document.getElementById('nm') || {}).value || setup.name; showDaily = true; showHelp = false; showHall = false; showShare = false; showShareGame = false; showInstall = false; render(); window.scrollTo({ top: 0 }); return; }
+  if (a === 'daily-close' || a === 'daily-play') { showDaily = false; render(); window.scrollTo({ top: 0 }); return; }
+  if (a === 'daily-choose') { const up = playWahala(Number(b.dataset.i)); render(); Sound.play(up ? 'unlock' : 'choose'); if (up) toast(`New street rank: ${LG(rankOf(loadDaily().days)[1], rankOf(loadDaily().days)[2])}`); return; }
+  if (a === 'daily-share') { navigator.share({ text: wahalaShareText() }).catch(() => {}); return; }
+  if (a === 'daily-copy') { const tx = wahalaShareText(); (navigator.clipboard ? navigator.clipboard.writeText(tx) : Promise.reject()).then(() => toast('Result copied'), () => toast('Could not copy.')); return; }
+  if (a === 'sharegame') { showDaily = false; if (!S) setup.name = (document.getElementById('nm') || {}).value || setup.name; showShareGame = true; showHelp = false; showHall = false; showShare = false; render(); window.scrollTo({ top: 0 }); return; }
   if (a === 'sharegame-close') { showShareGame = false; render(); window.scrollTo({ top: 0 }); return; }
   if (a === 'sharegame-native') { navigator.share({ title: 'Japa or Stay', text: gameShareText(), url: SHARE_URL }).catch(() => {}); return; }
   if (a === 'sharegame-copy') { e.preventDefault(); const tx = gameShareText(); (navigator.clipboard ? navigator.clipboard.writeText(tx) : Promise.reject()).then(() => toast('Link copied'), () => toast('Could not copy. Select the message and copy it.')); return; }
@@ -2781,7 +3080,7 @@ document.addEventListener('click', e => {
   if (a === 'choose') { choose(Number(b.dataset.i)); Sound.play('choose'); }
   if (a === 'next') nextEvent();
   if (a === 'nextweek') nextWeek();
-  if (['help', 'hall', 'install', 'newgame'].includes(a)) showShareGame = false;
+  if (['help', 'hall', 'install', 'newgame'].includes(a)) { showShareGame = false; showDaily = false; }
   if (a === 'help') { if (!S) setup.name = (document.getElementById('nm') || {}).value || setup.name; showHelp = true; showHall = false; render(); window.scrollTo({ top: 0 }); return; }
   if (a === 'hall') { if (!S) setup.name = (document.getElementById('nm') || {}).value || setup.name; showHall = true; showHelp = false; render(); window.scrollTo({ top: 0 }); return; }
   if (a === 'hall-close') { showHall = false; render(); window.scrollTo({ top: 0 }); return; }
@@ -2802,6 +3101,7 @@ document.addEventListener('click', e => {
 });
 
 window.claude?.hot?.snapshot?.(() => ({ S, setup }));
-const boot = d => { if (d && d.S) { S = d.S; if (d.setup) setup = d.setup; } else load(); render(); };
+const boot = d => { if (d && d.S) { S = d.S; if (d.setup) setup = d.setup; } else load(); if (location.hash === '#wahala') showDaily = true; render(); };
+addEventListener('hashchange', () => { if (location.hash === '#wahala') { showDaily = true; render(); } });
 window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
 </script>
