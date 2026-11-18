@@ -3054,6 +3054,7 @@ function logView() {
 function render() {
   const yr = S && S.week > 52 ? 'Year 2' : 'Year 1';
   document.getElementById('tagline').textContent = S && S.abroad ? `${yr} · The Abroad chapter` : S && S.build ? `${yr} · The Build chapter` : S && S.japaY2 ? 'Year 2 · Still chasing the visa' : 'Weekly-loop prototype · Year 1';
+  document.documentElement.lang = LANG === 'pg' ? 'pcm' : 'en';
   document.getElementById('lang-en').setAttribute('aria-pressed', LANG === 'en');
   document.getElementById('lang-pg').setAttribute('aria-pressed', LANG === 'pg');
   const so = document.getElementById('social'); if (so && !so.innerHTML) so.innerHTML = socialLinks(true);
