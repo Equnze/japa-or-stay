@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const root = path.join(__dirname, '..', '..');
 const { openD1, migrate } = require('./d1-shim.js');
 const { handle } = require('../server/app.js');
+const { invitePage } = require('../server/invite-page.js');
 
 const PORT = Number(process.env.PORT || 8791);
 const dataDir = path.join(root, '.arena-dev');
@@ -22,6 +23,10 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '
 http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://localhost:${PORT}`);
+    if (/^\/i\/[^/]+$/.test(url.pathname)) {
+      const r = await invitePage(new Request(url), env);
+      res.writeHead(r.status, Object.fromEntries(r.headers)); res.end(await r.text()); return;
+    }
     if (url.pathname.startsWith('/api/')) {
       // dev-only helper: POST /api/_dev/skew {hours} moves the server clock so deadlines can be tested by hand
       if (url.pathname === '/api/_dev/skew' && req.method === 'POST') {

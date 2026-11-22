@@ -402,8 +402,13 @@ const behind = () => document.querySelectorAll('body > .wrap, body > footer.foot
     const me = room.participants.find(p => p.isMe), joined = room.participants.filter(p => p.status === 'joined'), pending = room.participants.filter(p => p.status === 'pending');
     const allReady = joined.length >= 2 && joined.every(p => p.ready);
     const startAt = room.config.startAt && Date.parse(room.config.startAt);
-    const link = room.code ? `${location.origin}${location.pathname}#arena/invite/${room.code}` : '';
-    const msg = `Join my Japa or Stay challenge "${room.name}": who will have the most money at the end of the week? Code ${room.code}. ${link}`;
+    // /i/CODE is a real page, so chat apps show a preview of the game and the challenge (a #link would not)
+    const link = room.code ? `${location.origin}/i/${room.code}` : '';
+    const host = room.participants.find(p => p.isHost);
+    const msg = `🏆 ${host ? host.displayName : 'I'} is challenging you on Japa or Stay!\n\n`
+      + `It's a free Naija life game: japa abroad or stay and build at home. Get a job, start a business, chase the visa, and look after your family, your body and your people.\n\n`
+      + `In our challenge "${room.name}", everyone lives their own life. Each week, whoever has the most money wins the crown. ${room.config.weeks} weeks, ${room.config.turnsPerWeek} turns a week.\n\n`
+      + `Join here: ${link}\n(or use code ${room.code} in the Multiplayer Arena)`;
     if (room.status === 'cancelled') { paint(`<div class="ar-panel ar-empty"><b>${h(room.name)} was cancelled</b>The host cancelled it before it started.<a class="ar-btn" href="#arena">Arena home</a></div>`); return; }
     paint(`<div class="ar-back"><a class="ar-link" href="#arena">← Arena home</a></div>
       <section class="ar-panel ar-reveal"><div class="ar-row2"><div class="grow" style="flex:1;min-width:220px"><div class="ar-small ar-muted">Lobby · ${joined.length} of ${room.config.maxPlayers} players</div><h2 style="font-size:26px;margin:2px 0 4px">${h(room.name)}</h2>${room.description ? `<p class="ar-muted" style="margin:0">${h(room.description)}</p>` : ''}</div>
@@ -422,7 +427,7 @@ const behind = () => document.querySelectorAll('body > .wrap, body > footer.foot
           <button class="ar-btn ${me.ready ? 'ghost' : 'stay'}" data-a="ready" data-v="${me.ready ? '' : '1'}">${me.ready ? 'Not ready' : "I'm ready"}</button>`
         : `<p style="flex:1;margin:0">Create the character you will play in this challenge.</p><a class="ar-btn" href="#arena/room/${id}/character">Create character</a>`}</div></section>` : ''}
       ${room.code ? `<section class="ar-panel"><h2>Invite friends</h2><div class="ar-row2"><span class="ar-code">${h(room.code)}</span>
-        <button class="ar-btn ghost sm" data-a="copy" data-text="${h(link)}">Copy invite link</button>
+        <button class="ar-btn ghost sm" data-a="copy" data-text="${h(msg)}">Copy invitation</button><button class="ar-btn ghost sm" data-a="copy" data-text="${h(link)}">Copy link only</button>
         <a class="ar-btn ghost sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg)}">Share on WhatsApp</a>
         ${navigator.share ? `<button class="ar-btn ghost sm" data-a="shareLink" data-text="${h(msg)}">Share…</button>` : ''}
         <a class="ar-btn ghost sm" href="#arena/friends?room=${id}">Invite from friends</a></div>

@@ -1,6 +1,6 @@
 # 3. Screens and user flows
 
-All screens live in `arena/client/arena.js` and open over the single-player page from the **🏆 Multiplayer Arena** header button (the page underneath is made `inert`). Routes are hash links (`#arena/...`) so invite links work: `https://japa-or-stay.pages.dev/#arena/invite/CODE`.
+All screens live in `arena/client/arena.js` and open over the single-player page from the **🏆 Multiplayer Arena** header button (the page underneath is made `inert`). Routes are hash links (`#arena/...`). Shared invite links use a real page, `https://japa-or-stay.pages.dev/i/CODE` (`arena/server/invite-page.js`, served by `functions/i/[code].js`), so chat apps show a preview naming the host, the challenge and what the game is; its Join button opens `#arena/invite/CODE`.
 
 Shared behaviour on every screen:
 

@@ -415,3 +415,20 @@ test('Arena turns on the page engine never change the single-player game, its sa
   const srv = device(); let a = A.initState(CHARS[0], { startMoney: 200000, difficulty: 'hard' }, Rules.RULES['arena-1'], 'beef'), b = a;
   for (let t = 0; t < 25; t++) { const { dec, result } = decide(A, a, 'x' + t, STRATS.Amaka); const r2 = srv.play(b, 'x' + t, dec); assert.equal(Turn.stateHash(r2.state), Turn.stateHash(result.state), `turn ${t}`); a = result.state; b = r2.state; }
 });
+
+/* ---------- invite links ---------- */
+test('invite links show who is inviting, to what, and what the game is, safely escaped', async () => {
+  const { invitePage } = require('../arena/server/invite-page.js');
+  const W = world();
+  const a = await W.player('Ada & "Co"');
+  const { room } = await a.call('POST', '/rooms', { name: "Ada's \"Hustle\" & Co", maxPlayers: 4, weeks: 8 });
+  const html = await (await invitePage(new Request(`https://japa-or-stay.pages.dev/i/${room.code}`), W.env)).text();
+  assert.match(html, /<meta property="og:title" content="Ada &amp; &quot;Co&quot; invited you to &quot;Ada&#39;s &quot;Hustle&quot; &amp; Co&quot; on Japa or Stay">/);
+  assert.match(html, /og:description" content="Japa or Stay is a free Naija life game/);
+  assert.match(html, /og:image" content="https:\/\/japa-or-stay\.pages\.dev\/og-image\.png"/);
+  assert.match(html, new RegExp(`href="https://japa-or-stay.pages.dev/#arena/invite/${room.code}">Join the challenge`));
+  assert.match(html, /1 of 4 players · 8 game weeks/);
+  const unknown = await (await invitePage(new Request('https://japa-or-stay.pages.dev/i/<script>'), W.env)).text();
+  assert.ok(!unknown.includes('<script>'), 'codes from the address are never echoed raw');
+  assert.match(unknown, /could not find a challenge/);
+});

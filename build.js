@@ -8,6 +8,8 @@ const path = require('path');
 const crypto = require('crypto');
 
 const SITE_URL = (process.env.SITE_URL || 'https://japa-or-stay.pages.dev').replace(/\/$/, '');
+// the preview image URL changes when the picture does, so WhatsApp, X and Facebook fetch the new one instead of a cached copy
+const OG_V = crypto.createHash('sha1').update(fs.readFileSync(path.join(__dirname, 'site', 'og-image.png'))).digest('hex').slice(0, 8);
 const root = __dirname;
 const out = path.join(root, 'dist');
 
@@ -27,14 +29,14 @@ const head = `<!doctype html>
 <meta property="og:title" content="${title}: leave Nigeria or build at home?">
 <meta property="og:description" content="${desc}">
 <meta property="og:url" content="${SITE_URL}/">
-<meta property="og:image" content="${SITE_URL}/og-image.png">
+<meta property="og:image" content="${SITE_URL}/og-image.png?v=${OG_V}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="${imgAlt}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${title}: leave Nigeria or build at home?">
 <meta name="twitter:description" content="${desc}">
-<meta name="twitter:image" content="${SITE_URL}/og-image.png">
+<meta name="twitter:image" content="${SITE_URL}/og-image.png?v=${OG_V}">
 <meta name="twitter:image:alt" content="${imgAlt}">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/icon-192.png" sizes="192x192" type="image/png">
@@ -141,8 +143,8 @@ self.addEventListener('fetch', event => {
     event.respondWith((async () => {
       try {
         const res = await fetch(req);
-        const cache = await caches.open(CACHE);
-        cache.put('/', res.clone());
+        // only the game page itself is kept for offline play (not invite pages or anything else)
+        if (url.pathname === '/' && res.ok) (await caches.open(CACHE)).put('/', res.clone());
         return res;
       } catch (e) {
         return (await caches.match('/')) || Response.error();
