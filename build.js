@@ -21,7 +21,7 @@ const head = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="${desc}">
-<meta name="theme-color" content="#0E7A4C">
+<meta name="theme-color" content="#07130E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${title}">
 <meta property="og:title" content="${title}: leave Nigeria or build at home?">
@@ -51,6 +51,7 @@ const head = `<!doctype html>
 <style>
   :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
   body { margin: 0; font: 14px system-ui, sans-serif; }
+  html { background: #07130E; }
   img { max-width: 100%; }
   [hidden] { display: none !important; }
 </style>
@@ -83,8 +84,8 @@ fs.writeFileSync(path.join(out, 'manifest.webmanifest'), JSON.stringify({
   scope: '/',
   display: 'standalone',
   orientation: 'portrait',
-  background_color: '#EEF2EC',
-  theme_color: '#0E7A4C',
+  background_color: '#07130E',
+  theme_color: '#07130E',
   icons: [
     { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
     { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
