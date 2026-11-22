@@ -23,6 +23,10 @@ node build.js
 
 Every push to `main` then redeploys automatically.
 
+## Challenge Arena (multiplayer)
+
+Friends compete in weekly challenges: who has the most money at the end of each game week, plus champions for the six life stats. It runs on the same game engine, with a small Cloudflare Pages Functions + D1 server that replays every player's decisions, and it plays offline. It appears on the website only once the database and secret are set up. Try it locally with `node build.js` then `node arena/dev/server.js` (http://localhost:8791). Design, API, security and deployment steps: [docs/arena](docs/arena/README.md). Tests: `node --test tests/arena.test.js`.
+
 ## Feedback link
 
 Set `FEEDBACK_URL` near the top of `setupView` in `japa-or-stay.html` to a form link (for example a Google Form) to show **Send feedback** in the footer.

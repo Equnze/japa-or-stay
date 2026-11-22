@@ -261,6 +261,7 @@ small.first { display: block; font-size: 11.5px; color: var(--muted); }
       <span class="offchip" id="offchip" role="status" hidden></span>
     </div>
     <div class="row">
+    <button class="lookbtn arenabtn" id="arenabtn" data-arena-open hidden>🏆 Multiplayer Arena</button>
     <button class="lookbtn" id="installbtn" data-act="install" hidden>⬇ Install app</button>
     <button class="lookbtn" id="soundbtn" data-act="sound" title="Switch between music and sound effects, sound effects only, and no sound">♪ Sound off</button>
     <button class="lookbtn dailybtn" id="dailybtn" data-act="daily">🔥 Daily wahala</button>
@@ -338,7 +339,9 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 const POF_USD = 2000, TEST_USD = 250, VISA_USD = 600, LAST_WEEK = 52, BLOCKS = 21;
 
 let S = null;
-const REG = () => REGIONS[S.region];
+// Multiplayer Arena: true while an Arena turn runs on this engine, so it never writes the single-player save, hall or bests
+let ARENA_SANDBOX = false;
+const REG =() => REGIONS[S.region];
 const month = () => MONTHS[Math.min(11, Math.floor(((S.week - 1) % 52) / 4.34))];
 const detty = () => ((S.week - 1) % 52) + 1 >= 48;
 const price = b => Math.round(b * S.idx * REG().R / 100) * 100;
@@ -1888,9 +1891,10 @@ const BESTS = [
 ];
 const emptyHall = () => ({ runs: 0, endings: {}, bests: {} });
 function loadHall() { try { return JSON.parse(localStorage.getItem('jos-hall')) || emptyHall(); } catch (e) { return emptyHall(); } }
-function saveHall(h) { try { localStorage.setItem('jos-hall', JSON.stringify(h)); } catch (e) {} }
+function saveHall(h) { if (ARENA_SANDBOX) return; try { localStorage.setItem('jos-hall', JSON.stringify(h)); } catch (e) {} }
 function finishRun() {
   S.phase = 'end';
+  if (ARENA_SANDBOX) return;
   if (S.recorded) return;
   const e = endingInfo(), h = loadHall(), who = `${S.name}, ${REG().name}`;
   if (!S.runCounted) { h.runs += 1; S.runCounted = true; }
@@ -2242,7 +2246,7 @@ const SCENES = {
 const scene = kind => `<svg class="scene" viewBox="0 0 400 100" preserveAspectRatio="xMidYMax slice" role="img" aria-label="${esc(SCENE_LABEL[kind])}"><rect width="400" height="100" fill="${kind === 'north' ? 'var(--sky-cold)' : 'var(--sky)'}"/>${SCENES[kind]()}</svg>`;
 
 /* ---------- save ---------- */
-function save() { try { localStorage.setItem('jos-save', JSON.stringify(S)); } catch (e) {} }
+function save() { if (ARENA_SANDBOX) return; try { localStorage.setItem('jos-save', JSON.stringify(S)); } catch (e) {} }
 function load() { try { const r = localStorage.getItem('jos-save'); if (r) S = JSON.parse(r); } catch (e) { S = null; } }
 
 /* ---------- render ---------- */

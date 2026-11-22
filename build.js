@@ -61,7 +61,16 @@ const head = `<!doctype html>
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out);
 const game = fs.readFileSync(path.join(root, 'japa-or-stay.html'), 'utf8');
-const html = head + game + '\n</body>\n</html>\n';
+// Multiplayer Arena (website only: the claude.ai artifact has no server). The rules, the turn runner and the screens are
+// inlined so the Arena opens offline like the rest of the game. The server engine is generated from the same game file.
+require('./arena/build-engine.js').writeEngine(root);
+const arenaFile = f => fs.readFileSync(path.join(root, 'arena', f), 'utf8');
+const arena = `<style>${arenaFile('client/arena.css')}</style>
+<div id="arena-root" hidden></div>
+<script>${arenaFile('shared/rules.js')}</script>
+<script>${arenaFile('shared/turn.js')}</script>
+<script>${arenaFile('client/arena.js')}</script>`;
+const html = head + game + '\n' + arena + '\n</body>\n</html>\n';
 fs.writeFileSync(path.join(out, 'index.html'), html);
 for (const f of fs.readdirSync(path.join(root, 'site'))) fs.copyFileSync(path.join(root, 'site', f), path.join(out, f));
 
@@ -123,6 +132,8 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const req = event.request;
   if (req.method !== 'GET') return;
+  // the Arena API is live data: never cache it here (the Arena keeps its own offline copy in IndexedDB)
+  if (new URL(req.url).pathname.startsWith('/api/')) return;
   const url = new URL(req.url);
   // The game page: try the network first (to get updates), fall back to the saved copy offline.
   if (req.mode === 'navigate') {
