@@ -84,9 +84,15 @@
   };
 
   /* ---------- room configuration ---------- */
-  const LIMITS = { minPlayers: 2, maxPlayers: 8 };
+  // maxPlayers 0 means unlimited: no seat cap
+  const LIMITS = { minPlayers: 2, maxPlayers: 8, unlimited: 0 };
+  // a life in the game lasts 104 in-game weeks (two years) and every turn uses one, so a challenge can hold 104 turns
+  const MAX_TURNS = 104;
+  const isFull = (cfg, joined) => cfg.maxPlayers > 0 && joined >= cfg.maxPlayers;
+  const seatsText = (cfg, joined) => cfg.maxPlayers > 0 ? `${joined} of ${cfg.maxPlayers} players` : `${joined} player${joined === 1 ? '' : 's'} · no limit`;
+  const turnsFit = (weeks, turns) => weeks * turns <= MAX_TURNS;
   const OPTIONS = {
-    weeks: [4, 8, 12, 16],
+    weeks: [4, 8, 12, 16, 52],
     turnsPerWeek: [2, 3, 4, 5, 6],
     roundHours: [24, 48, 72, 168],
     difficulty: ['easy', 'normal', 'hard'],
@@ -119,8 +125,9 @@
     if (isRude(c.description)) errors.push('Please change the description.');
     const intIn = (k, list) => { if (i[k] === undefined) return; const v = Number(i[k]); if (!list.includes(v)) errors.push(`${k} must be one of ${list.join(', ')}.`); else c[k] = v; };
     const oneOf = (k, list) => { if (i[k] === undefined) return; if (!list.includes(i[k])) errors.push(`${k} must be one of ${list.join(', ')}.`); else c[k] = i[k]; };
-    if (i.maxPlayers !== undefined) { const v = Number(i.maxPlayers); if (!Number.isInteger(v) || v < LIMITS.minPlayers || v > LIMITS.maxPlayers) errors.push(`Room size must be ${LIMITS.minPlayers}–${LIMITS.maxPlayers} players.`); else c.maxPlayers = v; }
+    if (i.maxPlayers !== undefined) { const v = i.maxPlayers === 'unlimited' ? 0 : Number(i.maxPlayers); if (!Number.isInteger(v) || (v !== LIMITS.unlimited && (v < LIMITS.minPlayers || v > LIMITS.maxPlayers))) errors.push(`Room size must be ${LIMITS.minPlayers}–${LIMITS.maxPlayers} players, or unlimited.`); else c.maxPlayers = v; }
     intIn('weeks', OPTIONS.weeks); intIn('turnsPerWeek', OPTIONS.turnsPerWeek); intIn('roundHours', OPTIONS.roundHours); intIn('startMoney', OPTIONS.startMoney);
+    if (!turnsFit(c.weeks, c.turnsPerWeek)) errors.push(`A ${c.weeks}-week challenge fits at most ${Math.floor(MAX_TURNS / c.weeks)} turns a week, because a life in the game lasts ${MAX_TURNS} in-game weeks.`);
     oneOf('difficulty', OPTIONS.difficulty); oneOf('visibility', OPTIONS.visibility); oneOf('statsVisibility', OPTIONS.statsVisibility); oneOf('invitePermission', OPTIONS.invitePermission);
     if (i.graceMinutes !== undefined) { const v = Number(i.graceMinutes); if (!Number.isInteger(v) || v < 0 || v > 180) errors.push('Sync grace must be 0–180 minutes.'); else c.graceMinutes = v; }
     if (i.approval !== undefined) c.approval = !!i.approval;
@@ -308,7 +315,7 @@
   }
 
   return {
-    RULES, CURRENT, rulesFor, STATS, STAT_KEYS, AWARDS, AWARD_KEYS, ACHIEVEMENTS, CASH_TITLES, awardName, LIMITS, OPTIONS, DEFAULTS,
+    RULES, CURRENT, rulesFor, STATS, STAT_KEYS, AWARDS, AWARD_KEYS, ACHIEVEMENTS, CASH_TITLES, awardName, LIMITS, OPTIONS, DEFAULTS, MAX_TURNS, isFull, seatsText, turnsFit,
     validateConfig, cleanText, isRude, metrics, rank, BOARDS, computeWeek, average, achievementsFor, highlights, REGION_NAMES
   };
 });

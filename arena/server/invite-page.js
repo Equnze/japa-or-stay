@@ -20,9 +20,11 @@ async function lookup(env, code) {
 }
 
 function page({ origin, code, room, ogImage }) {
-  const open = room && room.status === 'lobby' && room.players < room.maxPlayers;
+  // maxPlayers 0 means the host set no player limit
+  const open = room && room.status === 'lobby' && !(room.maxPlayers > 0 && room.players >= room.maxPlayers);
+  const seats = room ? (room.maxPlayers > 0 ? `${room.players} of ${room.maxPlayers} players` : `${room.players} player${room.players === 1 ? '' : 's'} so far · no player limit`) : '';
   const title = room ? `${room.host} invited you to "${room.name}" on Japa or Stay` : 'You are invited to Japa or Stay';
-  const facts = room ? `${room.players} of ${room.maxPlayers} players · ${room.weeks} game weeks · ${room.turns} turns a week` : '';
+  const facts = room ? `${seats} · ${room.weeks} game weeks · ${room.turns} turns a week` : '';
   const desc = `${GAME} ${ARENA}${facts ? ' ' + facts + '.' : ''}`;
   const joinUrl = `${origin}/#arena/invite/${code}`;
   const url = `${origin}/i/${code}`;
@@ -84,7 +86,7 @@ function page({ origin, code, room, ogImage }) {
   <section class="panel invite" aria-labelledby="inv">
     <div class="kick">🏆 Multiplayer Arena invitation</div>
     ${room ? `<h2 id="inv">${esc(room.host)} invited you to “${esc(room.name)}”</h2>${room.description ? `<p>${esc(room.description)}</p>` : ''}
-    <ul class="facts"><li>${room.players} of ${room.maxPlayers} players</li><li>${room.weeks} game weeks</li><li>${room.turns} turns a week</li>${room.days ? `<li>a game week lasts ${room.days} day${room.days > 1 ? 's' : ''}</li>` : ''}</ul>
+    <ul class="facts"><li>${seats}</li><li>${room.weeks} game weeks</li><li>${room.turns} turns a week</li>${room.days ? `<li>a game week lasts ${room.days} day${room.days > 1 ? 's' : ''}</li>` : ''}</ul>
     ${open ? `<a class="btn" href="${esc(joinUrl)}">Join the challenge</a>` : `<p class="note">${room.status === 'lobby' ? 'This challenge is full.' : room.status === 'active' ? 'This challenge has already started, so it cannot take new players.' : 'This challenge is no longer open.'} You can still play on your own, or start your own challenge.</p><a class="btn" href="${esc(origin)}/#arena/create">Start my own challenge</a>`}
     <p class="note">Invite code <span class="code">${esc(code)}</span></p>`
     : `<h2 id="inv">You're invited to play</h2><p>We could not find a challenge with this code. It may have been cancelled. You can play on your own or start a challenge with your friends.</p><a class="btn" href="${esc(origin)}/#arena">Open the Multiplayer Arena</a>`}

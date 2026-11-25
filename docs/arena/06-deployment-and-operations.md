@@ -49,7 +49,7 @@ Until steps 1–4 are done, the site behaves exactly as today: `/api/health` rep
 
 - D1 free tier: 5 GB storage, 5 million rows read and 100,000 rows written a day. One turn writes about 8–15 rows; one finalised week about 10 rows per player. A 6-player room with 4 turns a week uses a few hundred writes a week.
 - Workers free tier: 100,000 requests a day. Polling is the biggest user: one open lobby tab makes about 900 requests an hour, a game tab about 240. Polling stops when the tab is hidden or offline.
-- Room size is capped at 8; a host can have 10 open rooms.
+- Rooms hold 2–8 players or are unlimited; a host can have 10 open rooms. Very large unlimited rooms work, but closing a week where many players missed turns takes several requests (about one per 6 autopilot turns), and the live board and ceremony read every member each time. For rooms of hundreds of players, Workers Paid and a scheduled closer are recommended.
 
 ## Changing the rules later
 

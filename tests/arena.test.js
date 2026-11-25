@@ -284,11 +284,14 @@ test('weekly finalisation runs once, even when many requests race for it', async
   const { ps, room } = await setupRoom(W, 3, { earlyFinish: false });
   W.advance(25 * HOUR);
   const { advance, finalizeWeek } = require('../arena/server/app.js');
-  // simulate several requests arriving together after the deadline
-  const hits = await Promise.all([ps[0].call('GET', `/rooms/${room.id}`), ps[1].call('GET', `/rooms/${room.id}/version`), ps[2].call('GET', `/rooms/${room.id}/board`), ps[0].call('GET', '/home')]);
-  assert.ok(hits.every(h => h.status === 200));
-  const C = { DB: W.DB };
+  // simulate rounds of several requests arriving together after the deadline, until the week is closed
+  // (each request does a bounded share of the autopilot work, so it can take a few rounds)
   const count = async sql => (await W.DB.prepare(sql).bind(room.id).first()).n;
+  for (let wave = 0; wave < 10 && !(await count('SELECT COUNT(*) AS n FROM week_results WHERE room_id = ?')); wave++) {
+    const hits = await Promise.all([ps[0].call('GET', `/rooms/${room.id}`), ps[1].call('GET', `/rooms/${room.id}/version`), ps[2].call('GET', `/rooms/${room.id}/board`), ps[0].call('GET', '/home')]);
+    assert.ok(hits.every(h => h.status === 200));
+  }
+  const C = { DB: W.DB };
   const before = { results: await count('SELECT COUNT(*) AS n FROM week_results WHERE room_id = ?'), awards: await count('SELECT COUNT(*) AS n FROM week_awards WHERE room_id = ?'), notes: await count('SELECT COUNT(*) AS n FROM notifications WHERE room_id = ?') };
   assert.equal(before.results, 3);
   // a stray retry of the same week's finaliser changes nothing
@@ -431,4 +434,49 @@ test('invite links show who is inviting, to what, and what the game is, safely e
   const unknown = await (await invitePage(new Request('https://japa-or-stay.pages.dev/i/<script>'), W.env)).text();
   assert.ok(!unknown.includes('<script>'), 'codes from the address are never echoed raw');
   assert.match(unknown, /could not find a challenge/);
+});
+
+/* ---------- unlimited rooms and year-long challenges ---------- */
+test('room size can be unlimited, and 52-week challenges fit a two-year life', () => {
+  const u = Rules.validateConfig({ name: 'Big Room', maxPlayers: 0 });
+  assert.equal(u.ok, true); assert.equal(u.config.maxPlayers, 0);
+  assert.equal(Rules.validateConfig({ name: 'Big Room', maxPlayers: 'unlimited' }).config.maxPlayers, 0);
+  assert.equal(Rules.validateConfig({ name: 'Big Room', maxPlayers: 1 }).ok, false);
+  assert.equal(Rules.validateConfig({ name: 'Big Room', maxPlayers: 9 }).ok, false);
+  assert.equal(Rules.isFull({ maxPlayers: 0 }, 5000), false);
+  assert.equal(Rules.isFull({ maxPlayers: 4 }, 4), true);
+  assert.equal(Rules.seatsText({ maxPlayers: 0 }, 1), '1 player · no limit');
+  const year = Rules.validateConfig({ name: 'Year Long', weeks: 52, turnsPerWeek: 2 });
+  assert.equal(year.ok, true);
+  const tooMany = Rules.validateConfig({ name: 'Year Long', weeks: 52, turnsPerWeek: 4 });
+  assert.equal(tooMany.ok, false); assert.match(tooMany.errors.join(' '), /at most 2 turns a week/);
+  // every existing length still allows every turn count it did before
+  for (const w of [4, 8, 12, 16]) for (const t of Rules.OPTIONS.turnsPerWeek) assert.ok(Rules.turnsFit(w, t), `${w}x${t}`);
+});
+
+test('an unlimited room takes more than 8 players, and a big week still finalises once', async () => {
+  const { invitePage } = require('../arena/server/invite-page.js');
+  const W = world();
+  const N = 30;
+  const ps = [];
+  for (let i = 0; i < N; i++) ps.push(await W.player('P' + i));
+  const { room } = await ps[0].call('POST', '/rooms', { name: 'Everyone Welcome', maxPlayers: 0, turnsPerWeek: 4, weeks: 4, roundHours: 24, earlyFinish: false });
+  for (const p of ps.slice(1)) assert.equal((await p.call('POST', '/rooms/join', { code: room.code })).status, 200);
+  const html = await (await invitePage(new Request(`https://japa-or-stay.pages.dev/i/${room.code}`), W.env)).text();
+  assert.match(html, /30 players so far · no player limit/);
+  assert.match(html, /Join the challenge/);
+  for (let i = 0; i < N; i++) { await ps[i].call('POST', `/rooms/${room.id}/character`, CHARS[i % 4]); await ps[i].call('POST', `/rooms/${room.id}/ready`, { ready: true }); }
+  assert.equal((await ps[0].call('POST', `/rooms/${room.id}/start`)).status, 200);
+  // nobody plays: after the deadline autopilot must play 30 x 4 turns. Each request does a small, bounded share
+  // (6 turns by default), the way members' open apps keep checking, until the week is scored.
+  W.advance(25 * HOUR);
+  const t0 = Date.now();
+  let r, requests = 0;
+  do { r = await ps[(requests % 5) + 1].call('GET', `/rooms/${room.id}/version`); requests++; } while (r.week === 1 && requests < 60);
+  const ms = Date.now() - t0;
+  assert.equal(r.week, 2);
+  assert.ok(requests >= 20 && requests <= 22, `took ${requests} requests`);
+  const res = await W.DB.prepare('SELECT COUNT(*) AS n FROM week_results WHERE room_id = ? AND week = 1').bind(room.id).first();
+  assert.equal(res.n, N);
+  console.log(`  closing a ${N}-player week (${N * 4} autopilot turns) took ${requests} requests, ${ms} ms in total locally`);
 });

@@ -38,6 +38,8 @@ function ctxFor(env) {
   const DB = env.DB;
   return {
     DB, secret: String(env.ARENA_SECRET),
+    // autopilot turns this request may play while closing weeks (about 1 ms of CPU each; Workers Free allows 10 ms a request)
+    autoBudget: Number(env.ARENA_AUTO_BUDGET) > 0 ? Number(env.ARENA_AUTO_BUDGET) : 6,
     now: typeof env.now === 'function' ? env.now : () => Date.now(),
     q: (sql, ...a) => DB.prepare(sql).bind(...a.map(v => v === undefined ? null : typeof v === 'boolean' ? (v ? 1 : 0) : v)),
     one: (sql, ...a) => DB.prepare(sql).bind(...a).first(),
@@ -149,7 +151,8 @@ route('GET', '/home', async ({ C, me }) => {
       (SELECT COUNT(*) FROM participants x WHERE x.room_id = r.id AND x.status = 'joined') AS players
     FROM participants pa JOIN rooms r ON r.id = pa.room_id
     WHERE pa.player_id = ? AND pa.status IN ('joined', 'pending') ORDER BY r.created_at DESC LIMIT 60`, me.id);
-  for (const r of rows) if (r.status === 'active' || r.status === 'lobby') await advance(C, r.id);
+  // one room's trouble must never break everyone's home screen
+  for (const r of rows) if (r.status === 'active' || r.status === 'lobby') { try { await advance(C, r.id); } catch (e) { console.error('Arena advance failed', r.id, e && e.message); } }
   const fresh = rows.length ? await C.all(`SELECT r.*, pa.id AS my_pid, pa.status AS my_status, pa.ready AS my_ready,
       (SELECT COUNT(*) FROM participants x WHERE x.room_id = r.id AND x.status = 'joined') AS players,
       (SELECT turns_used FROM char_states cs WHERE cs.participant_id = pa.id) AS turns_used,
@@ -222,7 +225,7 @@ route('POST', '/rooms/join', async ({ C, me, body }) => {
   if (pa && (pa.status === 'joined' || pa.status === 'pending')) return { room: await roomView(C, room, me), status: pa.status };
   if (pa && pa.status === 'removed') throw forbidden('The host removed you from this challenge.');
   const n = await C.one(`SELECT COUNT(*) AS n FROM participants WHERE room_id = ? AND status = 'joined'`, room.id);
-  if (n.n >= room.config.maxPlayers) throw conflict('This challenge is full.', 'full');
+  if (Rules.isFull(room.config, n.n)) throw conflict('This challenge is full.', 'full');
   const invited = await C.one(`SELECT id FROM invitations WHERE room_id = ? AND to_id = ? AND status = 'pending'`, room.id, me.id);
   // a host's direct invitation counts as approval; a code alone waits for the host when approval is on
   const status = room.config.approval && !invited ? 'pending' : 'joined', now = C.now();
@@ -294,7 +297,7 @@ route('POST', '/rooms/:id/approve', async ({ C, me, params, body }) => {
   if (!pa) throw notFound('That join request is not waiting any more.');
   if (body.accept) {
     const n = await C.one(`SELECT COUNT(*) AS n FROM participants WHERE room_id = ? AND status = 'joined'`, room.id);
-    if (n.n >= room.config.maxPlayers) throw conflict('The challenge is full.', 'full');
+    if (Rules.isFull(room.config, n.n)) throw conflict('The challenge is full.', 'full');
   }
   await C.batch([C.q('UPDATE participants SET status = ? WHERE id = ?', body.accept ? 'joined' : 'declined', pa.id), bump(C, room.id),
     notify(C, `${room.id}:approve:${pa.player_id}`, pa.player_id, body.accept ? 'join_accepted' : 'join_declined', room.id, { room: room.name }),
@@ -330,7 +333,7 @@ route('PATCH', '/rooms/:id/settings', async ({ C, me, params, body }) => {
   const v = Rules.validateConfig({ ...room.config, ...body }, { now: C.now() });
   if (!v.ok) throw bad(v.errors.join(' '), 'invalid_config');
   const n = await C.one(`SELECT COUNT(*) AS n FROM participants WHERE room_id = ? AND status = 'joined'`, room.id);
-  if (v.config.maxPlayers < n.n) throw bad(`${n.n} players have already joined.`);
+  if (v.config.maxPlayers > 0 && v.config.maxPlayers < n.n) throw bad(`${n.n} players have already joined.`);
   // changing the rules un-readies everyone, so nobody starts on rules they did not see
   await C.batch([C.q('UPDATE rooms SET name = ?, description = ?, visibility = ?, config_json = ?, version = version + 1 WHERE id = ? AND status = ?', v.config.name, v.config.description, v.config.visibility, JSON.stringify(v.config), room.id, 'lobby'),
     C.q('UPDATE participants SET ready = 0 WHERE room_id = ?', room.id), audit(C, me.id, room.id, 'settings', { config: v.config })]);
@@ -390,7 +393,7 @@ route('POST', '/invitations/:id', async ({ C, me, params, body }) => {
   if (!body.accept) { await C.run(`UPDATE invitations SET status = 'declined' WHERE id = ?`, inv.id); return { ok: true }; }
   const room = await loadRoom(C, inv.room_id); requireLobby(room);
   const n = await C.one(`SELECT COUNT(*) AS n FROM participants WHERE room_id = ? AND status = 'joined'`, room.id);
-  if (n.n >= room.config.maxPlayers) throw conflict('This challenge is full.', 'full');
+  if (Rules.isFull(room.config, n.n)) throw conflict('This challenge is full.', 'full');
   const pa = await myPart(C, room.id, me.id);
   if (pa && pa.status === 'removed') throw forbidden('The host removed you from this challenge.');
   await C.batch([pa ? C.q(`UPDATE participants SET status = 'joined', ready = 0 WHERE id = ?`, pa.id) : C.q(`INSERT INTO participants (id, room_id, player_id, status, joined_at) VALUES (?, ?, ?, 'joined', ?)`, 'pa_' + randomHex(10), room.id, me.id, C.now()),
@@ -514,7 +517,7 @@ async function applyTurn(C, room, pa, cs, week, turn, decisions, opId, auto) {
     if (/UNIQUE|constraint/i.test(String(e && e.message))) throw conflict('That turn was already played.', 'turn_taken');
     throw e;
   }
-  return { state: after, stateVersion: cs.state_version + 1, hash };
+  return { state: after, stateVersion: cs.state_version + 1, hash, storyDone: !!r.storyDone };
 }
 
 // The ledger explains every naira that moved in a turn. Settle-up lines come straight from the game's own money summary;
@@ -541,6 +544,8 @@ function ledgerLines(before, after, R, mb, ma) {
 
 /* ---------- the clock: starting rooms and finalising weeks ---------- */
 // Called on most reads. Safe to call any number of times, from any number of requests at once.
+// Closing a week is incremental: each request plays at most C.autoBudget autopilot turns (about 1 ms of CPU each), so no
+// single request runs long, whatever the room size. Progress is saved turn by turn; the next request carries on.
 async function advance(C, roomId) {
   for (let i = 0; i < 20; i++) {
     const room = await C.one('SELECT * FROM rooms WHERE id = ?', roomId);
@@ -560,35 +565,53 @@ async function advance(C, roomId) {
       due = left.n === 0;
     }
     if (!due) return;
-    await finalizeWeek(C, room);
+    if (!(await finalizeWeek(C, room))) return; // out of budget for this request: the next one continues
   }
 }
 
+// returns true when the week is scored (by this request or another), false when autopilot work remains
 async function finalizeWeek(C, room) {
   const week = room.current_week, cfg = room.config, T = cfg.turnsPerWeek, R = Rules.rulesFor(room.rules_version);
   // 1. autopilot plays any turns still missing (players who left are played by autopilot too, so the table stays complete)
   const parts = await C.all(`SELECT pa.*, p.display_name, p.title FROM participants pa JOIN players p ON p.id = pa.player_id WHERE pa.room_id = ? AND pa.status IN ('joined', 'left') AND EXISTS (SELECT 1 FROM char_states cs WHERE cs.participant_id = pa.id)`, room.id);
-  for (const pa of parts) {
+  const states = {};
+  for (const cs of await C.all('SELECT * FROM char_states WHERE room_id = ?', room.id)) states[cs.participant_id] = cs;
+  // each request starts at a random player, so requests arriving together share the work instead of colliding
+  const off = parts.length ? Math.floor(Math.random() * parts.length) : 0;
+  for (const pa of parts.slice(off).concat(parts.slice(0, off))) {
+    let cs = states[pa.id];
     for (let guard = 0; guard < T + 2; guard++) {
-      const cs = await C.one('SELECT * FROM char_states WHERE participant_id = ?', pa.id);
       const used = cs.week === week ? cs.turns_used : 0;
       if (cs.story_done || used >= T) break;
+      if (C.autoBudget <= 0) return false;
+      C.autoBudget--;
       const st = parse(cs.state_json), seed = await seedFor(C, room, pa.id, week, used + 1);
       const dec = arena().autopilotDecisions(st, seed);
-      try { const res = await applyTurn(C, room, pa, cs, week, used + 1, dec, `auto_${pa.id}_${week}_${used + 1}`, true); if (res.invalid) throw new Error('Autopilot produced an invalid turn: ' + res.invalid); }
-      catch (e) { if (!(e instanceof ApiError && e.code === 'turn_taken')) throw e; }
+      try {
+        const res = await applyTurn(C, room, pa, cs, week, used + 1, dec, `auto_${pa.id}_${week}_${used + 1}`, true);
+        if (res.invalid) throw new Error('Autopilot produced an invalid turn: ' + res.invalid);
+        cs = { ...cs, state_json: JSON.stringify(res.state), state_version: res.stateVersion, week, turns_used: used + 1, story_done: res.storyDone ? 1 : 0 };
+      } catch (e) {
+        if (!(e instanceof ApiError && e.code === 'turn_taken')) throw e;
+        cs = await C.one('SELECT * FROM char_states WHERE participant_id = ?', pa.id); // another request played it: reload and carry on
+      }
     }
+    states[pa.id] = cs;
   }
   const fresh = await C.one('SELECT current_week, status FROM rooms WHERE id = ?', room.id);
-  if (fresh.status !== 'active' || fresh.current_week !== week) return; // someone else finalised it meanwhile
-  // 2. score the week from trusted states only
+  if (fresh.status !== 'active' || fresh.current_week !== week) return true; // someone else finalised it meanwhile
+  // 2. score the week from trusted states only (a fixed number of queries, whatever the room size)
+  for (const cs of await C.all('SELECT * FROM char_states WHERE room_id = ?', room.id)) states[cs.participant_id] = cs;
+  const prevRows = {}, trails = {}, winsBefore = {};
+  if (week > 1) for (const r of await C.all('SELECT * FROM week_results WHERE room_id = ? AND week = ?', room.id, week - 1)) prevRows[r.participant_id] = r;
+  for (const t of await C.all('SELECT participant_id, stats_json FROM turns WHERE room_id = ? AND week = ? ORDER BY participant_id, turn', room.id, week)) (trails[t.participant_id] = trails[t.participant_id] || []).push(parse(t.stats_json));
+  for (const w of await C.all(`SELECT participant_id, COUNT(*) AS n FROM week_awards WHERE room_id = ? AND award_key = 'money' AND week < ? GROUP BY participant_id`, room.id, week)) winsBefore[w.participant_id] = w.n;
   const rows = [];
   for (const pa of parts) {
-    const cs = await C.one('SELECT * FROM char_states WHERE participant_id = ?', pa.id);
-    const prevRow = week > 1 ? await C.one('SELECT * FROM week_results WHERE room_id = ? AND week = ? AND participant_id = ?', room.id, week - 1, pa.id) : null;
+    const cs = states[pa.id], prevRow = prevRows[pa.id], st = parse(cs.state_json);
     const prev = prevRow ? { m: parse(prevRow.metrics_json), cum: parse(prevRow.cum_json), ranks: parse(prevRow.ranks_json) } : { m: parse(cs.opening_json), cum: null, opening: true };
-    const trail = (await C.all('SELECT stats_json FROM turns WHERE participant_id = ? AND week = ? ORDER BY turn', pa.id, week)).map(t => parse(t.stats_json));
-    rows.push({ pid: pa.id, playerId: pa.player_id, name: (parse(pa.character_json, {}).name || pa.display_name), title: pa.title, region: parse(cs.state_json).region, state: parse(cs.state_json), prev, statTrail: trail });
+    rows.push({ pid: pa.id, playerId: pa.player_id, name: (parse(pa.character_json, {}).name || pa.display_name), title: pa.title, region: st.region, state: st, prev, statTrail: trails[pa.id] || [] });
+    winsBefore[pa.id] = winsBefore[pa.id] || 0;
   }
   const out = Rules.computeWeek(rows, R, week);
   const names = Object.fromEntries(rows.map(r => [r.pid, r.name]));
@@ -605,8 +628,6 @@ async function finalizeWeek(C, room) {
     stmts.push(C.q(`INSERT OR IGNORE INTO weeks (room_id, week, status, started_at, deadline_at, rules_version) VALUES (?, ?, 'open', ?, ?, ?)`, room.id, week + 1, nextStart, nextDeadline, room.rules_version));
     stmts.push(C.q('UPDATE char_states SET week = ?, turns_used = 0 WHERE room_id = ? AND week = ?', week + 1, room.id, week));
   }
-  const winsBefore = {};
-  for (const r of rows) winsBefore[r.pid] = (await C.one(`SELECT COUNT(*) AS n FROM week_awards WHERE room_id = ? AND participant_id = ? AND award_key = 'money' AND week < ?`, room.id, r.pid, week)).n;
   for (const r of rows) {
     const res = out.results[r.pid];
     stmts.push(C.q('INSERT OR IGNORE INTO week_results (room_id, week, participant_id, rank_money, eligible_cash, net_worth, life_balance, metrics_json, deltas_json, ranks_json, cum_json, rules_version, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -620,6 +641,7 @@ async function finalizeWeek(C, room) {
   for (const a of out.awards) for (const pid of a.pids) stmts.push(C.q('INSERT OR IGNORE INTO week_awards (room_id, week, award_key, participant_id, value) VALUES (?, ?, ?, ?, ?)', room.id, week, a.key, pid, a.value));
   stmts.push(audit(C, null, room.id, 'finalize_week', { week, players: rows.length, awards: out.awards.length }));
   await C.batch(stmts);
+  return true;
 }
 
 /* ---------- leaderboards and results ---------- */

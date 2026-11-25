@@ -251,7 +251,14 @@ const behind = () => document.querySelectorAll('body > .wrap, body > footer.foot
   ACT.exit = exitArena;
   ACT.retry = () => current && current.retry ? current.retry() : route();
   ACT.go = b => { location.hash = b.dataset.to; };
-  ACT.seg = b => { const g = b.closest('.ar-seg'); g.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); const inp = g.querySelector('input[type=hidden]') || g.parentElement.querySelector(`input[name="${g.dataset.name}"]`); if (inp) inp.value = b.dataset.v; };
+  ACT.seg = b => { const g = b.closest('.ar-seg'); g.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); const inp = g.querySelector('input[type=hidden]') || g.parentElement.querySelector(`input[name="${g.dataset.name}"]`); if (inp) inp.value = b.dataset.v; const f = b.closest('form'); if (f) fitTurns(f); };
+  // a life lasts 104 in-game weeks: grey out turn counts the chosen length cannot hold, and move off one that no longer fits
+  function fitTurns(f) {
+    const w = f.elements.weeks, t = f.elements.turnsPerWeek; if (!w || !t) return;
+    const weeks = Number(w.value), btns = [...f.querySelectorAll('.ar-seg[data-name="turnsPerWeek"] button')];
+    btns.forEach(x => { x.disabled = !R.turnsFit(weeks, Number(x.dataset.v)); x.title = x.disabled ? `A ${weeks}-week challenge fits at most ${Math.floor(R.MAX_TURNS / weeks)} turns a week` : ''; x.setAttribute('aria-label', x.disabled ? `${x.dataset.v} turns: not available for ${weeks} weeks` : `${x.dataset.v} turns`); });
+    if (!R.turnsFit(weeks, Number(t.value))) { const best = btns.filter(x => !x.disabled).pop(); if (best) { btns.forEach(x => x.setAttribute('aria-pressed', x === best)); t.value = best.dataset.v; } }
+  }
   openBtn.addEventListener('click', () => { location.hash = '#arena'; });
   addEventListener('hashchange', route);
 
@@ -291,7 +298,7 @@ const behind = () => document.querySelectorAll('body > .wrap, body > footer.foot
     const me = d.me, active = d.rooms.filter(r => r.status === 'active'), lobby = d.rooms.filter(r => r.status === 'lobby'), done = d.rooms.filter(r => r.status === 'complete');
     const pend = session ? (await outbox()).length : 0;
     const roomItem = r => {
-      const due = r.status === 'active' ? `Week ${r.week} of ${r.weeks} · ${r.turnsUsed || 0}/${r.turnsPerWeek} turns · closes in ${left(r.deadline - serverNow())}` : r.status === 'lobby' ? `Lobby · ${r.players}/${r.maxPlayers} players${r.myStatus === 'pending' ? ' · waiting for the host' : r.myReady ? ' · you are ready' : ''}` : 'Complete';
+      const due = r.status === 'active' ? `Week ${r.week} of ${r.weeks} · ${r.turnsUsed || 0}/${r.turnsPerWeek} turns · closes in ${left(r.deadline - serverNow())}` : r.status === 'lobby' ? `Lobby · ${R.seatsText(r, r.players)}${r.myStatus === 'pending' ? ' · waiting for the host' : r.myReady ? ' · you are ready' : ''}` : 'Complete';
       return `<button class="ar-item" data-a="go" data-to="#arena/room/${r.id}"><span class="grow"><span class="t">${h(r.name)}</span><span class="s">${h(due)}</span></span>${r.lastRank ? `<span class="ar-rank ${r.lastRank <= 3 ? 'g' + r.lastRank : ''}">${r.lastRank}</span>` : ''}</button>`;
     };
     paint(`${d._fresh ? '' : `<p class="ar-note warn">Offline copy from ${when(d._at)}.</p>`}
@@ -326,9 +333,9 @@ const behind = () => document.querySelectorAll('body > .wrap, body > footer.foot
       <label class="ar-field"><span>Challenge name</span><input type="text" name="name" maxlength="40" required value="${h(c.name)}" placeholder="e.g. Friday Hustle League"></label>
       <label class="ar-field"><span>Description <small>(optional)</small></span><textarea name="description" maxlength="200" placeholder="House rules, bragging rights…">${h(c.description)}</textarea></label>
       <div class="cols">
-        <label class="ar-field"><span>Players (2–8)</span><select name="maxPlayers">${[2, 3, 4, 5, 6, 7, 8].map(n => `<option ${n === c.maxPlayers ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-        <div class="ar-field"><span>Length</span>${seg('weeks', R.OPTIONS.weeks.map(w => [w, `${w} weeks`]), c.weeks)}</div>
-        <div class="ar-field"><span>Turns per game week</span>${seg('turnsPerWeek', R.OPTIONS.turnsPerWeek.map(w => [w, w]), c.turnsPerWeek)}<small>Each turn is one in-game week: plan cards, face events, settle up. Everyone gets the same number.</small></div>
+        <label class="ar-field"><span>Players</span><select name="maxPlayers">${[2, 3, 4, 5, 6, 7, 8].map(n => `<option value="${n}" ${n === c.maxPlayers ? 'selected' : ''}>${n}</option>`).join('')}<option value="0" ${c.maxPlayers === 0 ? 'selected' : ''}>Unlimited</option></select><small>Unlimited: anyone with the invite can join until you start.</small></label>
+        <div class="ar-field"><span>Length</span>${seg('weeks', R.OPTIONS.weeks.map(w => [w, w === 52 ? '52 weeks (a full year)' : `${w} weeks`]), c.weeks)}</div>
+        <div class="ar-field" data-turns><span>Turns per game week</span>${seg('turnsPerWeek', R.OPTIONS.turnsPerWeek.map(w => [w, w]), c.turnsPerWeek)}<small>Each turn is one in-game week: plan cards, face events, settle up. Everyone gets the same number. A life lasts ${R.MAX_TURNS} in-game weeks, so long challenges allow fewer turns a week.</small></div>
         <div class="ar-field"><span>Each game week lasts</span>${seg('roundHours', [[24, '1 day'], [48, '2 days'], [72, '3 days'], [168, '7 days']], c.roundHours)}<small>Real time. The server clock decides.</small></div>
       </div>
       <div class="cols">
@@ -356,12 +363,13 @@ const behind = () => document.querySelectorAll('body > .wrap, body > footer.foot
       startMoney: Number(v('startMoney')), difficulty: v('difficulty'), statsVisibility: v('statsVisibility'), visibility: v('visibility'), invitePermission: v('invitePermission'), graceMinutes: Number(v('graceMinutes')),
       approval: f.elements.approval.checked, earlyFinish: f.elements.earlyFinish.checked, startAt: v('startAt') ? new Date(v('startAt')).toISOString() : null, awardNames };
   }
-  async function createScreen() { paint(`<div class="ar-back"><a class="ar-link" href="#arena">← Arena home</a></div>${configForm({}, 'create')}`); }
+  async function createScreen() { paint(`<div class="ar-back"><a class="ar-link" href="#arena">← Arena home</a></div>${configForm({}, 'create')}`); fitTurns(main().querySelector('form')); }
   ACT['form:create'] = async f => { const r = await api('POST', '/rooms', readConfig(f)); location.hash = `#arena/room/${r.room.id}`; };
   async function settingsScreen(id) {
     const { room } = await api('GET', `/rooms/${id}`);
     if (!room.isHost || room.status !== 'lobby') { paint(`<div class="ar-panel ar-empty"><b>Settings are locked</b>Only the host can change settings, and only before the start.<a class="ar-btn" href="#arena/room/${id}">Back to the room</a></div>`); return; }
     paint(`<div class="ar-back"><a class="ar-link" href="#arena/room/${id}">← Lobby</a></div><p class="ar-note">Saving changes un-readies everyone, so nobody starts on rules they did not see.</p>${configForm({ ...room.config, name: room.name }, 'settings')}`);
+    fitTurns(main().querySelector('form'));
     current = { roomId: id };
   }
   ACT['form:settings'] = async f => { const id = current.roomId; await api('PATCH', `/rooms/${id}/settings`, readConfig(f)); location.hash = `#arena/room/${id}`; };
@@ -374,7 +382,7 @@ const behind = () => document.querySelectorAll('body > .wrap, body > footer.foot
       <form class="ar-panel ar-form" data-form="code" style="max-width:520px"><h2>Join with a code</h2>
         <label class="ar-field"><span>Invitation code</span><input type="text" name="code" maxlength="10" required value="${h(code || '')}" placeholder="8 letters and numbers" autocomplete="off" style="text-transform:uppercase;letter-spacing:.12em"></label>
         <p class="ar-err" role="alert"></p><button class="ar-btn" type="submit">See the challenge</button></form>
-      <section class="ar-panel"><h2>Open challenges</h2>${pub.rooms.length ? `<div class="ar-list">${pub.rooms.map(r => `<div class="ar-item"><span class="grow"><span class="t">${h(r.name)}</span><span class="s">Host ${h(r.host)} · ${r.players}/${r.maxPlayers} players · ${r.weeks} weeks${r.approval ? ' · host approves' : ''}</span></span><button class="ar-btn sm" data-a="joinPublic" data-id="${r.id}">Join</button></div>`).join('')}</div>` : `<div class="ar-empty"><b>No public lobbies right now</b>Ask a friend for their code, or create your own.</div>`}</section>`);
+      <section class="ar-panel"><h2>Open challenges</h2>${pub.rooms.length ? `<div class="ar-list">${pub.rooms.map(r => `<div class="ar-item"><span class="grow"><span class="t">${h(r.name)}</span><span class="s">Host ${h(r.host)} · ${R.seatsText(r, r.players)} · ${r.weeks} weeks${r.approval ? ' · host approves' : ''}</span></span><button class="ar-btn sm" data-a="joinPublic" data-id="${r.id}">Join</button></div>`).join('')}</div>` : `<div class="ar-empty"><b>No public lobbies right now</b>Ask a friend for their code, or create your own.</div>`}</section>`);
   }
   ACT['form:code'] = async f => { location.hash = `#arena/invite/${f.code.value.trim().toUpperCase()}`; };
   ACT.joinPublic = async b => { const r = await api('POST', '/rooms/join', { roomId: b.dataset.id }); location.hash = `#arena/room/${r.room.id}`; };
@@ -384,9 +392,9 @@ const behind = () => document.querySelectorAll('body > .wrap, body > footer.foot
     const c = i.rules;
     paint(`<div class="ar-panel ar-reveal" style="max-width:620px;margin:20px auto">
       <div class="ar-small ar-muted">Invitation from ${h(i.host)}</div><h2 style="font-size:28px">${h(i.name)}</h2>${i.description ? `<p>${h(i.description)}</p>` : ''}
-      <div class="ar-stats" style="margin:14px 0">${[['Players', `${i.players}/${i.maxPlayers}`], ['Length', `${c.weeks} game weeks`], ['Turns a week', c.turnsPerWeek], ['Week lasts', c.roundHours >= 168 ? '7 days' : c.roundHours / 24 + ' day' + (c.roundHours > 24 ? 's' : '')], ['Start money', N(c.startMoney)], ['Difficulty', c.difficulty]].map(([k, v]) => `<div class="ar-stat"><div class="k">${k}</div><div class="v" style="font-size:16px">${h(v)}</div></div>`).join('')}</div>
+      <div class="ar-stats" style="margin:14px 0">${[['Players', i.maxPlayers > 0 ? `${i.players}/${i.maxPlayers}` : `${i.players} · no limit`], ['Length', `${c.weeks} game weeks`], ['Turns a week', c.turnsPerWeek], ['Week lasts', c.roundHours >= 168 ? '7 days' : c.roundHours / 24 + ' day' + (c.roundHours > 24 ? 's' : '')], ['Start money', N(c.startMoney)], ['Difficulty', c.difficulty]].map(([k, v]) => `<div class="ar-stat"><div class="k">${k}</div><div class="v" style="font-size:16px">${h(v)}</div></div>`).join('')}</div>
       ${i.status !== 'lobby' ? `<p class="ar-note bad">This challenge has ${i.status === 'active' ? 'already started' : 'ended'}, so it cannot take new players.</p>` : c.approval ? '<p class="ar-note">The host approves each new player.</p>' : ''}
-      <div class="ar-row2"><a class="ar-btn ghost" href="#arena">Not now</a><button class="ar-btn" data-a="joinCode" data-code="${h(code)}" ${i.status !== 'lobby' || i.players >= i.maxPlayers ? 'disabled' : ''}>${i.players >= i.maxPlayers ? 'Challenge full' : 'Join challenge'}</button></div></div>`);
+      <div class="ar-row2"><a class="ar-btn ghost" href="#arena">Not now</a><button class="ar-btn" data-a="joinCode" data-code="${h(code)}" ${i.status !== 'lobby' || R.isFull(i, i.players) ? 'disabled' : ''}>${R.isFull(i, i.players) ? 'Challenge full' : 'Join challenge'}</button></div></div>`);
   }
   ACT.joinCode = async b => { const r = await api('POST', '/rooms/join', { code: b.dataset.code }); toastA(r.status === 'pending' ? 'Request sent. The host will let you in.' : 'You joined!'); location.hash = `#arena/room/${r.room.id}`; };
 
@@ -411,14 +419,14 @@ const behind = () => document.querySelectorAll('body > .wrap, body > footer.foot
       + `Join here: ${link}\n(or use code ${room.code} in the Multiplayer Arena)`;
     if (room.status === 'cancelled') { paint(`<div class="ar-panel ar-empty"><b>${h(room.name)} was cancelled</b>The host cancelled it before it started.<a class="ar-btn" href="#arena">Arena home</a></div>`); return; }
     paint(`<div class="ar-back"><a class="ar-link" href="#arena">← Arena home</a></div>
-      <section class="ar-panel ar-reveal"><div class="ar-row2"><div class="grow" style="flex:1;min-width:220px"><div class="ar-small ar-muted">Lobby · ${joined.length} of ${room.config.maxPlayers} players</div><h2 style="font-size:26px;margin:2px 0 4px">${h(room.name)}</h2>${room.description ? `<p class="ar-muted" style="margin:0">${h(room.description)}</p>` : ''}</div>
+      <section class="ar-panel ar-reveal"><div class="ar-row2"><div class="grow" style="flex:1;min-width:220px"><div class="ar-small ar-muted">Lobby · ${R.seatsText(room.config, joined.length)}</div><h2 style="font-size:26px;margin:2px 0 4px">${h(room.name)}</h2>${room.description ? `<p class="ar-muted" style="margin:0">${h(room.description)}</p>` : ''}</div>
         <div><span class="ar-chip ${allReady ? 'on' : 'warn'}"><i></i>${startAt ? `Starts ${when(startAt)}` : allReady ? 'Everyone is ready' : 'Waiting for players'}</span></div></div>
         ${me && me.status === 'pending' ? '<p class="ar-note" style="margin-top:12px">Your request is waiting for the host. This page updates by itself.</p>' : ''}</section>
       <section class="ar-panel"><h2>Players</h2><div class="ar-seats">
         ${joined.map(p => `<div class="ar-seat ${p.ready ? 'ready' : ''}">${face(p.character ? p.character.av : p.avatar, 'lg', p.ready ? 'happy' : 'flat')}<b>${h(p.character ? p.character.name : p.displayName)}</b><span class="s">${h(p.displayName)}${p.isHost ? ' · host' : ''}</span>
           <span class="ar-chip ${p.ready ? 'on' : ''}"><i></i>${p.ready ? 'Ready' : p.character ? 'Not ready' : 'Making character'}</span>
           ${room.isHost && !p.isMe ? `<button class="ar-link ar-small" data-a="removeP" data-id="${p.id}" data-name="${h(p.displayName)}">Remove</button>` : ''}</div>`).join('')}
-        ${Array.from({ length: Math.max(0, room.config.maxPlayers - joined.length) }, () => `<div class="ar-seat open">Open seat</div>`).join('')}
+        ${room.config.maxPlayers > 0 ? Array.from({ length: Math.max(0, room.config.maxPlayers - joined.length) }, () => `<div class="ar-seat open">Open seat</div>`).join('') : `<div class="ar-seat open">Open seats: no limit</div>`}
       </div>
       ${room.isHost && pending.length ? `<h3 style="margin-top:16px">Join requests</h3><div class="ar-list">${pending.map(p => `<div class="ar-item">${face(p.avatar, 'sm')}<span class="grow"><span class="t">${h(p.displayName)}</span></span><button class="ar-btn sm" data-a="approve" data-id="${p.id}" data-yes="1">Let in</button><button class="ar-btn ghost sm" data-a="approve" data-id="${p.id}">Decline</button></div>`).join('')}</div>` : ''}
       </section>
@@ -524,7 +532,8 @@ const behind = () => document.querySelectorAll('body > .wrap, body > footer.foot
         ${top.length ? `<div class="ar-board">${top.map(r => boardRow(id, r, 'money', r.ranks.money)).join('')}</div>` : '<div class="ar-empty">Standings appear once you are online.</div>'}</section>
       <div class="ar-row2" style="margin-top:14px"><a class="ar-btn ghost" href="#arena/room/${id}/journey">My money journey</a><a class="ar-btn ghost" href="#arena/room/${id}/rules">Rules</a><button class="ar-btn danger sm" data-a="leaveActive">Leave challenge</button></div>`);
     current = { roomId: id, live: () => roomScreen(id) };
-    watchRoom(id, room.version, 15000, () => roomScreen(id));
+    // after the deadline every check also moves the closing of the week along, so check more often
+    watchRoom(id, room.version, closed ? 4000 : 15000, () => roomScreen(id));
   }
   ACT.leaveActive = async () => { if (!confirm('Leave this running challenge? Your results so far stay on the table, and autopilot plays your remaining turns.')) return; await api('POST', `/rooms/${current.roomId}/leave`); location.hash = '#arena'; };
   function statGrid(m, deltas) {

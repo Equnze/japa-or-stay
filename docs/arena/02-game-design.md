@@ -4,8 +4,8 @@ Rules version **`arena-1`** (`arena/shared/rules.js`). A room stores the version
 
 ## Rooms
 
-- 2–8 players (default 6). Private (code only) or public (listed). Optional host approval of join requests. Host-only or all-member friend invitations.
-- Settings: name, description, length (4, 8, 12 or 16 game weeks), turns per game week (2–6, default 4), game-week length (1, 2, 3 or 7 real days, default 7), late-sync grace (0–180 minutes, default 60), end-early-when-everyone-has-played (default on), starting money (₦100k / ₦200k / ₦500k), difficulty, stats visibility (everyone / money only), optional start date, renamed award titles.
+- 2–8 players (default 6), or **Unlimited** (no seat cap; stored as `maxPlayers: 0`). Private (code only) or public (listed). Optional host approval of join requests. Host-only or all-member friend invitations.
+- Settings: name, description, length (4, 8, 12, 16 or 52 game weeks), turns per game week (2–6, default 4; a life lasts 104 in-game weeks, so game weeks × turns may be at most 104, which means 52-week challenges have 2 turns a week), game-week length (1, 2, 3 or 7 real days, default 7), late-sync grace (0–180 minutes, default 60), end-early-when-everyone-has-played (default on), starting money (₦100k / ₦200k / ₦500k), difficulty, stats visibility (everyone / money only), optional start date, renamed award titles.
 - Changing settings un-readies everyone. Nobody can join after the start (late joiners can never collect earlier weeks). Removed players cannot rejoin. The host cannot leave an unstarted room (they cancel it instead).
 
 ## Game weeks and turns

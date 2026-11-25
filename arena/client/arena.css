@@ -247,3 +247,4 @@ button.ar-item:hover { background: var(--a-panel2); }
 #arena-root a.ar-btn.danger { color: var(--a-bad); }
 .ar-top .ar-btn { white-space: nowrap; }
 @media (max-width: 600px) { .ar-hide-sm { display: none; } .ar-top { gap: 8px; } .ar-top .brand { font-size: 16px; } }
+#arena-root .ar-seg button:disabled { opacity: .35; cursor: not-allowed; }
